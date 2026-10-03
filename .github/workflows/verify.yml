@@ -1,0 +1,33 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DESTINATION: platform=iOS Simulator,name=iPhone 17
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available | grep iPhone | head -20
+
+      - name: NozirKit tests
+        working-directory: NozirKit
+        run: xcodebuild test -scheme NozirKit -destination "$DESTINATION"
+
+      - name: App build
+        run: >
+          xcodebuild build
+          -project Nozir.xcodeproj
+          -scheme Nozir
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
