@@ -1,8 +1,12 @@
 import Foundation
 
 /// Builds requests, sends them, and turns every answer into either a value or
-/// an `ApiFailure`. An authorised call that gets a 401 is refreshed once and
-/// retried once; a second 401 is returned as it is.
+/// an `ApiFailure`.
+///
+/// 401 handling follows `AUTH_AND_TOKENS.md`: `TOKEN_EXPIRED` is refreshed once
+/// and retried once; `TOKEN_REVOKED`, `INVALID_TOKEN`, or a 401 after the retry
+/// ends the session. A cancelled request surfaces as `CancellationError`, never
+/// as a network failure.
 public struct ApiClient: Sendable {
     private let baseURL: URL
     private let transport: any HTTPTransport
@@ -47,9 +51,25 @@ public struct ApiClient: Sendable {
         let token = try await tokens.validAccessToken()
         let first = try await transmit(request, bearer: token)
         guard first.response.statusCode == 401 else { return try checked(first) }
+        guard Self.isExpiry(first.data) else { return try await endSession(tokens) }
         let renewed = try await tokens.refreshAfterRejection(of: token)
         let second = try await transmit(request, bearer: renewed)
-        return try checked(second)
+        guard second.response.statusCode == 401 else { return try checked(second) }
+        return try await endSession(tokens)
+    }
+
+    /// Only an expired access token is worth a refresh. A 401 without the error
+    /// body (a proxy's page) is given the benefit of the doubt: one refresh decides.
+    private static func isExpiry(_ body: Data) -> Bool {
+        guard case .server(_, let error) = ResponseMapping.failure(status: 401, body: body) else {
+            return true
+        }
+        return error.code == .tokenExpired
+    }
+
+    private func endSession(_ tokens: any AccessTokenProvider) async throws -> Data {
+        await tokens.endSession()
+        throw ApiFailure.sessionEnded
     }
 
     private func transmit(
@@ -60,8 +80,12 @@ public struct ApiClient: Sendable {
         do {
             let (data, response) = try await transport.send(urlRequest)
             return (data, response)
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
         } catch let error as URLError {
             throw ApiFailure.network(code: error.code.rawValue)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             throw ApiFailure.network(code: URLError.Code.unknown.rawValue)
         }

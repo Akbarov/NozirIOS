@@ -16,8 +16,9 @@ public enum ApiFailure: Error, Equatable, Sendable {
         return error.code
     }
 
-    /// True when the refresh token itself has been refused: signing in again
-    /// is the only way forward. A network failure never ends a session.
+    /// True when the server refused the session's credentials with a 401.
+    /// `TokenRefresher` reads it on the refresh endpoint's answer; `ApiClient`
+    /// decides on ordinary calls itself. A network failure never ends a session.
     public var endsSession: Bool {
         guard case .server(let status, let error) = self, status == 401 else { return false }
         return [.tokenExpired, .tokenRevoked, .invalidToken, .unauthenticated].contains(error.code)

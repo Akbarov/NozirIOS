@@ -10,6 +10,7 @@ private actor FakeTokens: AccessTokenProvider {
     private var current: String
     private let renewed: String
     private(set) var rejected: [String] = []
+    private(set) var endedSessions = 0
 
     init(current: String, renewed: String = "renewed") {
         self.current = current
@@ -22,6 +23,19 @@ private actor FakeTokens: AccessTokenProvider {
         rejected.append(token)
         current = renewed
         return renewed
+    }
+
+    func endSession() async {
+        endedSessions += 1
+    }
+}
+
+/// A transport that fails the way URLSession does when its task is cancelled.
+private struct CancelledTransport: HTTPTransport {
+    let error: any Error
+
+    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        throw error
     }
 }
 
@@ -112,18 +126,62 @@ private struct Echo: Decodable, Equatable {
         #expect(rejected == ["acc-1"])
     }
 
-    @Test func aSecond401IsNotRetriedAgain() async {
-        let transport = FakeTransport([.error(401, code: "TOKEN_EXPIRED"), .error(401, code: "TOKEN_REVOKED")])
+    // AUTH_AND_TOKENS.md: refresh once and retry once. A 401 after that is a
+    // session the server no longer accepts.
+    @Test func aSecond401IsNotRetriedAndEndsTheSession() async {
+        let transport = FakeTransport([.error(401, code: "TOKEN_EXPIRED"), .error(401, code: "TOKEN_EXPIRED")])
         let tokens = FakeTokens(current: "acc-1")
         let client = ApiClient(baseURL: base, transport: transport, identity: identity, tokens: tokens)
 
-        await #expect(throws: ApiFailure.server(status: 401, error: ApiError(code: .tokenRevoked, message: "server text"))) {
+        await #expect(throws: ApiFailure.sessionEnded) {
             try await client.send(ApiRequest(method: .get, path: "/v1/parent/x"), as: Echo.self)
         }
         let requests = await transport.requests
         let rejected = await tokens.rejected
+        let ended = await tokens.endedSessions
         #expect(requests.count == 2)
         #expect(rejected.count == 1)
+        #expect(ended == 1)
+    }
+
+    // AUTH_AND_TOKENS.md: on TOKEN_REVOKED or INVALID_TOKEN, sign out — do not retry.
+    @Test(arguments: ["TOKEN_REVOKED", "INVALID_TOKEN"])
+    func aRevokedOrInvalidTokenEndsTheSessionWithoutARefresh(code: String) async {
+        let transport = FakeTransport([.error(401, code: code), .ok(#"{"value":"never"}"#)])
+        let tokens = FakeTokens(current: "acc-1")
+        let client = ApiClient(baseURL: base, transport: transport, identity: identity, tokens: tokens)
+
+        await #expect(throws: ApiFailure.sessionEnded) {
+            try await client.send(ApiRequest(method: .get, path: "/v1/parent/x"), as: Echo.self)
+        }
+        let requests = await transport.requests
+        let rejected = await tokens.rejected
+        let ended = await tokens.endedSessions
+        #expect(requests.count == 1)
+        #expect(rejected.isEmpty)
+        #expect(ended == 1)
+    }
+
+    @Test func theRetryRepeatsTheSameMethodAndBody() async throws {
+        let transport = FakeTransport([.error(401, code: "TOKEN_EXPIRED"), .ok(#"{"value":"after"}"#)])
+        let client = ApiClient(baseURL: base, transport: transport, identity: identity, tokens: FakeTokens(current: "acc-1"))
+
+        _ = try await client.send(try .post("/v1/parent/x", json: ["name": "Ali"]), as: Echo.self)
+
+        let requests = await transport.requests
+        #expect(requests.count == 2)
+        #expect(requests.last?.httpMethod == "POST")
+        #expect(requests.last?.jsonBody == ["name": "Ali"])
+    }
+
+    // A SwiftUI .task that goes away cancels its request; that is not "no connection".
+    @Test(arguments: [URLError(.cancelled) as any Error, CancellationError() as any Error])
+    func cancellationIsNotANetworkFailure(error: any Error) async {
+        let client = ApiClient(baseURL: base, transport: CancelledTransport(error: error), identity: identity)
+
+        await #expect(throws: CancellationError.self) {
+            try await client.send(ApiRequest(method: .get, path: "/v1/x", requiresAuth: false), as: Echo.self)
+        }
     }
 
     @Test func noConnectionIsANetworkFailure() async {
