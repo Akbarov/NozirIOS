@@ -10,6 +10,11 @@ let package = Package(
     targets: [
         .target(name: "NozirNetworking"),
         .target(name: "NozirAppFeature", dependencies: ["NozirNetworking"]),
-        .testTarget(name: "NozirNetworkingTests", dependencies: ["NozirNetworking"]),
+        .target(
+            name: "NozirTestSupport",
+            dependencies: ["NozirNetworking"],
+            path: "Tests/NozirTestSupport"
+        ),
+        .testTarget(name: "NozirNetworkingTests", dependencies: ["NozirNetworking", "NozirTestSupport"]),
     ]
 )
