@@ -216,12 +216,12 @@ hujjatlaridan tekshiriladi (o'zgarib turadi).
 4. **Handover'dagi tekshirilmagan tasdiq.** Apple qoidalari 2026-10-03 da
    developer.apple.com'dan o'qildi; sahifada yangilanish sanasi ko'rsatilmagan.
 
-## 12. Ochiq savollar (reja boshlanishidan oldin)
+## 12. Foydalanuvchi bilan hal qilingan savollar (2026-10-03)
 
-1. Lokal Xcode versiyasi (Swift Testing uchun 16+).
-2. Bundle ID (taklif: Android bilan mos `tut.mobile.nozirparent` — tasdiqlash kerak).
-3. Apple Developer Program a'zoligi bormi (simulyator uchun shart emas, qurilma va
-   TestFlight uchun shart).
-4. GitHub'da `NozirIOS` repo nomi va egasi.
-5. P01/P02 dizayni: Android ekranlarini aynan takrorlashmi yoki `NozirParent/docs/design`
-   dagi maketlarmi.
+| Savol | Javob | Oqibati |
+|---|---|---|
+| Lokal Xcode | 26.6 (17F113) | Swift Testing mavjud. CI'dagi Xcode versiyasi ham shunga yaqin tanlanadi |
+| Bundle ID | `tut.mobile.nozirparent` | Android `applicationId` bilan bir xil |
+| Apple Developer Program | Hozircha yo'q, keyin olinadi | Poydevor faqat simulyatorda tekshiriladi; CI'da imzolash o'chiriladi (`CODE_SIGNING_ALLOWED=NO`). Haqiqiy qurilma, TestFlight, APNs va IAP a'zolikdan keyin |
+| GitHub repo | `NozirIOS`, foydalanuvchi o'zi yaratadi va push qiladi | CI repo push qilingandan keyin ishlaydi; ungacha dalil — lokal Xcode |
+| P01/P02 dizayni | Android bilan bir xil | Ranglar, tipografiya, oraliqlar va ekran tarkibi `NozirParent` dagi Compose kodidan (`core/designsystem`, `feature/welcome`, `feature/signin`) ko'chiriladi. To'liq iOS uslubiga o'tish — keyinroq, alohida qaror |
