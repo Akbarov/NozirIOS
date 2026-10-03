@@ -225,3 +225,19 @@ hujjatlaridan tekshiriladi (o'zgarib turadi).
 | Apple Developer Program | Hozircha yo'q, keyin olinadi | Poydevor faqat simulyatorda tekshiriladi; CI'da imzolash o'chiriladi (`CODE_SIGNING_ALLOWED=NO`). Haqiqiy qurilma, TestFlight, APNs va IAP a'zolikdan keyin |
 | GitHub repo | `NozirIOS`, foydalanuvchi o'zi yaratadi va push qiladi | CI repo push qilingandan keyin ishlaydi; ungacha dalil — lokal Xcode |
 | P01/P02 dizayni | Android bilan bir xil | Ranglar, tipografiya, oraliqlar va ekran tarkibi `NozirParent` dagi Compose kodidan (`core/designsystem`, `feature/welcome`, `feature/signin`) ko'chiriladi. To'liq iOS uslubiga o'tish — keyinroq, alohida qaror |
+
+## 13. Reja bosqichidagi aniqlashtirishlar
+
+Implementatsiya rejasi (`docs/superpowers/plans/2026-10-03-nozir-ios-foundation.md`,
+"Spec'dan aniqlashtirishlar" jadvali) quyidagilarni aniqlashtirdi; ular shu spec'ning
+tegishli bandlari o'rnini bosadi:
+
+- Base URL: `.xcconfig` o'rniga ilova target'idagi `ApiHost` (Release — doimiy host,
+  Debug — `NOZIR_API_BASE_URL` muhit o'zgaruvchisi).
+- Config keshi `Cache-Control` bo'yicha emas, **ilova versiyasi bo'yicha** kalitlanadi.
+- Tarmoq testlari `URLProtocol` o'rniga `HTTPTransport` fake'i bilan.
+- `ApiErrorCode` — `RawRepresentable` struct.
+- `SignInProvider` o'rniga `TelegramSignInService`; yangi provayder `TokenStore.save` orqali qo'shiladi.
+- Fixture'lar test fayllari ichida.
+- App Store havolasi App Store ID paydo bo'lguncha yo'q.
+
