@@ -4,6 +4,7 @@ import NozirDesignSystem
 import NozirFamily
 import NozirInsights
 import NozirL10n
+import NozirLocation
 
 /// Everything the signed-in app shares for one session: the family, the tab,
 /// and whether the add-a-child flow is up. A new sign-in gets a new one, so a
@@ -12,17 +13,20 @@ import NozirL10n
 @Observable
 public final class SignedInModel {
     public enum Tab: Hashable, Sendable {
-        case home, statistics, profile
+        case home, statistics, location, profile
     }
 
     public var tab: Tab = .home
     public var isAddingChild = false
     public let family: FamilyStore
     let statistics: StatisticsModel
+    /// One for the session, like Statistics: the tab keeps its chosen child.
+    let locationTab: LocationModel
     /// Goes up when the add-a-child flow closes, so Home asks again.
     private(set) var homeRefresh = 0
 
     private let insights: any InsightsService
+    let locationService: any LocationService
     private let language: LanguageStore
     private let appearance: AppearanceStore
     private let localeSync: LocaleSync
@@ -33,6 +37,7 @@ public final class SignedInModel {
     init(
         family: FamilyStore,
         insights: any InsightsService,
+        location: any LocationService,
         language: LanguageStore,
         appearance: AppearanceStore,
         localeSync: LocaleSync,
@@ -41,12 +46,14 @@ public final class SignedInModel {
     ) {
         self.family = family
         self.insights = insights
+        locationService = location
         self.language = language
         self.appearance = appearance
         self.localeSync = localeSync
         self.emergencyNumber = emergencyNumber
         signOutAction = signOut
         statistics = StatisticsModel(family: family)
+        locationTab = LocationModel(family: family, location: location)
     }
 
     /// After sign-in: a family with no children goes straight to adding one
@@ -94,6 +101,14 @@ public final class SignedInModel {
 
     func makeDetailsModel(_ child: Child) -> ChildDetailsModel {
         ChildDetailsModel(child: child, family: family)
+    }
+
+    func makeSafeZoneModel(childId: UUID, zoneId: UUID?) -> SafeZoneModel {
+        SafeZoneModel(childId: childId, zoneId: zoneId, location: locationService)
+    }
+
+    func makeLocationTrackingModel(childId: UUID) -> LocationTrackingModel {
+        LocationTrackingModel(childId: childId, childName: family.child(childId)?.displayName, family: family)
     }
 
     var currentEmergencyNumber: String? {
