@@ -282,6 +282,29 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         #expect(model.detail?.status == .acknowledged)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func aFailedAcknowledgeDoesNotDiscardARefreshInFlight() async {
+        var script = FakeLocation.Script()
+        script.sos = [.success(detail())]
+        script.acknowledge = [.failure(offline)]
+        let (model, fake) = setup(script)
+        await model.load()
+        let gate = PauseGate()
+        await fake.add {
+            $0.sos = [.success(detail(status: .resolved))]
+            $0.sosGate = gate
+        }
+
+        let refresh = Task { await model.load() }
+        await gate.untilPaused()
+        await model.acknowledge()
+        #expect(model.acknowledgeFailed)
+        await gate.release()
+        await refresh.value
+
+        #expect(model.detail?.status == .resolved)
+    }
+
     @Test func anAlarmThatEndsUnderAShownDetailSaysSoAndStopsAcknowledging() async {
         var script = FakeLocation.Script()
         script.sos = [.success(detail()), .failure(notFound)]

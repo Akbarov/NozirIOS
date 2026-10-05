@@ -79,7 +79,6 @@ final class SosDetailModel {
 
     func acknowledge() async {
         guard canAcknowledge else { return }
-        generation += 1
         isAcknowledging = true
         acknowledgeFailed = false
         defer { isAcknowledging = false }
@@ -88,6 +87,8 @@ final class SosDetailModel {
             generation += 1
             detail = settled
             isOffline = false
+        } catch is CancellationError {
+            return
         } catch {
             acknowledgeFailed = true
         }
