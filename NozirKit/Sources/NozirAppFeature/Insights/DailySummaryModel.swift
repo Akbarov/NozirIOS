@@ -39,9 +39,14 @@ final class DailySummaryModel {
         await fetch()
     }
 
+    /// Pull to refresh or the retry button; a summary on screen stays while it is asked for again.
     func retry() async {
-        state = .loading
-        await fetch()
+        if case .loaded = state {
+            await fetch()
+        } else {
+            state = .loading
+            await fetch()
+        }
     }
 
     private func fetch() async {
@@ -51,11 +56,14 @@ final class DailySummaryModel {
             let weekly = try? await insights.weeklySummary(of: childId, weekStart: summary.periodEnd.monday)
             question = weekly?.conversationQuestion
         } catch is CancellationError {
-            return
+            // Nothing on screen to fall back to: offer a retry rather than a spinner nobody drives.
+            if state == .loading { state = .failed(.noConnection) }
         } catch let failure as ApiFailure where failure.isNotFound {
             state = .notReady
+            question = nil
         } catch {
             state = .failed(UserMessage(error))
+            question = nil
         }
     }
 

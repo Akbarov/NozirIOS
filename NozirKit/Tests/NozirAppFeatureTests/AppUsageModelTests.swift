@@ -95,6 +95,38 @@ private actor GatedInsights: InsightsService {
         #expect(model.state == .loaded(breakdown(.lastSevenDays, [app("b", 70)])))
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledRefreshKeepsWhatIsOnScreen() async {
+        let insights = HangingInsights(hanging: [2])
+        let model = AppUsageModel(childId: aliId, insights: insights)
+        await model.load()
+        let old = model.state
+        guard case .loaded = old else { Issue.record("first load did not load"); return }
+
+        let refresh = Task { await model.load() }
+        await insights.waitUntilAsked("apps", 2)
+        #expect(model.state == old)
+
+        refresh.cancel()
+        await refresh.value
+
+        #expect(model.state == old)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledFirstLoadOffersARetry() async {
+        let insights = HangingInsights(hanging: [1])
+        let model = AppUsageModel(childId: aliId, insights: insights)
+        let first = Task { await model.load() }
+        await insights.waitUntilAsked("apps", 1)
+        #expect(model.state == .loading)
+
+        first.cancel()
+        await first.value
+
+        #expect(model.state == .failed(.noConnection))
+    }
+
     @Test func aFailureIsAnErrorAndCanBeRetried() async {
         let insights = FakeInsights()
         let model = AppUsageModel(childId: aliId, insights: insights)
@@ -148,7 +180,7 @@ private actor GatedInsights: InsightsService {
         let expected = l10n.appUsageChartDescription([
             l10n.appUsageChartEntry("Telegram", Durations.short(30, l10n)),
             l10n.appUsageChartEntry(l10n.appUsageOther, Durations.short(15, l10n)),
-        ].joined(separator: ", "))
+        ].joined(separator: l10n.weeklyChartDaySeparator))
 
         #expect(AppUsageModel.chartDescription(entries, l10n) == expected)
     }

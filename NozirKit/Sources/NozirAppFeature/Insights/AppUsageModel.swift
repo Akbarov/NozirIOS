@@ -22,6 +22,8 @@ final class AppUsageModel {
 
     private let insights: any InsightsService
     @ObservationIgnored private var generation = 0
+    /// The range the `.loaded` state is about; a refresh of the same range keeps it on screen.
+    @ObservationIgnored private var loadedRange: UsageRange?
 
     init(childId: UUID, insights: any InsightsService) {
         self.childId = childId
@@ -32,13 +34,21 @@ final class AppUsageModel {
         generation += 1
         let mine = generation
         let asked = range
-        state = .loading
+        var keepsContent = false
+        if case .loaded = state, loadedRange == asked {
+            keepsContent = true
+        } else {
+            state = .loading
+        }
         do {
             let breakdown = try await insights.appUsage(of: childId, range: asked)
             guard mine == generation else { return }
             state = .loaded(breakdown)
+            loadedRange = asked
         } catch is CancellationError {
-            return
+            // Nothing on screen to fall back to: offer a retry rather than a spinner nobody drives.
+            guard mine == generation, !keepsContent else { return }
+            state = .failed(.noConnection)
         } catch {
             guard mine == generation else { return }
             state = .failed(UserMessage(error))

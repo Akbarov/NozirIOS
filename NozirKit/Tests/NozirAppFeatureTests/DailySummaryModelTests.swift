@@ -90,6 +90,37 @@ private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil) -> (Da
         #expect(model.state == .loaded(daily))
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledRetryKeepsTheSummaryOnScreen() async {
+        let insights = HangingInsights(hanging: [2])
+        let model = DailySummaryModel(childId: aliId, childName: "Ali", insights: insights)
+        await model.load()
+        let old = model.state
+        guard case .loaded = old else { Issue.record("first load did not load"); return }
+
+        let refresh = Task { await model.retry() }
+        await insights.waitUntilAsked("daily", 2)
+        #expect(model.state == old)
+
+        refresh.cancel()
+        await refresh.value
+
+        #expect(model.state == old)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledFirstRetryOffersAnotherTry() async {
+        let insights = HangingInsights(hanging: [1])
+        let model = DailySummaryModel(childId: aliId, childName: "Ali", insights: insights)
+        let first = Task { await model.retry() }
+        await insights.waitUntilAsked("daily", 1)
+
+        first.cancel()
+        await first.value
+
+        #expect(model.state == .failed(.noConnection))
+    }
+
     @Test func comingBackDoesNotAskAgain() async {
         var script = FakeInsights.Script()
         script.daily = [.success(insight(childId: aliId, start: "2026-10-04", end: "2026-10-04"))]
