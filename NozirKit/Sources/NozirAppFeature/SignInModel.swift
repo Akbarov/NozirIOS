@@ -18,7 +18,7 @@ public final class SignInModel {
     public private(set) var code = ""
     public private(set) var codeLength = 6
     public private(set) var codeMinutes = 3
-    public private(set) var message: String?
+    public private(set) var message: UserMessage?
     public private(set) var botLink: URL?
 
     private let service: any TelegramSignInService
@@ -53,13 +53,13 @@ public final class SignInModel {
             isTelegramAvailable = false
             return nil
         } catch {
-            message = UserMessage.text(for: error)
+            message = UserMessage(error)
             return nil
         }
     }
 
     public func telegramDidNotOpen() {
-        message = Copy.SignIn.telegramNotOpened
+        message = .telegramNotOpened
     }
 
     /// Keeps ASCII digits only, up to the code's length: the backend accepts
@@ -87,9 +87,9 @@ public final class SignInModel {
         } catch let failure as ApiFailure where failure.code == .otpCodeInvalid || failure.code == .otpCodeExpired {
             // Wrong, expired and never-existed are one answer on the server; one here too.
             code = ""
-            message = Copy.SignIn.codeRejected
+            message = .codeRejected
         } catch {
-            message = UserMessage.text(for: error)
+            message = UserMessage(error)
         }
     }
 }

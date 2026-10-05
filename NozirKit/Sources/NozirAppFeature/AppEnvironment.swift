@@ -1,18 +1,30 @@
 import Foundation
 import NozirAuth
 import NozirConfig
+import NozirDesignSystem
+import NozirL10n
 import NozirNetworking
 
 /// Every live object, built once at launch and wired here and nowhere else.
 @MainActor
 public final class AppEnvironment {
     public let appModel: AppModel
+    public let language: LanguageStore
+    public let appearance: AppearanceStore
     /// Nil until the app has an App Store ID (no developer account yet).
     let appStoreURL: URL?
     private let telegramSignIn: any TelegramSignInService
 
-    init(appModel: AppModel, telegramSignIn: any TelegramSignInService, appStoreURL: URL?) {
+    init(
+        appModel: AppModel,
+        language: LanguageStore,
+        appearance: AppearanceStore,
+        telegramSignIn: any TelegramSignInService,
+        appStoreURL: URL?
+    ) {
         self.appModel = appModel
+        self.language = language
+        self.appearance = appearance
         self.telegramSignIn = telegramSignIn
         self.appStoreURL = appStoreURL
     }
@@ -42,6 +54,8 @@ public final class AppEnvironment {
         )
         return AppEnvironment(
             appModel: appModel,
+            language: LanguageStore(),
+            appearance: AppearanceStore(),
             telegramSignIn: TelegramSignIn(api: anonymousAuth, store: store, deviceLabel: deviceLabel),
             appStoreURL: nil
         )

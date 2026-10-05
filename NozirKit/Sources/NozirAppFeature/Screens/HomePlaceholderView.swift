@@ -1,19 +1,23 @@
 import SwiftUI
 import NozirDesignSystem
+import NozirL10n
 
-/// Stands in for P05 until the next sub-project builds it.
+/// Stands in for P05 until sub-project 2b builds it.
 struct HomePlaceholderView: View {
-    let onSignOut: () -> Void
+    var onSignOut: (() -> Void)?
+    @Environment(\.l10n) private var l10n
 
     var body: some View {
         VStack(spacing: NozirSpacing.medium) {
-            NozirLogoMark(accessibilityLabel: Copy.Welcome.logoDescription)
-            Text(Copy.Home.title).nozirText(.titleLarge)
-            Text(Copy.Home.body)
+            NozirLogoMark(accessibilityLabel: l10n.contentDescriptionLogo)
+            Text(l10n.iosHomePlaceholderTitle).nozirText(.titleLarge)
+            Text(l10n.iosHomePlaceholderBody)
                 .nozirText(.body, color: NozirColor.textSecondary)
                 .multilineTextAlignment(.center)
-            NozirButton(Copy.Home.signOut, variant: .secondary, action: onSignOut)
-                .padding(.top, NozirSpacing.large)
+            if let onSignOut {
+                NozirButton(l10n.profileActionSignOut, variant: .secondary, action: onSignOut)
+                    .padding(.top, NozirSpacing.large)
+            }
         }
         .padding(.horizontal, NozirSpacing.large)
     }
