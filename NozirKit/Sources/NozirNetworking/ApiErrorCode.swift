@@ -36,4 +36,5 @@ public struct ApiErrorCode: RawRepresentable, Hashable, Sendable, Codable {
     public static let childLimitReached = ApiErrorCode(rawValue: "CHILD_LIMIT_REACHED")
     public static let childNotActive = ApiErrorCode(rawValue: "CHILD_NOT_ACTIVE")
     public static let subscriptionRequired = ApiErrorCode(rawValue: "SUBSCRIPTION_REQUIRED")
+    public static let safeZoneLimitReached = ApiErrorCode(rawValue: "SAFE_ZONE_LIMIT_REACHED")
 }

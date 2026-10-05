@@ -9,7 +9,7 @@ import NozirNetworking
 public enum UserMessage: Equatable, Sendable {
     case noConnection, timeout, serviceUnavailable, serverProblem, unreadableAnswer
     case sessionEnded, permissionDenied, notFound, invalidRequest, conflict
-    case childLimitReached, subscriptionRequired, childNotActive
+    case childLimitReached, subscriptionRequired, childNotActive, safeZoneLimitReached
     case rateLimited(seconds: Int?)
     case codeRejected, telegramNotOpened
 
@@ -43,6 +43,7 @@ public enum UserMessage: Equatable, Sendable {
         case .childLimitReached: return .childLimitReached
         case .subscriptionRequired: return .subscriptionRequired
         case .childNotActive: return .childNotActive
+        case .safeZoneLimitReached: return .safeZoneLimitReached
         case .conflict: return .conflict
         case .forbidden, .notYourChild: return .permissionDenied
         case .notFound: return .notFound
@@ -77,6 +78,7 @@ public enum UserMessage: Equatable, Sendable {
         case .childLimitReached: l10n.dataErrorChildLimitReached
         case .subscriptionRequired: l10n.dataErrorSubscriptionRequired
         case .childNotActive: l10n.dataErrorChildNotActive
+        case .safeZoneLimitReached: l10n.dataErrorSafeZoneLimitReached
         case .rateLimited(let seconds):
             if let seconds { l10n.dataErrorRateLimitedSeconds(seconds) } else { l10n.dataErrorRateLimited }
         case .codeRejected: l10n.signInTelegramCodeRejected

@@ -33,6 +33,7 @@ struct CodeCase: Sendable {
         CodeCase(status: 403, code: .childLimitReached, expected: .childLimitReached),
         CodeCase(status: 403, code: .childNotActive, expected: .childNotActive),
         CodeCase(status: 403, code: .subscriptionRequired, expected: .subscriptionRequired),
+        CodeCase(status: 403, code: .safeZoneLimitReached, expected: .safeZoneLimitReached),
         CodeCase(status: 409, code: .conflict, expected: .conflict),
         CodeCase(status: 403, code: .forbidden, expected: .permissionDenied),
         CodeCase(status: 403, code: .notYourChild, expected: .permissionDenied),
@@ -44,6 +45,10 @@ struct CodeCase: Sendable {
     ])
     func aCodeBecomesItsMeaning(_ testCase: CodeCase) {
         #expect(UserMessage(server(testCase.status, testCase.code)) == testCase.expected)
+    }
+
+    @Test func theZoneLimitHasItsOwnSentence() {
+        #expect(UserMessage.safeZoneLimitReached.text(L10n(.uz)) == L10n(.uz).dataErrorSafeZoneLimitReached)
     }
 
     @Test func aStatusWithoutTheErrorBodyStillMeansSomething() {
