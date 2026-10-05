@@ -78,7 +78,10 @@ public final class AppEnvironment {
             language: language,
             appearance: appearance,
             localeSync: LocaleSync(store: language, send: { _ = try await api.updateLocale($0) }),
-            signOut: { [appModel] in await appModel.signOut() }
+            signOut: { [appModel] in
+                UserDefaults.standard.removeObject(forKey: LocaleSync.unsentKey)
+                await appModel.signOut()
+            }
         )
     }
 }

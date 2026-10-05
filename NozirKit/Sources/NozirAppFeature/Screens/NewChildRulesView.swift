@@ -37,6 +37,8 @@ struct NewChildRulesView: View {
         .background(NozirColor.background.ignoresSafeArea())
         .navigationTitle(l10n.screenNewChildRulesTitle)
         .navigationBarTitleDisplayMode(.inline)
+        // Once the child exists, going back and saving again would be a second child.
+        .navigationBarBackButtonHidden(model.hasCreatedChild)
         .task { await model.prefill() }
     }
 

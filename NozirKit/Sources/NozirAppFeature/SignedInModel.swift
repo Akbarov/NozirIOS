@@ -61,6 +61,7 @@ public final class SignedInModel {
 
     public func finishAddChild() {
         isAddingChild = false
+        tab = .home
     }
 
     func makeProfileModel() -> ProfileModel {

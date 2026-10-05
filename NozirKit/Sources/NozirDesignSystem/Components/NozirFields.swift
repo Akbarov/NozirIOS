@@ -74,7 +74,6 @@ public struct NozirPhoneField: View {
                 Text(prefix).nozirText(.body, color: NozirColor.textSecondary)
                 TextField("", text: $text, prompt: Text(placeholder).foregroundColor(NozirColor.textTertiary))
                     .keyboardType(.phonePad)
-                    .textContentType(.telephoneNumber)
                     .nozirText(.body)
                     .accessibilityLabel(label)
             }

@@ -96,7 +96,9 @@ private func setup(
 
         model.presentAddChild()
         #expect(model.isAddingChild)
+        model.tab = .profile
         model.finishAddChild()
         #expect(!model.isAddingChild)
+        #expect(model.tab == .home)
     }
 }

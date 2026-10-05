@@ -138,6 +138,18 @@ private func setup(_ script: FakeFamily.Script = .init(), siblings: [Child] = []
         #expect(await fake.calls == ["create", "rules", "screenTime"])
     }
 
+    @Test func theChildCountsAsCreatedOnceItIsSavedEvenIfTheRulesFail() async {
+        var script = FakeFamily.Script()
+        script.create = [.success(makeChild("Ali"))]
+        script.rules = [.failure(offline)]
+        let (model, _, _) = setup(script)
+        #expect(!model.hasCreatedChild)
+
+        #expect(await model.save() == nil)
+
+        #expect(model.hasCreatedChild)
+    }
+
     // Review Focus 2.
     @Test func savingAgainAfterAFailureDoesNotCreateASecondChild() async {
         let ali = makeChild("Ali")

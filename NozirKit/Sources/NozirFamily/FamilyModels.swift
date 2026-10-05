@@ -17,7 +17,7 @@ public enum PairingState: String, Sendable, Decodable {
 
 /// `ChildResponse`. Decoding is lenient where the server may grow: a band or a
 /// state this app does not know yet must not empty the parent's child list.
-public struct Child: Decodable, Equatable, Sendable, Identifiable {
+public struct Child: Decodable, Equatable, Hashable, Sendable, Identifiable {
     public let id: UUID
     public let displayName: String
     public let birthYear: Int

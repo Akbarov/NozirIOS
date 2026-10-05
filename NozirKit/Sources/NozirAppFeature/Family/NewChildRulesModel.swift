@@ -21,6 +21,8 @@ public final class NewChildRulesModel {
     public private(set) var isPrefilledFromSibling = false
     public private(set) var isSaving = false
     public private(set) var message: UserMessage?
+    /// True once the child exists on the server: the screen then has no way back.
+    public private(set) var hasCreatedChild = false
     /// Kept across attempts: a second "Save" must not add a second child.
     @ObservationIgnored private var created: Child?
     private let family: FamilyStore
@@ -91,6 +93,7 @@ public final class NewChildRulesModel {
             } else {
                 child = try await family.service.createChild(draft.create)
                 created = child
+                hasCreatedChild = true
                 family.replace(child)
             }
             let current = try await family.service.rules(of: child.id)

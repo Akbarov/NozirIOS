@@ -172,6 +172,11 @@ public final class PairingModel {
         message = nil
         defer { isBusy = false }
         do {
+            // The phone a new code retires must be known before the code exists;
+            // a failed read must not be mistaken for "no phone".
+            if child.pairingState == .paired, connectedDevice == nil {
+                connectedDevice = try await family.service.devices(of: child.id).first
+            }
             phase = .waiting(try await family.service.issuePairingCode(for: child.id))
             recordCodeStart()
         } catch is CancellationError {

@@ -226,6 +226,37 @@ private func setup(
         #expect(!(await fake.calls).contains("issueCode"))
     }
 
+    @Test func aPairedChildWhosePhoneCouldNotBeReadIsNotGivenACodeBlindly() async {
+        var script = FakeFamily.Script()
+        script.currentCode = [.success(nil)]
+        script.devices = [.failure(offline), .failure(offline)]
+        let (model, fake, _) = setup(script, child: makeChild("Ali", state: .paired))
+        await model.run()
+
+        await model.requestNewCode()
+        await model.confirmReplacement()
+
+        #expect(!(await fake.calls).contains("issueCode"))
+        #expect(model.message == .noConnection)
+        #expect(model.phase == .noCode)
+    }
+
+    @Test func aPairedChildWhosePhoneIsReadOnTheSecondTryRecordsItWithTheCode() async {
+        let d1 = ChildDevice(id: UUID(), manufacturer: "Xiaomi", model: "Redmi Note 12", isOnline: true)
+        var script = FakeFamily.Script()
+        script.currentCode = [.success(nil)]
+        script.devices = [.failure(offline), .success([d1])]
+        script.issueCode = [.success(pairingCode("333444"))]
+        let (model, _, _) = setup(script, child: makeChild("Ali", state: .paired))
+        await model.run()
+
+        await model.requestNewCode()
+        await model.confirmReplacement()
+
+        #expect(model.phase == .waiting(pairingCode("333444")))
+        #expect(model.connectedDevice == d1)
+    }
+
     @Test func aFirstLookThatWasCancelledLooksAgain() async {
         var script = FakeFamily.Script()
         script.cancelNextCurrentCode = true
