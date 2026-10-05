@@ -4,29 +4,30 @@ import NozirInsights
 import NozirL10n
 
 /// P05 as Android `HomeContent`: the SOS banner, the offline notice, then the
-/// family (empty, one child, or many). P15–P18 links are not in this slice.
+/// family (empty, one child, or many). The banner opens P15; P16–P18 are not in this slice.
 struct HomeView: View {
     @State private var model: HomeModel
     private let reloadToken: Int
     private let emergencyNumber: () -> String?
     private let onOpenSummary: (UUID, String) -> Void
+    private let onOpenSos: (ActiveSos) -> Void
     private let onAddChild: () -> Void
     @Environment(\.l10n) private var l10n
-    @Environment(\.locale) private var locale
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showsSos = false
 
     init(
         model: HomeModel,
         reloadToken: Int,
         emergencyNumber: @escaping () -> String?,
         onOpenSummary: @escaping (UUID, String) -> Void,
+        onOpenSos: @escaping (ActiveSos) -> Void,
         onAddChild: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
         self.reloadToken = reloadToken
         self.emergencyNumber = emergencyNumber
         self.onOpenSummary = onOpenSummary
+        self.onOpenSos = onOpenSos
         self.onAddChild = onAddChild
     }
 
@@ -34,7 +35,7 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: NozirSpacing.small) {
                 if let alert = model.sosAlert(emergencyNumber: emergencyNumber()) {
-                    SosBanner(alert: alert) { showsSos = true }
+                    SosBanner(alert: alert) { onOpenSos(alert.sos) }
                 }
                 if model.notice == .offline {
                     NozirOfflineNotice(l10n.stateOfflineNotice)
@@ -53,17 +54,6 @@ struct HomeView: View {
             }
         }
         .refreshable { await model.load() }
-        // The alarm ended while its sheet was open: close it rather than leave it blank.
-        .onChange(of: model.home?.activeSos == nil) { _, ended in
-            if ended { showsSos = false }
-        }
-        .sheet(isPresented: $showsSos) {
-            if let alert = model.sosAlert(emergencyNumber: emergencyNumber()) {
-                SosSheet(alert: alert)
-                    .environment(\.l10n, l10n)
-                    .environment(\.locale, locale)
-            }
-        }
     }
 
     @ViewBuilder

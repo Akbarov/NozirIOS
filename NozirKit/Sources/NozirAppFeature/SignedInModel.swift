@@ -111,6 +111,10 @@ public final class SignedInModel {
         LocationTrackingModel(childId: childId, childName: family.child(childId)?.displayName, family: family)
     }
 
+    func makeSosDetailModel(seed: ActiveSos, emergencyNumber: String) -> SosDetailModel {
+        SosDetailModel(seed: seed, child: family.child(seed.childId), emergencyNumber: emergencyNumber, location: locationService)
+    }
+
     var currentEmergencyNumber: String? {
         emergencyNumber()
     }

@@ -1,6 +1,7 @@
 import SwiftUI
 import NozirDesignSystem
 import NozirFamily
+import NozirInsights
 import NozirL10n
 import NozirLocation
 
@@ -11,6 +12,7 @@ struct SignedInView: View {
         case weekly(UUID)
         case apps(UUID)
         case details(Child)
+        case sos(ActiveSos)
     }
 
     enum StatisticsStep: Hashable {
@@ -49,6 +51,7 @@ struct SignedInView: View {
                     reloadToken: model.homeRefresh,
                     emergencyNumber: { model.currentEmergencyNumber },
                     onOpenSummary: { homePath.append(.summary($0, $1)) },
+                    onOpenSos: { homePath.append(.sos($0)) },
                     onAddChild: { model.presentAddChild() }
                 )
                 .navigationDestination(for: HomeStep.self) { step in
@@ -159,6 +162,11 @@ struct SignedInView: View {
             AppUsageView(model: model.makeAppUsageModel(childId: childId))
         case .details(let child):
             ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { clearPaths() })
+        case .sos(let seed):
+            SosDetailView(model: model.makeSosDetailModel(
+                seed: seed,
+                emergencyNumber: model.currentEmergencyNumber ?? l10n.sosEmergencyNumber
+            ))
         }
     }
 }

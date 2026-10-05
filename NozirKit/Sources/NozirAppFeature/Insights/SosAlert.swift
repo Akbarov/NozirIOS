@@ -3,19 +3,19 @@ import NozirFamily
 import NozirInsights
 import NozirL10n
 
-/// What the SOS banner and sheet say and dial. The name is the alarm's own,
-/// else the family list's (a removed child has neither); the child's number
-/// is only ever the family list's.
+/// What the SOS banner and P15 say and dial. The name is the alarm's own,
+/// else the family list's (a removed child has neither); the child's number is
+/// the alarm's own when P15 has it, else the family list's.
 struct SosAlert: Equatable {
     let sos: ActiveSos
     let childName: String?
     let childPhone: String?
     let emergencyNumber: String?
 
-    init(_ sos: ActiveSos, child: Child?, emergencyNumber: String?) {
+    init(_ sos: ActiveSos, child: Child?, emergencyNumber: String?, phone: String? = nil) {
         self.sos = sos
         childName = Self.present(sos.childName) ?? Self.present(child?.displayName)
-        childPhone = Self.present(child?.phoneE164)
+        childPhone = Self.present(phone) ?? Self.present(child?.phoneE164)
         self.emergencyNumber = Self.present(emergencyNumber)
     }
 
