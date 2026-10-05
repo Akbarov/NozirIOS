@@ -71,7 +71,7 @@ public struct NozirAvatarPicker: View {
 
     public var body: some View {
         HStack(spacing: NozirSpacing.medium) {
-            ForEach(AvatarTone.allCases, id: \.self) { tone in
+            ForEach(Array(AvatarTone.allCases.enumerated()), id: \.element) { index, tone in
                 Button {
                     selection = tone
                 } label: {
@@ -85,7 +85,8 @@ public struct NozirAvatarPicker: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(tone.rawValue)
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityValue("\(index + 1) / \(AvatarTone.allCases.count)")
                 .accessibilityAddTraits(selection == tone ? .isSelected : [])
             }
         }
