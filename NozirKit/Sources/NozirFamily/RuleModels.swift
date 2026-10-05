@@ -93,15 +93,65 @@ public struct BedtimeSchedule: Codable, Equatable, Sendable {
     }
 }
 
-/// `RuleSnapshotResponse`, the parts 2a reads. `version` goes back as `If-Match`.
+/// How often the child's phone reports unasked (`LocationTrackingDto`). Off
+/// stops only the automatic reports: "where are they now" and SOS still take a
+/// position. Values outside the choices are kept but select nothing on P12b.
+public struct LocationTracking: Codable, Equatable, Sendable {
+    public var isEnabled: Bool
+    public var intervalMinutes: Int
+    public var zoneIntervalMinutes: Int
+    public var moveMetres: Int
+
+    public static let standard = LocationTracking(isEnabled: true, intervalMinutes: 10, zoneIntervalMinutes: 3, moveMetres: 100)
+    public static let intervalChoices = [5, 10, 15, 30]
+    public static let zoneIntervalChoices = [1, 3, 5]
+    public static let moveChoices = [50, 100, 200]
+
+    public init(isEnabled: Bool, intervalMinutes: Int, zoneIntervalMinutes: Int, moveMetres: Int) {
+        self.isEnabled = isEnabled
+        self.intervalMinutes = intervalMinutes
+        self.zoneIntervalMinutes = zoneIntervalMinutes
+        self.moveMetres = moveMetres
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case isEnabled, intervalMinutes, zoneIntervalMinutes, moveMetres
+    }
+
+    /// A server older than the tracking columns sends some or none of them.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let standard = Self.standard
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? standard.isEnabled
+        intervalMinutes = try container.decodeIfPresent(Int.self, forKey: .intervalMinutes) ?? standard.intervalMinutes
+        zoneIntervalMinutes = try container.decodeIfPresent(Int.self, forKey: .zoneIntervalMinutes) ?? standard.zoneIntervalMinutes
+        moveMetres = try container.decodeIfPresent(Int.self, forKey: .moveMetres) ?? standard.moveMetres
+    }
+}
+
+/// `RuleSnapshotResponse`, the parts the app reads. `version` goes back as `If-Match`.
 public struct RuleSnapshot: Decodable, Equatable, Sendable {
     public let version: Int64
     public let screenTime: ScreenTimeLimit
     public let bedtime: BedtimeSchedule
+    public let locationTracking: LocationTracking
 
-    public init(version: Int64, screenTime: ScreenTimeLimit, bedtime: BedtimeSchedule) {
+    public init(version: Int64, screenTime: ScreenTimeLimit, bedtime: BedtimeSchedule, locationTracking: LocationTracking = .standard) {
         self.version = version
         self.screenTime = screenTime
         self.bedtime = bedtime
+        self.locationTracking = locationTracking
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, screenTime, bedtime, locationTracking
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decode(Int64.self, forKey: .version)
+        screenTime = try container.decode(ScreenTimeLimit.self, forKey: .screenTime)
+        bedtime = try container.decode(BedtimeSchedule.self, forKey: .bedtime)
+        locationTracking = try container.decodeIfPresent(LocationTracking.self, forKey: .locationTracking) ?? .standard
     }
 }

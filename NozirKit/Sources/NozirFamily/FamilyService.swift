@@ -11,6 +11,7 @@ public protocol FamilyService: Sendable {
     func rules(of childId: UUID) async throws -> RuleSnapshot
     func setScreenTime(_ limit: ScreenTimeLimit, of childId: UUID, version: Int64) async throws -> RuleSnapshot
     func setBedtime(_ bedtime: BedtimeSchedule, of childId: UUID, version: Int64) async throws -> RuleSnapshot
+    func setLocationTracking(_ tracking: LocationTracking, of childId: UUID, version: Int64) async throws -> RuleSnapshot
     /// nil: no live code (404) — an answer, not a fault.
     func currentPairingCode(for childId: UUID) async throws -> PairingCode?
     func issuePairingCode(for childId: UUID) async throws -> PairingCode

@@ -5,11 +5,11 @@ import NozirTestSupport
 @testable import NozirFamily
 
 /// `RuleSnapshotResponse` with the parts 2a does not read left in, as the server sends them.
-private func snapshotJSON(version: Int = 7, start: String = "22:00") -> String {
+private func snapshotJSON(version: Int = 7, start: String = "22:00", tracking: String = #"{"isEnabled":false}"#) -> String {
     """
     {"childId":"\(aliId.uuidString.lowercased())","version":\(version),\
     "screenTime":{"schoolDayMinutes":120,"weekendMinutes":180,"maxDailyBonusMinutes":60},\
-    "maxTrustBonusMinutes":30,"locationTracking":{"isEnabled":false},\
+    "maxTrustBonusMinutes":30,"locationTracking":\(tracking),\
     "bedtime":{"startTime":"\(start)","endTime":"07:00","windDownMinutes":30,"activeDays":[1,2,3,4,5,6,7]},\
     "appPolicies":[],"familyRules":[],"neverBlockedPackages":["com.android.dialer"]}
     """
@@ -170,5 +170,53 @@ private var rulesPath: String { FamilyApi.childPath(aliId) + "/rules" }
         #expect(request.httpMethod == "PATCH")
         #expect(request.url?.path == "/v1/parent/me")
         #expect(request.jsonBody == ["locale": "ru"])
+    }
+
+    @Test func theTrackingRuleIsReadWhole() async throws {
+        let tracking = #"{"isEnabled":true,"intervalMinutes":15,"zoneIntervalMinutes":1,"moveMetres":200}"#
+        let (api, _) = familyApi([.ok(snapshotJSON(tracking: tracking))])
+
+        let snapshot = try await api.rules(of: aliId)
+
+        #expect(snapshot.locationTracking == LocationTracking(isEnabled: true, intervalMinutes: 15, zoneIntervalMinutes: 1, moveMetres: 200))
+    }
+
+    @Test func aTrackingRuleMissingFieldsTakesTheStandardOnes() async throws {
+        let (api, _) = familyApi([.ok(snapshotJSON())])
+
+        let snapshot = try await api.rules(of: aliId)
+
+        #expect(snapshot.locationTracking == LocationTracking(isEnabled: false, intervalMinutes: 10, zoneIntervalMinutes: 3, moveMetres: 100))
+    }
+
+    @Test func aServerWithoutTheTrackingRuleReadsAsStandard() async throws {
+        let body = """
+        {"version":3,"screenTime":{"schoolDayMinutes":120,"weekendMinutes":180,"maxDailyBonusMinutes":60},\
+        "bedtime":{"startTime":"22:00","endTime":"07:00","windDownMinutes":30,"activeDays":[1,2,3,4,5,6,7]}}
+        """
+        let (api, _) = familyApi([.ok(body)])
+
+        #expect(try await api.rules(of: aliId).locationTracking == .standard)
+    }
+
+    @Test func aTrackingWriteNamesTheVersionAndSendsAllFour() async throws {
+        let (api, transport) = familyApi([.ok(snapshotJSON(version: 12))])
+
+        let after = try await api.setLocationTracking(
+            LocationTracking(isEnabled: false, intervalMinutes: 30, zoneIntervalMinutes: 5, moveMetres: 50),
+            of: aliId,
+            version: 11
+        )
+
+        #expect(after.version == 12)
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "PUT")
+        #expect(request.url?.path == rulesPath + "/location-tracking")
+        #expect(request.value(forHTTPHeaderField: "If-Match") == "\"11\"")
+        let body = try #require(request.jsonObject)
+        #expect(Set(body.keys) == ["isEnabled", "intervalMinutes", "zoneIntervalMinutes", "moveMetres"])
+        #expect(body["isEnabled"] as? Bool == false)
+        #expect(body["intervalMinutes"] as? Int == 30)
+        #expect(body["moveMetres"] as? Int == 50)
     }
 }
