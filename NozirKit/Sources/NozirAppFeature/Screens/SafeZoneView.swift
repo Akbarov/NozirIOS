@@ -24,6 +24,14 @@ struct SafeZoneView: View {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 240)
                 } else if model.isMissing {
                     NozirInlineMessage(UserMessage.notFound.text(l10n))
+                } else if model.loadFailed {
+                    NozirErrorState(
+                        title: l10n.stateErrorTitle,
+                        message: (model.message ?? .serverProblem).text(l10n),
+                        retryTitle: l10n.stateActionRetry
+                    ) {
+                        Task { await model.load() }
+                    }
                 } else {
                     form
                 }
@@ -93,7 +101,9 @@ struct SafeZoneView: View {
             Text(l10n.safeZoneNotifyExitHint).nozirText(.bodySmall, color: NozirColor.textSecondary)
         }
         .tint(NozirColor.primary)
-        if let message = model.message {
+        if model.message == .subscriptionRequired {
+            LocationLockCard()
+        } else if let message = model.message {
             NozirInlineMessage(message.text(l10n))
         }
         NozirButton(l10n.safeZoneSave, size: .callToAction, isLoading: model.isSaving) {
@@ -110,6 +120,7 @@ struct SafeZoneView: View {
         switch model.deletion {
         case .idle:
             NozirButton(l10n.safeZoneDelete, variant: .criticalOutline) { model.askToDelete() }
+                .disabled(model.isSaving)
         case .confirming, .deleting:
             NozirCard(tone: .attention) {
                 Text(l10n.safeZoneDeleteTitle(model.name)).nozirText(.titleSmall)
@@ -120,6 +131,7 @@ struct SafeZoneView: View {
                     NozirButton(l10n.safeZoneDeleteConfirm, variant: .criticalOutline, isLoading: model.deletion == .deleting) {
                         Task { await model.confirmDelete() }
                     }
+                    .disabled(model.isSaving)
                 }
             }
         }

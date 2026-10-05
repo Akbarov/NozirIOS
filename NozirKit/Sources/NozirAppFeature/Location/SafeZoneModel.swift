@@ -31,6 +31,8 @@ final class SafeZoneModel {
     private(set) var isLoading = true
     /// The zone was deleted on another phone: say so rather than open a blank form.
     private(set) var isMissing = false
+    /// Editing, and the stored zone could not be read: no form, so nothing blank can be saved over it.
+    private(set) var loadFailed = false
     private(set) var message: UserMessage?
     private(set) var isSaving = false
     private(set) var wasSaved = false
@@ -40,6 +42,7 @@ final class SafeZoneModel {
     private let location: any LocationService
     @ObservationIgnored private var stored: SafeZoneDraft?
     @ObservationIgnored private var centredOnFix = false
+    @ObservationIgnored private var started = false
 
     init(childId: UUID, zoneId: UUID?, location: any LocationService) {
         self.childId = childId
@@ -51,7 +54,12 @@ final class SafeZoneModel {
         zoneId != nil
     }
 
+    /// Runs once: a repeated `.task` must not overwrite edits in progress.
+    /// Only a failed load may be run again (the retry button).
     func load() async {
+        guard !started || loadFailed else { return }
+        started = true
+        loadFailed = false
         isLoading = true
         defer { isLoading = false }
         message = nil
@@ -70,8 +78,10 @@ final class SafeZoneModel {
                 notifyOnExit = zone.notifyOnExit
                 centre = zone.coordinate
             } catch is CancellationError {
+                started = false
                 return
             } catch {
+                loadFailed = true
                 message = UserMessage(error)
             }
         } else if centre == nil, let fix = try? await location.location(of: childId).coordinate {
@@ -96,7 +106,7 @@ final class SafeZoneModel {
     /// What would be sent; nil until there is a place and a name.
     var draft: SafeZoneDraft? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let centre, !trimmed.isEmpty, !isMissing else { return nil }
+        guard let centre, !trimmed.isEmpty, !isMissing, !loadFailed, !(isEditing && stored == nil) else { return nil }
         return SafeZoneDraft(
             name: trimmed,
             latitude: centre.latitude,
@@ -140,7 +150,7 @@ final class SafeZoneModel {
     }
 
     func askToDelete() {
-        guard isEditing, !isMissing, deletion == .idle else { return }
+        guard isEditing, !isMissing, !loadFailed, !isSaving, deletion == .idle else { return }
         deletion = .confirming
     }
 
@@ -150,11 +160,15 @@ final class SafeZoneModel {
     }
 
     func confirmDelete() async {
-        guard deletion == .confirming, let zoneId else { return }
+        guard deletion == .confirming, !isSaving, let zoneId else { return }
         deletion = .deleting
         message = nil
         do {
             try await location.deleteSafeZone(zoneId)
+            wasDeleted = true
+        } catch is CancellationError {
+            deletion = .confirming
+        } catch let failure as ApiFailure where failure.isNotFound {
             wasDeleted = true
         } catch {
             deletion = .confirming

@@ -73,11 +73,7 @@ struct LocationView: View {
                 action: onAddChild
             )
         case .locked:
-            NozirCard {
-                Text(l10n.planLockLocationTitle).nozirText(.titleSmall)
-                Text(l10n.planLockLocationBody).nozirText(.body)
-                Text(l10n.planLockSosNote).nozirText(.bodySmall, color: NozirColor.textSecondary)
-            }
+            LocationLockCard()
         case .failed(let message):
             NozirErrorState(
                 title: l10n.stateErrorTitle,

@@ -153,6 +153,7 @@ private func scriptWithSchool() -> FakeLocation.Script {
         await model.save()
 
         #expect(model.message == .subscriptionRequired)
+        #expect(!model.wasSaved)
     }
 
     @Test func deletingAsksFirst() async {
@@ -195,5 +196,73 @@ private func scriptWithSchool() -> FakeLocation.Script {
         model.askToDelete()
 
         #expect(model.deletion == .idle)
+    }
+
+    @Test func aFailedLoadWhileEditingIsNotAFormToSave() async {
+        var script = FakeLocation.Script()
+        script.zones[childId] = .failure(offline)
+        let (model, fake) = setup(script, zoneId: schoolId)
+
+        await model.load()
+        model.updateName("Blank")
+        model.place(at: Coordinate(latitude: 41.2, longitude: 69.1))
+
+        #expect(model.loadFailed)
+        #expect(model.message == .noConnection)
+        #expect(model.draft == nil)
+        #expect(!model.canSave)
+        await model.save()
+        #expect(await fake.calls.contains("update") == false)
+        model.askToDelete()
+        #expect(model.deletion == .idle)
+    }
+
+    @Test func retryAfterAFailedLoadLoadsTheZone() async {
+        var script = FakeLocation.Script()
+        script.zones[childId] = .failure(offline)
+        let (model, fake) = setup(script, zoneId: schoolId)
+        await model.load()
+
+        await fake.add { $0.zones[childId] = .success([zone("Maktab", for: childId, id: schoolId, radius: 300)]) }
+        await model.load()
+
+        #expect(!model.loadFailed)
+        #expect(model.message == nil)
+        #expect(model.name == "Maktab")
+        #expect(model.radius == 300)
+    }
+
+    @Test func loadingAgainKeepsTheEditsInProgress() async {
+        let (model, _) = setup(scriptWithSchool(), zoneId: schoolId)
+        await model.load()
+        model.updateName("Edited")
+
+        await model.load()
+
+        #expect(model.name == "Edited")
+    }
+
+    @Test func aZoneAlreadyGoneCountsAsDeleted() async {
+        var script = scriptWithSchool()
+        script.delete = [.failure(notFound)]
+        let (model, _) = setup(script, zoneId: schoolId)
+        await model.load()
+        model.askToDelete()
+
+        await model.confirmDelete()
+
+        #expect(model.wasDeleted)
+        #expect(model.message == nil)
+    }
+
+    @Test func saveAndDeleteDoNotOverlap() async {
+        let (model, _) = setup(scriptWithSchool(), zoneId: schoolId)
+        await model.load()
+        model.askToDelete()
+        model.updateName("Changed")
+        #expect(!model.canSave)
+
+        model.cancelDelete()
+        #expect(model.canSave)
     }
 }
