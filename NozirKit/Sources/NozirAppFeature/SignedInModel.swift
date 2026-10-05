@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import NozirDesignSystem
 import NozirFamily
+import NozirInsights
 import NozirL10n
 
 /// Everything the signed-in app shares for one session: the family, the tab,
@@ -11,31 +12,41 @@ import NozirL10n
 @Observable
 public final class SignedInModel {
     public enum Tab: Hashable, Sendable {
-        case home, profile
+        case home, statistics, profile
     }
 
     public var tab: Tab = .home
     public var isAddingChild = false
     public let family: FamilyStore
+    let statistics: StatisticsModel
+    /// Goes up when the add-a-child flow closes, so Home asks again.
+    private(set) var homeRefresh = 0
 
+    private let insights: any InsightsService
     private let language: LanguageStore
     private let appearance: AppearanceStore
     private let localeSync: LocaleSync
+    private let emergencyNumber: @MainActor () -> String?
     private let signOutAction: @MainActor () async -> Void
     @ObservationIgnored private var hasStarted = false
 
     init(
         family: FamilyStore,
+        insights: any InsightsService,
         language: LanguageStore,
         appearance: AppearanceStore,
         localeSync: LocaleSync,
+        emergencyNumber: @escaping @MainActor () -> String?,
         signOut: @escaping @MainActor () async -> Void
     ) {
         self.family = family
+        self.insights = insights
         self.language = language
         self.appearance = appearance
         self.localeSync = localeSync
+        self.emergencyNumber = emergencyNumber
         signOutAction = signOut
+        statistics = StatisticsModel(family: family)
     }
 
     /// After sign-in: a family with no children goes straight to adding one
@@ -62,6 +73,7 @@ public final class SignedInModel {
     public func finishAddChild() {
         isAddingChild = false
         tab = .home
+        homeRefresh += 1
     }
 
     func makeProfileModel() -> ProfileModel {
@@ -82,5 +94,33 @@ public final class SignedInModel {
 
     func makeDetailsModel(_ child: Child) -> ChildDetailsModel {
         ChildDetailsModel(child: child, family: family)
+    }
+
+    var currentEmergencyNumber: String? {
+        emergencyNumber()
+    }
+
+    func makeHomeModel() -> HomeModel {
+        HomeModel(insights: insights, family: family)
+    }
+
+    func makeDailySummaryModel(childId: UUID, childName: String) -> DailySummaryModel {
+        DailySummaryModel(childId: childId, childName: childName, insights: insights)
+    }
+
+    func makeWeeklyModel(childId: UUID) -> WeeklyReportModel {
+        WeeklyReportModel(
+            childId: childId,
+            insights: insights,
+            today: {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = .current
+                return LocalDate(Date(), in: calendar)
+            }
+        )
+    }
+
+    func makeAppUsageModel(childId: UUID) -> AppUsageModel {
+        AppUsageModel(childId: childId, insights: insights)
     }
 }

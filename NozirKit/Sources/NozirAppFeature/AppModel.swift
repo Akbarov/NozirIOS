@@ -16,6 +16,10 @@ public enum AppPhase: Equatable, Sendable {
 public final class AppModel {
     public private(set) var phase: AppPhase = .launching
 
+    /// From the server config; the SOS sheet offers to dial it. Nil until a
+    /// config (fresh or cached) has been read.
+    public private(set) var emergencyNumber: String?
+
     /// openapi: re-fetch the config after more than an hour in the background.
     private let configRefreshAfter: TimeInterval = 3_600
     private let config: any ConfigLoading
@@ -84,8 +88,9 @@ public final class AppModel {
 
     private func evaluate() async {
         let loaded = await config.load()
+        emergencyNumber = loaded?.emergencyContacts.emergencyNumber
         if UpdateGate.blocks(loaded) {
-            phase = .updateRequired(emergencyNumber: loaded?.emergencyContacts.emergencyNumber)
+            phase = .updateRequired(emergencyNumber: emergencyNumber)
             return
         }
         phase = tokens.load() == nil ? .signedOut : .signedIn

@@ -23,9 +23,11 @@ private func setup(
     let language = LanguageStore(defaults: defaults, preferredLanguages: ["uz"])
     let model = SignedInModel(
         family: FamilyStore(service: fake),
+        insights: FakeInsights(),
         language: language,
         appearance: AppearanceStore(defaults: defaults),
         localeSync: LocaleSync(store: language, defaults: defaults, send: { await sent.record($0) }),
+        emergencyNumber: { "112" },
         signOut: {}
     )
     return (model, fake)
@@ -100,5 +102,23 @@ private func setup(
         model.finishAddChild()
         #expect(!model.isAddingChild)
         #expect(model.tab == .home)
+    }
+
+    @Test func closingTheAddFlowReloadsHome() {
+        let (model, _) = setup(FakeFamily.Script())
+        let before = model.homeRefresh
+
+        model.presentAddChild()
+        model.finishAddChild()
+
+        #expect(model.homeRefresh == before + 1)
+    }
+
+    @Test func screensShareTheFamilyAndTheEmergencyNumber() {
+        let (model, _) = setup(FakeFamily.Script())
+
+        #expect(model.statistics.family === model.family)
+        #expect(model.makeHomeModel().family === model.family)
+        #expect(model.currentEmergencyNumber == "112")
     }
 }

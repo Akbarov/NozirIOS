@@ -6271,9 +6271,9 @@ public extension L10n {
     /// `weekly_chart_day_separator`
     var weeklyChartDaySeparator: String {
         switch language {
-        case .uz: ","
-        case .ru: ","
-        case .en: ","
+        case .uz: ", "
+        case .ru: ", "
+        case .en: ", "
         }
     }
 

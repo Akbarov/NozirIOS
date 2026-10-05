@@ -1,7 +1,7 @@
 import SwiftUI
 
 public enum NozirCardTone: Sendable {
-    case plain, attention
+    case plain, attention, critical
 }
 
 /// Android `NozirCard`: a rounded surface with a hairline border.
@@ -22,11 +22,27 @@ public struct NozirCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: NozirRadius.cardCompact)
-                .fill(tone == .attention ? NozirColor.attentionContainer : NozirColor.card)
+                .fill(fill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: NozirRadius.cardCompact)
-                .strokeBorder(tone == .attention ? NozirColor.attentionBorder : NozirColor.border, lineWidth: NozirSize.borderResting)
+                .strokeBorder(border, lineWidth: NozirSize.borderResting)
         )
+    }
+
+    private var fill: Color {
+        switch tone {
+        case .plain: NozirColor.card
+        case .attention: NozirColor.attentionContainer
+        case .critical: NozirColor.criticalContainer
+        }
+    }
+
+    private var border: Color {
+        switch tone {
+        case .plain: NozirColor.border
+        case .attention: NozirColor.attentionBorder
+        case .critical: NozirColor.criticalBorder
+        }
     }
 }

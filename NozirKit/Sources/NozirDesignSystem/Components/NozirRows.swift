@@ -1,7 +1,7 @@
 import SwiftUI
 
 public enum NozirStatusLevel: Sendable {
-    case good, attention, action
+    case good, attention, action, critical
 }
 
 /// A small coloured dot beside a status label; the label carries the meaning.
@@ -24,6 +24,7 @@ public struct NozirStatusDot: View {
         case .good: NozirColor.goodContent
         case .attention: NozirColor.attentionContent
         case .action: NozirColor.actionContent
+        case .critical: NozirColor.criticalContent
         }
     }
 }

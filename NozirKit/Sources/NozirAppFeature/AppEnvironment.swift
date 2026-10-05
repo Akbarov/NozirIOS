@@ -3,6 +3,7 @@ import NozirAuth
 import NozirConfig
 import NozirDesignSystem
 import NozirFamily
+import NozirInsights
 import NozirL10n
 import NozirNetworking
 
@@ -75,9 +76,11 @@ public final class AppEnvironment {
         let api = FamilyApi(client: authorised)
         return SignedInModel(
             family: FamilyStore(service: api),
+            insights: InsightsApi(client: authorised),
             language: language,
             appearance: appearance,
             localeSync: LocaleSync(store: language, send: { _ = try await api.updateLocale($0) }),
+            emergencyNumber: { [appModel] in appModel.emergencyNumber },
             signOut: { [appModel] in
                 UserDefaults.standard.removeObject(forKey: LocaleSync.unsentKey)
                 await appModel.signOut()

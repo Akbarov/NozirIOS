@@ -11,4 +11,6 @@
     <!-- Android trims the trailing space of an unquoted ", ", so its night list
          reads "Dushanba,Chorshanba". Quoted here so the space survives. -->
     <string name="bedtime_days_separator">", "</string>
+    <!-- Same reason: P07/P08 chart descriptions read "Du 2s 10d,Se 1s" without it. -->
+    <string name="weekly_chart_day_separator">", "</string>
 </resources>

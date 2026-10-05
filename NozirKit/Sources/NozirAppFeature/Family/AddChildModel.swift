@@ -47,7 +47,7 @@ public final class AddChildModel {
     public var avatar: AvatarTone = .teal
     private let currentYear: Int
 
-    public init(currentYear: Int = Calendar.current.component(.year, from: Date())) {
+    public init(currentYear: Int = Gregorian.currentYear) {
         self.currentYear = currentYear
     }
 

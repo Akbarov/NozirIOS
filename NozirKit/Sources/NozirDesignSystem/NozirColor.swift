@@ -44,6 +44,17 @@ public enum NozirColor {
     public static let attentionContent = color(light: 0xB87503, dark: 0xE5A63B)
     public static let attentionContainer = color(light: 0xFDF3E0, dark: 0xE5A63B, darkAlpha: 0.12)
     public static let attentionBorder = color(light: 0xF0D9A8, dark: 0xE5A63B, darkAlpha: 0.30)
+    public static let actionContainer = color(light: 0xFDEEE6, dark: 0xF0803F, darkAlpha: 0.12)
+    public static let criticalContainer = color(light: 0xFDECEC, dark: 0xE66767, darkAlpha: 0.12)
+    /// Android `chartSeries`: four app colours, in order; there is never a fifth.
+    public static let chartSeries: [Color] = [
+        color(light: 0x0E9F8F, dark: 0x0FA799),
+        color(light: 0xEB6834, dark: 0xD95926),
+        color(light: 0x2A78D6, dark: 0x3987E5),
+        color(light: 0xEDA100, dark: 0xC98500),
+    ]
+    /// The grey of "Boshqalar".
+    public static let chartOther = color(light: 0xB8C4C1, dark: 0x5B6B68)
 
     static func uiColor(light: UInt32, dark: UInt32, darkAlpha: Double = 1) -> UIColor {
         UIColor { traits in
