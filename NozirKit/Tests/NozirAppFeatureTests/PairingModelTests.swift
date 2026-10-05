@@ -173,4 +173,69 @@ private func setup(
         #expect(model.phase == .noCode)
         #expect(model.message == .noConnection)
     }
+
+    private func rePairScript(devicesAfter: [ChildDevice], first: ChildDevice) -> FakeFamily.Script {
+        var script = FakeFamily.Script()
+        script.devices = [.success([first]), .success(devicesAfter)]
+        script.currentCode = [.success(nil), .success(nil)]
+        script.issueCode = [.success(pairingCode("111222"))]
+        return script
+    }
+
+    @Test func aRePairWithTheSamePhoneIsNotPaired() async {
+        let d1 = ChildDevice(id: UUID(), manufacturer: "Xiaomi", model: "Redmi Note 12", isOnline: true)
+        let ali = makeChild("Ali", state: .paired)
+        var script = rePairScript(devicesAfter: [d1], first: d1)
+        script.child = [.success(ali)]
+        let (model, _, _) = setup(script, child: ali, ticks: 1)
+        await model.run()
+        await model.requestNewCode()
+        await model.confirmReplacement()
+
+        await model.run()
+
+        #expect(model.phase == .noCode)
+    }
+
+    @Test func aRePairWithANewPhoneIsPaired() async {
+        let d1 = ChildDevice(id: UUID(), manufacturer: "Xiaomi", model: "Redmi Note 12", isOnline: true)
+        let d2 = ChildDevice(id: UUID(), manufacturer: "Samsung", model: "A15", isOnline: true)
+        let ali = makeChild("Ali", state: .paired)
+        var script = rePairScript(devicesAfter: [d2], first: d1)
+        script.child = [.success(ali)]
+        let (model, _, _) = setup(script, child: ali, ticks: 1)
+        await model.run()
+        await model.requestNewCode()
+        await model.confirmReplacement()
+
+        await model.run()
+
+        #expect(model.phase == .paired)
+        #expect(model.connectedDevice == d2)
+    }
+
+    @Test func aPairedChildIsAskedEvenWhenTheDeviceReadFailed() async {
+        var script = FakeFamily.Script()
+        script.currentCode = [.success(nil)]
+        let (model, fake, _) = setup(script, child: makeChild("Ali", state: .paired))
+        await model.run()
+
+        await model.requestNewCode()
+
+        #expect(model.isConfirmingReplacement)
+        #expect(!(await fake.calls).contains("issueCode"))
+    }
+
+    @Test func aFirstLookThatWasCancelledLooksAgain() async {
+        var script = FakeFamily.Script()
+        script.cancelNextCurrentCode = true
+        let (model, fake, _) = setup(script)
+        await model.run()
+        #expect(model.phase == .loading)
+
+        await fake.add { $0.currentCode = [.success(pairingCode())] }
+        await model.run()
+
+        #expect(model.phase == .waiting(pairingCode()))
+    }
 }

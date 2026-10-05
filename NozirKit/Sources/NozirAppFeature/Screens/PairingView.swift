@@ -20,8 +20,8 @@ struct PairingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: NozirSpacing.large) {
                 Text(l10n.pairingInstruction).nozirText(.body, color: NozirColor.textSecondary)
-                if model.isConfirmingReplacement, let device = model.connectedDevice {
-                    replaceCard(device)
+                if model.isConfirmingReplacement {
+                    replaceCard(model.connectedDevice)
                 }
                 codeCard
                 if case .waiting(let code) = model.phase {
@@ -84,11 +84,13 @@ struct PairingView: View {
         }
     }
 
-    private func replaceCard(_ device: ChildDevice) -> some View {
+    private func replaceCard(_ device: ChildDevice?) -> some View {
         NozirCard(tone: .attention) {
             Text(l10n.pairingReplaceTitle).nozirText(.titleSmall)
-            Text(device.isOnline ? l10n.pairingReplaceDeviceOnline(device.label) : l10n.pairingReplaceDeviceOffline(device.label))
-                .nozirText(.bodySmall, color: NozirColor.textSecondary)
+            if let device {
+                Text(device.isOnline ? l10n.pairingReplaceDeviceOnline(device.label) : l10n.pairingReplaceDeviceOffline(device.label))
+                    .nozirText(.bodySmall, color: NozirColor.textSecondary)
+            }
             Text(l10n.pairingReplaceBody).nozirText(.bodySmall)
             HStack(spacing: NozirSpacing.small) {
                 NozirButton(l10n.pairingReplaceCancel, variant: .secondary) { model.dismissReplacement() }

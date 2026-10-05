@@ -27,6 +27,10 @@ public final class PairingModel {
     private let pollInterval: Duration
     private let sleep: @Sendable (Duration) async throws -> Void
     @ObservationIgnored private var hasLooked = false
+    /// What was true when the code now being waited on started to be waited on:
+    /// a re-pair leaves the child PAIRED, so only a changed phone proves it.
+    @ObservationIgnored private var pairedWhenCodeIssued = false
+    @ObservationIgnored private var deviceWhenCodeIssued: UUID?
 
     public init(
         child: Child,
@@ -52,11 +56,11 @@ public final class PairingModel {
     /// task that runs it (the screen went away, the app left the foreground)
     /// stops it. Only a code that is waiting is asked about.
     public func run() async {
-        if hasLooked {
-            await refresh()
-        } else {
+        if !hasLooked || phase == .loading {
             hasLooked = true
             await firstLook()
+        } else {
+            await refresh()
         }
         while phase != .paired {
             do {
@@ -72,7 +76,7 @@ public final class PairingModel {
     /// about first: redeeming a new code retires that phone.
     public func requestNewCode() async {
         guard !isBusy else { return }
-        if connectedDevice != nil {
+        if child.pairingState == .paired {
             isConfirmingReplacement = true
             message = nil
             return
@@ -95,6 +99,7 @@ public final class PairingModel {
         }
         do {
             if let code = try await family.service.currentPairingCode(for: child.id) {
+                recordCodeStart()
                 await show(code)
             } else if child.pairingState == .paired {
                 phase = .noCode
@@ -121,12 +126,32 @@ public final class PairingModel {
             child = fresh
             family.replace(fresh)
             message = nil
-            phase = fresh.pairingState == .paired ? .paired : .noCode
+            guard fresh.pairingState == .paired else {
+                phase = .noCode
+                return
+            }
+            guard pairedWhenCodeIssued else {
+                phase = .paired
+                return
+            }
+            // Already paired before this code: only a different phone proves it was used.
+            let current = try await family.service.devices(of: child.id).first
+            if let current, current.id != deviceWhenCodeIssued {
+                connectedDevice = current
+                phase = .paired
+            } else {
+                phase = .noCode
+            }
         } catch is CancellationError {
             return
         } catch {
             message = UserMessage(error)
         }
+    }
+
+    private func recordCodeStart() {
+        pairedWhenCodeIssued = child.pairingState == .paired
+        deviceWhenCodeIssued = connectedDevice?.id
     }
 
     private func show(_ code: PairingCode) async {
@@ -148,6 +173,7 @@ public final class PairingModel {
         defer { isBusy = false }
         do {
             phase = .waiting(try await family.service.issuePairingCode(for: child.id))
+            recordCodeStart()
         } catch is CancellationError {
             return
         } catch {

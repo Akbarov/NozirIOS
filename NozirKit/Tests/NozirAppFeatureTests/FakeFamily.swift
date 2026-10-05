@@ -28,6 +28,8 @@ actor FakeFamily: FamilyService {
         var activeChild: [Result<Subscription, ApiFailure>] = []
         var me: [Result<ParentProfile, ApiFailure>] = []
         var locale: [Result<ParentProfile, ApiFailure>] = []
+        /// When true the next `currentPairingCode` throws `CancellationError` once.
+        var cancelNextCurrentCode = false
     }
 
     private var script: Script
@@ -94,6 +96,11 @@ actor FakeFamily: FamilyService {
 
     func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
         childIds.append(childId)
+        if script.cancelNextCurrentCode {
+            script.cancelNextCurrentCode = false
+            calls.append("currentCode")
+            throw CancellationError()
+        }
         return try next("currentCode", \.currentCode)
     }
     func issuePairingCode(for childId: UUID) async throws -> PairingCode {
