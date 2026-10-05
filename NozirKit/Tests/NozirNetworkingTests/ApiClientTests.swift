@@ -10,7 +10,7 @@ private actor FakeTokens: AccessTokenProvider {
     private var current: String
     private let renewed: String
     private(set) var rejected: [String] = []
-    private(set) var endedSessions = 0
+    private(set) var endedFor: [String] = []
 
     init(current: String, renewed: String = "renewed") {
         self.current = current
@@ -25,8 +25,8 @@ private actor FakeTokens: AccessTokenProvider {
         return renewed
     }
 
-    func endSession() async {
-        endedSessions += 1
+    func endSession(rejecting token: String) async {
+        endedFor.append(token)
     }
 }
 
@@ -138,10 +138,10 @@ private struct Echo: Decodable, Equatable {
         }
         let requests = await transport.requests
         let rejected = await tokens.rejected
-        let ended = await tokens.endedSessions
+        let ended = await tokens.endedFor
         #expect(requests.count == 2)
         #expect(rejected.count == 1)
-        #expect(ended == 1)
+        #expect(ended == ["renewed"])
     }
 
     // AUTH_AND_TOKENS.md: on TOKEN_REVOKED or INVALID_TOKEN, sign out — do not retry.
@@ -156,10 +156,10 @@ private struct Echo: Decodable, Equatable {
         }
         let requests = await transport.requests
         let rejected = await tokens.rejected
-        let ended = await tokens.endedSessions
+        let ended = await tokens.endedFor
         #expect(requests.count == 1)
         #expect(rejected.isEmpty)
-        #expect(ended == 1)
+        #expect(ended == ["acc-1"])
     }
 
     @Test func theRetryRepeatsTheSameMethodAndBody() async throws {

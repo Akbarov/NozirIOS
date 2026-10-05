@@ -6,7 +6,8 @@ public protocol AccessTokenProvider: Sendable {
     /// The server refused `token` with a 401: a newer one, refreshing only if
     /// nobody has refreshed since `token` was handed out.
     func refreshAfterRejection(of token: String) async throws -> String
-    /// The server no longer accepts this session (a revoked or invalid token,
-    /// or a 401 even after a refresh): forget it and tell whoever is listening.
-    func endSession() async
+    /// The server refused `token` for good (revoked, invalid, or a 401 even
+    /// after a refresh): forget the session it belongs to and tell whoever is
+    /// listening. Does nothing if the stored session has moved on since.
+    func endSession(rejecting token: String) async
 }

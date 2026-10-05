@@ -13,19 +13,23 @@ public struct ApiRequest: Sendable {
     public var query: [String: String]
     public var body: Data?
     public var requiresAuth: Bool
+    /// Seconds before the request gives up; nil keeps URLSession's default (60 s).
+    public var timeout: TimeInterval?
 
     public init(
         method: HTTPMethod,
         path: String,
         query: [String: String] = [:],
         body: Data? = nil,
-        requiresAuth: Bool = true
+        requiresAuth: Bool = true,
+        timeout: TimeInterval? = nil
     ) {
         self.method = method
         self.path = path
         self.query = query
         self.body = body
         self.requiresAuth = requiresAuth
+        self.timeout = timeout
     }
 
     public static func post<Body: Encodable>(

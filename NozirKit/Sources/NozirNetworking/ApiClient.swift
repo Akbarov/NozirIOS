@@ -51,11 +51,11 @@ public struct ApiClient: Sendable {
         let token = try await tokens.validAccessToken()
         let first = try await transmit(request, bearer: token)
         guard first.response.statusCode == 401 else { return try checked(first) }
-        guard Self.isExpiry(first.data) else { return try await endSession(tokens) }
+        guard Self.isExpiry(first.data) else { return try await endSession(tokens, rejecting: token) }
         let renewed = try await tokens.refreshAfterRejection(of: token)
         let second = try await transmit(request, bearer: renewed)
         guard second.response.statusCode == 401 else { return try checked(second) }
-        return try await endSession(tokens)
+        return try await endSession(tokens, rejecting: renewed)
     }
 
     /// Only an expired access token is worth a refresh. A 401 without the error
@@ -67,8 +67,8 @@ public struct ApiClient: Sendable {
         return error.code == .tokenExpired
     }
 
-    private func endSession(_ tokens: any AccessTokenProvider) async throws -> Data {
-        await tokens.endSession()
+    private func endSession(_ tokens: any AccessTokenProvider, rejecting token: String) async throws -> Data {
+        await tokens.endSession(rejecting: token)
         throw ApiFailure.sessionEnded
     }
 
@@ -115,6 +115,9 @@ public struct ApiClient: Sendable {
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = request.method.rawValue
+        if let timeout = request.timeout {
+            urlRequest.timeoutInterval = timeout
+        }
         urlRequest.setValue(identity.headerValue, forHTTPHeaderField: "X-Nozir-Client")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body = request.body {
