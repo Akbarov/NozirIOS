@@ -36,6 +36,14 @@ public enum NozirColor {
     public static let actionContent = color(light: 0xC2410C, dark: 0xF0803F)
     public static let criticalContent = color(light: 0xB91C1C, dark: 0xE66767)
     public static let criticalBorder = color(light: 0xF4C7C7, dark: 0xE66767, darkAlpha: 0.30)
+    public static let onPrimaryContainer = color(light: 0x07695F, dark: 0x7FD6CB)
+    public static let apricotContent = color(light: 0xC2500F, dark: 0xE59F7E)
+    public static let apricotContainer = color(light: 0xFFF0E4, dark: 0xD95926, darkAlpha: 0.12)
+    public static let skyContent = color(light: 0x2A78D6, dark: 0x3987E5)
+    public static let skyContainer = color(light: 0xE8F2FF, dark: 0x3987E5, darkAlpha: 0.12)
+    public static let attentionContent = color(light: 0xB87503, dark: 0xE5A63B)
+    public static let attentionContainer = color(light: 0xFDF3E0, dark: 0xE5A63B, darkAlpha: 0.12)
+    public static let attentionBorder = color(light: 0xF0D9A8, dark: 0xE5A63B, darkAlpha: 0.30)
 
     static func uiColor(light: UInt32, dark: UInt32, darkAlpha: Double = 1) -> UIColor {
         UIColor { traits in

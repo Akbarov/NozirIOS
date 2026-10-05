@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_required_store_missing">The store did not open. Update the app from the App Store by hand.</string>
+    <string name="data_error_not_authenticated">Your session has ended. Sign in with Telegram again.</string>
+    <string name="ios_home_placeholder_title">You are signed in to Nozir</string>
+    <string name="ios_home_placeholder_body">The home screen comes in the next stage.</string>
+</resources>

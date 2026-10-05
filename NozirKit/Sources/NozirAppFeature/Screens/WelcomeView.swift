@@ -1,10 +1,12 @@
 import SwiftUI
 import NozirDesignSystem
+import NozirL10n
 
 /// P01, laid out as Android `WelcomeScreen`: the promise centred, the actions at the bottom.
 struct WelcomeView: View {
     let onStart: () -> Void
     let onSignIn: () -> Void
+    @Environment(\.l10n) private var l10n
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,8 +20,8 @@ struct WelcomeView: View {
                 .scrollBounceBehavior(.basedOnSize)
             }
             VStack(spacing: NozirSpacing.small) {
-                NozirButton(Copy.Welcome.start, size: .callToAction, action: onStart)
-                NozirButton(Copy.Welcome.haveAccount, variant: .ghost, action: onSignIn)
+                NozirButton(l10n.welcomeActionStart, size: .callToAction, action: onStart)
+                NozirButton(l10n.welcomeActionHaveAccount, variant: .ghost, action: onSignIn)
             }
             .padding(.horizontal, NozirSpacing.medium)
             .padding(.bottom, NozirSpacing.extraLarge)
@@ -30,17 +32,17 @@ struct WelcomeView: View {
 
     private var promise: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NozirLogoMark(accessibilityLabel: Copy.Welcome.logoDescription)
-            Text(Copy.Welcome.title)
+            NozirLogoMark(accessibilityLabel: l10n.contentDescriptionLogo)
+            Text(l10n.welcomeTitle)
                 .nozirText(.headline)
                 .padding(.top, NozirSpacing.large)
-            Text(Copy.Welcome.body)
+            Text(l10n.welcomeBody)
                 .nozirText(.body, color: NozirColor.textSecondary)
                 .padding(.top, NozirSpacing.compact)
             VStack(alignment: .leading, spacing: NozirSpacing.compact) {
-                NozirBulletRow(Copy.Welcome.benefitSummary)
-                NozirBulletRow(Copy.Welcome.benefitScreenTime)
-                NozirBulletRow(Copy.Welcome.benefitLocation)
+                NozirBulletRow(l10n.welcomeBenefitSummary)
+                NozirBulletRow(l10n.welcomeBenefitScreenTime)
+                NozirBulletRow(l10n.welcomeBenefitLocation)
             }
             .padding(.top, NozirSpacing.extraLarge)
         }

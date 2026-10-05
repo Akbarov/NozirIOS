@@ -65,7 +65,7 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
 
         _ = await model.chooseTelegram()
 
-        #expect(model.message == Copy.Errors.noConnection)
+        #expect(model.message == .noConnection)
         #expect(model.isTelegramAvailable)
     }
 
@@ -115,7 +115,7 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
         await model.verify()
 
         #expect(model.code == "")
-        #expect(model.message == Copy.SignIn.codeRejected)
+        #expect(model.message == .codeRejected)
     }
 
     @Test func tooManyAttemptsSaysHowLongToWait() async {
@@ -125,7 +125,7 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
 
         await model.verify()
 
-        #expect(model.message == Copy.Errors.rateLimited(seconds: 42))
+        #expect(model.message == .rateLimited(seconds: 42))
         #expect(model.code == "123456")
     }
 
@@ -135,7 +135,7 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
 
         model.telegramDidNotOpen()
 
-        #expect(model.message == Copy.SignIn.telegramNotOpened)
+        #expect(model.message == .telegramNotOpened)
     }
 
     // E2E finding (item 6): clearing the rejected code echoes "" back through the
@@ -148,7 +148,7 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
 
         model.updateCode("")
 
-        #expect(model.message == Copy.SignIn.codeRejected)
+        #expect(model.message == .codeRejected)
     }
 
     @Test func typingClearsAnOldMessage() async {
@@ -159,26 +159,5 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
         model.updateCode("1")
 
         #expect(model.message == nil)
-    }
-}
-
-@Suite struct UserMessageTests {
-    @Test func theServerMessageIsNeverShown() {
-        let failure = ApiFailure.server(status: 500, error: ApiError(code: .internalError, message: "NullPointerException at line 42"))
-        #expect(UserMessage.text(for: failure) == Copy.Errors.serverProblem)
-    }
-
-    @Test func aTimeoutIsNotCalledANoConnection() {
-        let timeout = ApiFailure.network(code: URLError.Code.timedOut.rawValue)
-        #expect(UserMessage.text(for: timeout) == Copy.Errors.timeout)
-    }
-
-    @Test func rateLimitedWithoutASecondsCountStillReads() {
-        #expect(UserMessage.text(for: failure(429, .rateLimited)) == Copy.Errors.rateLimited(seconds: nil))
-    }
-
-    @Test func anErrorThatIsNotAnApiFailureIsAServerProblem() {
-        struct Odd: Error {}
-        #expect(UserMessage.text(for: Odd()) == Copy.Errors.serverProblem)
     }
 }

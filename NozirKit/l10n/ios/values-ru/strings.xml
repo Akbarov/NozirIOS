@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_required_store_missing">Магазин не открылся. Обновите приложение вручную через App Store.</string>
+    <string name="data_error_not_authenticated">Сессия завершена. Войдите через Telegram заново.</string>
+    <string name="ios_home_placeholder_title">Вы вошли в Nozir</string>
+    <string name="ios_home_placeholder_body">Главный экран появится на следующем этапе.</string>
+</resources>

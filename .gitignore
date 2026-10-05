@@ -5,3 +5,4 @@ DerivedData/
 .build/
 NozirKit/.swiftpm/
 .superpowers/
+__pycache__/

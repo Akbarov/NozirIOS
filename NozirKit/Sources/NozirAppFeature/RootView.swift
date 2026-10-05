@@ -1,7 +1,9 @@
 import SwiftUI
 import NozirDesignSystem
+import NozirL10n
 
-/// Shows whichever top-level state AppModel is in and reports scene changes to it.
+/// Shows whichever top-level state AppModel is in, in the parent's language and
+/// theme, and reports scene changes to it.
 public struct RootView: View {
     private let environment: AppEnvironment
     @Environment(\.scenePhase) private var scenePhase
@@ -14,6 +16,11 @@ public struct RootView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(NozirColor.background.ignoresSafeArea())
+            .environment(\.l10n, environment.language.l10n)
+            // SwiftUI's own pieces (date pickers, formatted numbers) follow the
+            // app's language too, not the phone's.
+            .environment(\.locale, Locale(identifier: environment.language.current.rawValue))
+            .preferredColorScheme(environment.appearance.mode.colorScheme)
             .task { await environment.appModel.start() }
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
@@ -37,9 +44,7 @@ public struct RootView: View {
         case .signedOut:
             SignedOutFlow(environment: environment)
         case .signedIn:
-            HomePlaceholderView(onSignOut: {
-                Task { await environment.appModel.signOut() }
-            })
+            SignedInView(model: environment.makeSignedInModel())
         }
     }
 }

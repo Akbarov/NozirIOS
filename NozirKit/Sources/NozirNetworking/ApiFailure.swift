@@ -23,4 +23,14 @@ public enum ApiFailure: Error, Equatable, Sendable {
         guard case .server(let status, let error) = self, status == 401 else { return false }
         return [.tokenExpired, .tokenRevoked, .invalidToken, .unauthenticated].contains(error.code)
     }
+
+    /// A 404, with or without the error body. For the pairing code it is an
+    /// answer ("no live code"), not a fault.
+    public var isNotFound: Bool {
+        switch self {
+        case .server(let status, _): status == 404
+        case .unexpectedStatus(let status): status == 404
+        default: false
+        }
+    }
 }

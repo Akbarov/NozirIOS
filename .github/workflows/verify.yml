@@ -20,6 +20,11 @@ jobs:
           xcodebuild -version
           xcrun simctl list devices available | grep iPhone | head -20
 
+      - name: Strings
+        run: |
+          python3 -m unittest discover -s scripts/tests -v
+          python3 scripts/gen_l10n.py --check
+
       - name: NozirKit tests
         working-directory: NozirKit
         run: xcodebuild test -scheme NozirKit -destination "$DESTINATION"

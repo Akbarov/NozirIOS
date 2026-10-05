@@ -1,12 +1,19 @@
 import SwiftUI
 import NozirDesignSystem
+import NozirL10n
 
 /// Android `UpdateRequiredScreen`: update, and the emergency number stays one tap away.
 struct UpdateRequiredView: View {
     let emergencyNumber: String?
     let appStoreURL: URL?
     @Environment(\.openURL) private var openURL
-    @State private var message: String?
+    @Environment(\.l10n) private var l10n
+    @State private var notice: Notice?
+
+    /// Kept as a meaning, so the sentence follows a language change.
+    private enum Notice {
+        case storeMissing, dialerMissing
+    }
 
     var body: some View {
         // Scrolls, so the emergency button stays reachable at large text sizes
@@ -23,22 +30,22 @@ struct UpdateRequiredView: View {
 
     private var content: some View {
         VStack(spacing: 0) {
-            NozirLogoMark(accessibilityLabel: Copy.Welcome.logoDescription)
-            Text(Copy.Update.title)
+            NozirLogoMark(accessibilityLabel: l10n.contentDescriptionLogo)
+            Text(l10n.updateRequiredTitle)
                 .nozirText(.titleLarge)
                 .multilineTextAlignment(.center)
                 .padding(.top, NozirSpacing.medium)
-            Text(Copy.Update.body)
+            Text(l10n.updateRequiredBody)
                 .nozirText(.body, color: NozirColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.top, NozirSpacing.small)
-            NozirButton(Copy.Update.action, size: .callToAction) { openStore() }
+            NozirButton(l10n.updateRequiredAction, size: .callToAction) { openStore() }
                 .padding(.top, NozirSpacing.large)
-            if let message {
-                NozirInlineMessage(message).padding(.top, NozirSpacing.compact)
+            if let notice {
+                NozirInlineMessage(text(for: notice)).padding(.top, NozirSpacing.compact)
             }
             if let emergencyNumber {
-                NozirButton(Copy.Update.callEmergency(emergencyNumber), variant: .criticalOutline) {
+                NozirButton(l10n.updateRequiredCallEmergency(emergencyNumber), variant: .criticalOutline) {
                     call(emergencyNumber)
                 }
                 .padding(.top, NozirSpacing.medium)
@@ -48,26 +55,33 @@ struct UpdateRequiredView: View {
         .padding(.vertical, NozirSpacing.extraLarge)
     }
 
+    private func text(for notice: Notice) -> String {
+        switch notice {
+        case .storeMissing: l10n.updateRequiredStoreMissing
+        case .dialerMissing: l10n.updateRequiredDiallerMissing
+        }
+    }
+
     private func openStore() {
         guard let appStoreURL else {
-            message = Copy.Update.storeMissing
+            notice = .storeMissing
             return
         }
         openURL(appStoreURL) { accepted in
             if !accepted {
-                Task { @MainActor in message = Copy.Update.storeMissing }
+                Task { @MainActor in notice = .storeMissing }
             }
         }
     }
 
     private func call(_ number: String) {
         guard let url = URL(string: "tel:\(number)") else {
-            message = Copy.Update.dialerMissing
+            notice = .dialerMissing
             return
         }
         openURL(url) { accepted in
             if !accepted {
-                Task { @MainActor in message = Copy.Update.dialerMissing }
+                Task { @MainActor in notice = .dialerMissing }
             }
         }
     }

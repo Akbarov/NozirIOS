@@ -127,6 +127,9 @@ public struct ApiClient: Sendable {
             urlRequest.httpBody = body
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
+        if let ifMatch = request.ifMatch {
+            urlRequest.setValue(ifMatch, forHTTPHeaderField: "If-Match")
+        }
         if let bearer {
             urlRequest.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
         }
