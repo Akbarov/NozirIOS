@@ -1,0 +1,862 @@
+<resources>
+    <string name="app_name">NozirParent</string>
+
+    <!-- ============ Glyphs. Outline marks, 2dp, rounded ends (design system §16). ============ -->
+    <string name="glyph_back">‹</string>
+    <string name="glyph_chevron">›</string>
+    <string name="glyph_check">✓</string>
+    <string name="glyph_lock">🔒</string>
+    <string name="glyph_shield">🛡</string>
+    <string name="glyph_chat">💬</string>
+    <string name="glyph_pencil">✎</string>
+
+    <!-- ============ Status. Never colour alone: a glyph and a label always travel with it. ============ -->
+    <string name="status_glyph_good">✓</string>
+    <string name="status_glyph_attention">!</string>
+    <string name="status_glyph_action">!</string>
+    <string name="status_glyph_critical">⚠</string>
+    <string name="status_label_good">Yaxshi</string>
+    <string name="status_label_attention">Eʼtibor</string>
+    <string name="status_label_action">Harakat kerak</string>
+    <string name="status_label_critical">Kritik</string>
+
+    <!-- ============ Accessibility ============ -->
+    <string name="content_description_back">Orqaga</string>
+    <string name="content_description_logo">Nozir belgisi</string>
+    <string name="content_description_avatar_choice">Avatar rangini tanlash</string>
+
+    <!-- ============ Shared actions and ranges ============ -->
+    <string name="button_continue">Davom etish</string>
+    <string name="tab_home">Bosh</string>
+    <string name="tab_statistics">Statistika</string>
+    <string name="tab_rules">Qoidalar</string>
+    <string name="tab_location">Joylashuv</string>
+    <string name="tab_profile">Profil</string>
+    <string name="range_today">Bugun</string>
+    <string name="range_seven_days">7 kun</string>
+    <string name="range_thirty_days">30 kun</string>
+
+    <!-- ============ P01 · Qiymat vaʼdasi ============ -->
+    <string name="welcome_title">Bolangizning telefonini kuzatmang</string>
+    <string name="welcome_body">Nozir sizga faqat muhim narsani aytadi. Yozishmalarni hech kim oʻqimaydi — AI xulosa qiladi, siz esa nima qilish kerakligini bilasiz.</string>
+    <string name="welcome_benefit_summary">Kunlik AI xulosa</string>
+    <string name="welcome_benefit_screen_time">Ekran vaqti va uyqu rejimi</string>
+    <string name="welcome_benefit_location">Joylashuv va SOS</string>
+    <string name="welcome_action_start">Boshlash</string>
+    <string name="welcome_action_have_account">Hisobim bor</string>
+
+    <!-- ============ Telefon maydoni · P02 va P03 uchun bitta komponent ============ -->
+    <string name="phone_field_prefix">🇺🇿 +998</string>
+    <string name="phone_field_placeholder">90 123 45 67</string>
+
+    <!-- ============ P02 · Telefon raqami + SMS ============ -->
+    <string name="sign_in_choice_title">Nozirga kirish</string>
+    <string name="sign_in_choice_subtitle">Ikki yoʻldan birini tanlang</string>
+    <string name="sign_in_action_telegram">Telegram orqali kirish</string>
+    <string name="sign_in_telegram_why">Raqamingiz Telegram orqali tasdiqlanadi. Muhim xabarlar ham shu bot orqali keladi.</string>
+    <string name="sign_in_action_use_phone">Telefon raqami bilan kirish</string>
+    <string name="sign_in_telegram_code_title">Botdan kelgan kodni kiriting</string>
+    <string name="sign_in_telegram_code_subtitle">Telegramda «Start» bosing, raqamingizni ulashing — bot kod yuboradi. Kod %1$d daqiqa amal qiladi.</string>
+    <string name="sign_in_telegram_code_rejected">Kod mos kelmadi yoki muddati tugadi. Botdan yangi kod soʻrang.</string>
+    <string name="sign_in_action_open_bot_again">Botni qayta ochish</string>
+    <string name="sign_in_telegram_not_opened">Telegram ochilmadi. Telefoningizda Telegram oʻrnatilganini tekshiring yoki telefon raqami bilan kiring.</string>
+    <string name="sign_in_title">Telefon raqamingiz</string>
+    <string name="sign_in_subtitle">SMS orqali tasdiqlash kodi yuboramiz</string>
+    <string name="sign_in_phone_placeholder">90 123 45 67</string>
+    <string name="sign_in_privacy_consent">Davom etish orqali Maxfiylik siyosatiga rozilik bildirasiz</string>
+    <string name="sign_in_action_send_code">Kod yuborish</string>
+    <string name="sign_in_privacy_note">Maʼlumotlaringiz Oʻzbekiston qonunchiligiga muvofiq saqlanadi. Uchinchi shaxslarga sotilmaydi.</string>
+    <string name="sign_in_code_title">Tasdiqlash kodi</string>
+    <string name="sign_in_code_subtitle">…%1$s raqamiga yuborilgan olti xonali kodni kiriting</string>
+    <string name="sign_in_code_placeholder">000000</string>
+    <string name="sign_in_action_verify">Tasdiqlash</string>
+    <string name="sign_in_action_change_number">Raqamni oʻzgartirish</string>
+
+    <!-- Asking for a code: every answer gets its own sentence, never one shared message. -->
+    <string name="sign_in_error_invalid_phone">Bu raqam toʻliq emas. Toʻqqizta raqamni tekshirib, qayta kiriting.</string>
+    <string name="sign_in_error_too_soon_seconds">Yangi kod hali yuborilmadi. %1$d soniyadan keyin qayta urinib koʻring.</string>
+    <string name="sign_in_error_too_soon">Yangi kod hali yuborilmadi. Biroz kutib, qayta urinib koʻring.</string>
+    <string name="sign_in_error_no_connection">Internet aloqasi yoʻq. Ulanishni tekshirib, qayta urinib koʻring.</string>
+    <string name="sign_in_error_service_unavailable">Xizmat hozir javob bermayapti. Bir necha daqiqadan keyin qayta urinamizmi?</string>
+
+    <!-- Proving a code -->
+    <string name="sign_in_error_invalid_code">Kod mos kelmadi. Raqamlarni tekshirib, qayta kiriting.</string>
+    <string name="sign_in_error_code_expired">Kodning muddati tugadi. Yangi kod soʻrang.</string>
+    <string name="sign_in_error_too_many_attempts">Urinishlar soni tugadi. Raqamni qaytadan kiriting va yangi kod soʻrang.</string>
+
+    <!-- ============ Repository answers. One sentence per reason, in the parent app tone. ============ -->
+    <string name="data_error_no_connection">Internet aloqasi yoʻq. Ulanishni tekshirib, qayta urinib koʻring.</string>
+    <string name="data_error_timeout">Server javobi juda uzoq kutildi. Qayta urinamizmi?</string>
+    <string name="data_error_not_authenticated">Sessiya yakunlandi. Telefon raqamingizni qaytadan tasdiqlang.</string>
+    <string name="data_error_permission_denied">Bu maʼlumot sizning oilangizga tegishli emas.</string>
+    <string name="data_error_not_found">Soʻralgan maʼlumot topilmadi.</string>
+    <string name="data_error_child_limit_reached">Bepul rejada bitta bola qoʻshiladi. Koʻproq bola uchun PRO rejaga oʻting.</string>
+    <string name="data_error_subscription_required">Bu imkoniyat PRO rejada ochiladi.</string>
+    <string name="data_error_child_not_active">Bu bola muzlatilgan. PRO rejaga oʻting yoki uni faol bola qilib tanlang.</string>
+    <string name="data_error_rate_limited_seconds">Soʻrovlar juda tez ketdi. %1$d soniyadan keyin qayta urinib koʻring.</string>
+    <string name="data_error_rate_limited">Soʻrovlar juda tez ketdi. Biroz kutib, qayta urinib koʻring.</string>
+    <string name="data_error_conflict">Bu qoidalar siz oʻqiganingizdan keyin oʻzgargan. Oxirgi holatni koʻrib, qaytadan urinib koʻring.</string>
+    <string name="data_error_invalid_request">Kiritilgan maʼlumotlar toʻgʻri kelmadi. Tekshirib, qayta yuboring.</string>
+    <string name="data_error_server_problem">Serverda nosozlik. Bir necha daqiqadan keyin qayta urinamizmi?</string>
+    <string name="data_error_unreadable_answer">Javobni oʻqib boʻlmadi. Ilovani yangilash kerak boʻlishi mumkin.</string>
+
+    <!-- ============ P03 · Bola qoʻshish ============ -->
+    <string name="add_child_top_bar">Bolangiz haqida</string>
+    <string name="add_child_label_name">Ismi</string>
+    <string name="add_child_name_placeholder">Ali</string>
+    <string name="add_child_label_birth_year">Tugʻilgan yili</string>
+    <string name="add_child_birth_year_placeholder">2013</string>
+    <string name="add_child_age_years">%1$d yosh</string>
+    <string name="add_child_age_mode">%1$d yosh — «%2$s» rejimi</string>
+    <string name="add_child_age_note">Bola ilovasining interfeysi va toni yoshga moslashadi. Keyin oʻzgartirsa boʻladi.</string>
+    <string name="add_child_label_avatar">Avatar</string>
+    <string name="add_child_label_phone">Bolaning telefon raqami — ixtiyoriy</string>
+    <string name="add_child_phone_note">SOS kelganda shu raqamga toʻgʻridan-toʻgʻri qoʻngʻiroq qilasiz. Bolangizda alohida raqam boʻlmasa, boʻsh qoldiring.</string>
+    <string name="add_child_error_phone">Raqam toʻliq emas. Toʻqqiz xonali raqam kiriting yoki boʻsh qoldiring.</string>
+    <string name="age_group_star">Yulduzcha</string>
+    <string name="age_group_explorer">Sayyor</string>
+    <string name="age_group_independent">Mustaqil</string>
+
+    <!-- ============ P04 · Juftlash kodi ============ -->
+    <string name="pairing_top_bar">%1$s telefonida</string>
+    <string name="pairing_instruction">Nozir ilovasini oʻrnating va kodni kiriting</string>
+    <string name="pairing_code_label">Juftlash kodi</string>
+    <string name="pairing_code_validity">10 daqiqa amal qiladi</string>
+    <string name="pairing_qr_hint">Yoki bola telefonidagi Nozir ilovasida QR belgisini bosib, shu kodni skaner qiling</string>
+    <string name="pairing_qr_content_description">Juftlash uchun QR kod</string>
+    <string name="pairing_step_app_installed">Ilova oʻrnatildi</string>
+    <string name="pairing_step_waiting_code">Kod kiritilishi kutilmoqda…</string>
+    <string name="pairing_step_paired">Juftlandi</string>
+    <string name="pairing_no_code_title">Hozircha faol kod yoʻq</string>
+    <string name="pairing_no_code_body">Bola telefoniga kiritish uchun yangi kod oling.</string>
+    <string name="pairing_action_issue_code">Kod olish</string>
+    <string name="pairing_action_send_link">Havolani SMS orqali yuborish</string>
+    <string name="pairing_action_open_home">Bosh ekranga oʻtish</string>
+    <!-- Bola telefoni kodni qabul qilgan onda chiqadigan toast. -->
+    <string name="pairing_child_added">%1$s qoʻshildi</string>
+    <string name="pairing_child_added_unnamed">Bola qoʻshildi</string>
+    <string name="pairing_replace_title">Bu bolaga qurilma allaqachon ulangan</string>
+    <string name="pairing_replace_device_online">%1$s — hozir onlayn</string>
+    <string name="pairing_replace_device_offline">%1$s — hozir oflayn</string>
+    <string name="pairing_replace_body">Yangi kod olsangiz, shu qurilma uziladi va unda cheklovlar ishlamay qoladi. Bir bolaga faqat bitta qurilma ulanadi.</string>
+    <string name="pairing_replace_confirm">Almashtirish</string>
+    <string name="pairing_replace_cancel">Bekor qilish</string>
+
+    <!-- ============ Bola maʼlumotlari · P03 ning tahrirlanadigan koʻrinishi ============ -->
+    <string name="child_details_top_bar">Bola maʼlumotlari</string>
+    <string name="child_details_label_phone">Telefon raqami — ixtiyoriy</string>
+    <string name="child_details_phone_note">SOS kelganda shu raqamga toʻgʻridan-toʻgʻri qoʻngʻiroq qilasiz. Boʻsh qoldirsangiz, qoʻngʻiroq tugmasi oʻchiq turadi.</string>
+    <string name="child_details_error_phone">Raqam toʻliq emas. Toʻqqiz xonali raqam kiriting yoki boʻsh qoldiring.</string>
+    <string name="child_details_action_save">Saqlash</string>
+    <string name="child_details_saved">Saqlandi</string>
+    <string name="child_details_missing">Bola topilmadi.</string>
+    <string name="child_details_action_open">Maʼlumotlar</string>
+    <string name="child_details_action_remove">Bolani oʻchirish</string>
+    <string name="child_details_remove_title">«%1$s» oʻchirilsinmi?</string>
+    <string name="child_details_remove_body">Bolaning telefoni oiladan uziladi. Ilova statistikasi, qoidalar, joylashuv tarixi va SOS tarixi butunlay oʻchiriladi. Buni ortga qaytarib boʻlmaydi.</string>
+    <string name="child_details_remove_cancel">Bekor qilish</string>
+    <string name="child_details_remove_confirm">Ha, oʻchirilsin</string>
+    <string name="content_description_child_details">Bola maʼlumotlarini tahrirlash</string>
+
+    <!-- ============ Ekran nomlari · P01–P20 ============ -->
+    <string name="screen_welcome_title">Qiymat vaʼdasi</string>
+    <string name="screen_sign_in_title">Telefon raqami</string>
+    <string name="screen_add_child_title">Bola qoʻshish</string>
+    <string name="screen_new_child_rules_title">Qoidalar</string>
+    <!-- P03b. %1$s — bolaning ismi. -->
+    <string name="new_child_rules_title">%1$s uchun qoidalar</string>
+    <string name="new_child_rules_intro">Bu qoidalar telefon ulangan zahoti ishlay boshlaydi. Keyin istalgan vaqtda oʻzgartirasiz.</string>
+    <string name="new_child_rules_copied">Oxirgi qoʻshilgan bolangizning qoidalari koʻchirildi. Tekshiring va kerak boʻlsa oʻzgartiring.</string>
+    <string name="new_child_rules_limit_label">Kunlik vaqt</string>
+    <string name="new_child_rules_bedtime_label">Uyqu vaqti</string>
+    <string name="new_child_rules_apps_later">Alohida ilovalarga qoida telefon ulangandan keyin qoʻyiladi — ilovalar roʻyxati oʻsha telefondan keladi.</string>
+    <string name="new_child_rules_action_continue">Saqlash va davom etish</string>
+    <string name="screen_child_details_title">Bola maʼlumotlari</string>
+    <string name="screen_pairing_title">Juftlash kodi</string>
+    <string name="screen_home_title">Bosh ekran</string>
+    <string name="screen_daily_summary_title">Kunlik xulosa</string>
+    <string name="screen_weekly_report_title">Haftalik hisobot</string>
+    <string name="screen_app_usage_title">Ilovalar boʻyicha vaqt</string>
+    <string name="screen_daily_limit_title">Kunlik limit</string>
+    <string name="screen_sleep_time_title">Uyqu vaqti</string>
+    <string name="screen_app_rules_title">Ilovalarni cheklash</string>
+    <string name="screen_bonus_time_title">Bonus vaqt qoidalari</string>
+    <string name="screen_location_tracking_title">Joylashuv</string>
+    <string name="rules_link_location">Joylashuv</string>
+    <string name="rules_link_location_every">Har %1$d daqiqada</string>
+    <string name="location_tracking_toggle_title">Joylashuvni avtomatik yuborish</string>
+    <string name="location_tracking_on">Telefon joylashuvni oʻzi yuboradi. «Hozir qayerda?» va SOS har doim ishlaydi.</string>
+    <string name="location_tracking_off">Oʻchirilgan. «Hozir qayerda?» va SOS baribir ishlaydi.</string>
+    <string name="location_tracking_interval_title">Zona boʻlmasa</string>
+    <string name="location_tracking_interval_body">Hech bir zonada ogohlantirish yoqilmagan boʻlsa, joylashuv shu oraliqda yuboriladi.</string>
+    <string name="location_tracking_zone_interval_title">Zona boʻlsa</string>
+    <string name="location_tracking_zone_interval_body">Kamida bitta zonada kirish yoki chiqish ogohlantirishi yoqilgan boʻlsa. Qisqa oraliq — xabar tezroq, lekin batareya koʻproq sarflanadi.</string>
+    <string name="location_tracking_move_title">Harakatlansa darhol</string>
+    <string name="location_tracking_move_body">Zona boʻlsa, bola shuncha masofaga siljishi bilan joylashuv kutmasdan yuboriladi.</string>
+    <string name="location_tracking_minutes">%1$d daq</string>
+    <string name="location_tracking_metres">%1$d m</string>
+    <string name="screen_map_title">Xarita va zonalar</string>
+    <string name="screen_safe_zone_title">Zona qoʻshish</string>
+    <string name="screen_sos_alert_title">SOS signali</string>
+    <string name="screen_notifications_title">Bildirishnomalar</string>
+    <string name="screen_summary_link_title">Xulosa</string>
+    <string name="screen_time_request_title">Vaqt soʻroviga javob</string>
+    <string name="screen_protection_title">Himoya holati</string>
+    <string name="screen_subscription_title">Obuna</string>
+    <string name="screen_privacy_title">Maxfiylik</string>
+
+    <!-- ============ Ekran holatlari ============ -->
+    <string name="splash_title">Nozir</string>
+
+    <!-- ============ Majburiy yangilanish ============ -->
+    <string name="update_required_title">Ilovani yangilash kerak</string>
+    <string name="update_required_body">Bu versiya endi qoʻllab-quvvatlanmaydi. Qoidalar, tarix va farzandingizning telefoni joyida qoladi — faqat ilovani yangilash kifoya.</string>
+    <string name="update_required_action">Yangilash</string>
+    <string name="update_required_store_missing">Doʻkon ochilmadi. Ilovani Play Store orqali qoʻlda yangilang.</string>
+    <string name="update_required_call_emergency">Favqulodda: %1$s</string>
+    <string name="update_required_dialler_missing">Qoʻngʻiroq ilovasi ochilmadi. Raqamni telefon klaviaturasida tering.</string>
+    <string name="update_ready_body">Yangi versiya yuklandi. Oʻrnatish uchun ilova qayta ishga tushadi.</string>
+    <string name="update_ready_action">Oʻrnatish va qayta ishga tushirish</string>
+    <string name="placeholder_body">Bu ekran keyingi bosqichda chiziladi.</string>
+
+    <!-- ============ Preview qiymatlari. Faqat @Preview uchun. ============ -->
+    <string name="preview_text_sample">Ali bugun asosan oʻqish ilovalarida boʻldi.</string>
+    <string name="preview_label_sample">Bugungi xulosa</string>
+    <string name="preview_avatar_initial">A</string>
+    <string name="preview_child_name">Ali</string>
+
+    <!-- ============ Qoʻshimcha glyphlar ============ -->
+    <string name="glyph_offline">⊘</string>
+    <string name="glyph_plus">+</string>
+    <string name="glyph_info">i</string>
+    <string name="glyph_search">🔍</string>
+    <string name="glyph_minus">\u2212</string>
+    <string name="glyph_phone">\u260E</string>
+    <string name="glyph_sos">\u26A0</string>
+    <string name="glyph_heart">\u2665</string>
+    <string name="glyph_alarm">\u23F0</string>
+    <string name="glyph_math">\u2211</string>
+    <string name="glyph_book">\u270E</string>
+    <string name="glyph_language">A</string>
+    <string name="glyph_run">\u2691</string>
+
+    <!-- ============ Umumiy holatlar: yuklanish, boʻsh, xato, oflayn ============ -->
+    <string name="state_error_title">Nimadir notoʻgʻri ketdi</string>
+    <string name="state_action_retry">Qayta urinish</string>
+    <string name="state_offline_notice">Oflayn — oxirgi maʼlum holat koʻrsatilmoqda</string>
+    <string name="content_description_loading">Yuklanmoqda</string>
+    <string name="time_field_earlier">%1$s — oldinroq</string>
+    <string name="time_field_later">%1$s — kechroq</string>
+
+    <!-- ============ Vaqt va sana ============ -->
+    <string name="duration_short_hours_minutes">%1$ds %2$02dd</string>
+    <string name="duration_short_minutes">%1$dd</string>
+    <string name="duration_long_hours_minutes">%1$d soat %2$d daqiqa</string>
+    <string name="duration_long_minutes">%1$d daqiqa</string>
+    <string name="date_day_month">%1$d-%2$s</string>
+    <string name="date_weekday_and_day">%1$s, %2$s</string>
+    <string name="date_day_month_year">%1$d-%2$s %3$d</string>
+    <string name="date_range_same_month">%1$d–%2$d %3$s</string>
+    <string name="date_range_across_months">%1$s – %2$s</string>
+    <string-array name="month_names">
+        <item>yanvar</item>
+        <item>fevral</item>
+        <item>mart</item>
+        <item>aprel</item>
+        <item>may</item>
+        <item>iyun</item>
+        <item>iyul</item>
+        <item>avgust</item>
+        <item>sentabr</item>
+        <item>oktabr</item>
+        <item>noyabr</item>
+        <item>dekabr</item>
+    </string-array>
+    <string-array name="weekday_names">
+        <item>Dushanba</item>
+        <item>Seshanba</item>
+        <item>Chorshanba</item>
+        <item>Payshanba</item>
+        <item>Juma</item>
+        <item>Shanba</item>
+        <item>Yakshanba</item>
+    </string-array>
+    <string-array name="weekday_names_short">
+        <item>Du</item>
+        <item>Se</item>
+        <item>Ch</item>
+        <item>Pa</item>
+        <item>Ju</item>
+        <item>Sh</item>
+        <item>Ya</item>
+    </string-array>
+
+    <!-- ============ P05 · Bosh ekran ============ -->
+    <string name="home_family_title">Oilam</string>
+    <string name="home_today_and_date">Bugun · %1$s</string>
+    <string name="home_child_name_and_age">%1$s, %2$d yosh</string>
+    <string name="home_summary_label">Bugungi xulosa</string>
+    <string name="home_summary_action">Batafsil oʻqish</string>
+    <string name="home_attention_action">Batafsil</string>
+    <string name="home_stat_screen_time">Ekran vaqti</string>
+    <string name="home_stat_of_limit">%1$s limitdan</string>
+    <string name="home_stat_place">Joylashuv</string>
+    <string name="home_place_since">%1$s dan beri</string>
+    <string name="home_place_unknown">Nomaʼlum</string>
+    <string name="home_child_usage_and_place">%1$s · %2$s</string>
+    <string name="home_child_rules_followed">qoidalarga rioya qilindi</string>
+    <string name="home_child_offline">Telefon oflayn</string>
+    <string name="home_protection_healthy_title">Himoya faol</string>
+    <string name="home_protection_healthy_body">Barcha ruxsatlar ishlayapti</string>
+    <string name="home_protection_degraded_title">Himoya toʻliq emas</string>
+    <string name="home_protection_degraded_body">Baʼzi ruxsatlar ishlamayapti</string>
+    <string name="home_protection_broken_title">Himoya ishlamayapti</string>
+    <string name="home_protection_broken_body">Ruxsatlarni qayta yoqish kerak</string>
+    <string name="home_extra_time_title">Vaqt soʻrovi</string>
+    <string name="home_extra_time_body">%1$s +%2$d daqiqa soʻradi</string>
+    <string name="home_extra_time_body_unnamed">Bola +%1$d daqiqa soʻradi</string>
+    <string name="home_add_child">Qoʻshish</string>
+    <string name="home_show_all_children">Hammasi</string>
+    <string name="home_show_all_children_description">Hamma bolalarni koʻrsatish</string>
+    <string name="home_family_summary_label">Oila boʻyicha</string>
+    <string name="home_not_compared_note">Faqat eʼtibor talab qiladigan bola ajratiladi. Bolalar bir-biri bilan taqqoslanmaydi.</string>
+    <string name="home_empty_title">Hali bola qoʻshilmagan</string>
+    <string name="home_empty_body">Bola qoʻshing va uning telefonini juftlang.</string>
+    <string name="home_empty_action">Bola qoʻshish</string>
+    <string name="content_description_child_avatar">%1$s avatari</string>
+    <string name="content_description_child_avatar_attention">%1$s avatari · eʼtibor talab qiladi</string>
+
+    <!-- ============ P06 · AI kunlik xulosa ============ -->
+    <string name="daily_summary_child_today">%1$s bugun</string>
+    <string name="daily_summary_recommendation_label">Tavsiya</string>
+    <string name="daily_summary_question_label">Bu hafta soʻrab koʻring</string>
+    <string name="daily_summary_notice">Bu xulosa foydalanish statistikasidan tuzilgan.</string>
+    <string name="daily_summary_notice_promise">Yozishmalar oʻqilmagan.</string>
+    <string name="daily_summary_action_weekly">Haftalik hisobot</string>
+    <string name="daily_summary_empty_title">Bugungi xulosa hali tayyor emas</string>
+    <string name="daily_summary_empty_body">Kun yakunlangach yoki bola telefoni maʼlumot yuborgach paydo boʻladi.</string>
+    <string name="summary_link_gone_title">Bu xulosa endi mavjud emas</string>
+    <string name="summary_link_gone_body">Bola olib tashlangan boʻlishi mumkin. Soʻnggi xulosalar bosh sahifada.</string>
+
+    <!-- ============ P07 · Haftalik hisobot ============ -->
+    <string name="weekly_report_title">Bu hafta</string>
+    <string name="weekly_report_title_last_week">Oʻtgan hafta</string>
+    <string name="content_description_previous_week">Oldingi hafta</string>
+    <string name="content_description_next_week">Keyingi hafta</string>
+    <string name="weekly_chart_label">Kunlik ekran vaqti</string>
+    <string name="weekly_peak_line">Eng koʻp: %1$s — %2$s</string>
+    <string name="weekly_chart_description">Kunlik ekran vaqti. %1$s</string>
+    <string name="weekly_chart_day_value">%1$s %2$s</string>
+    <string name="weekly_chart_day_separator">, </string>
+    <string name="weekly_observations_label">Kuzatuvlar</string>
+    <string name="weekly_action_apps">Ilovalar boʻyicha vaqt</string>
+    <string name="weekly_empty_title">Bu hafta uchun maʼlumot yoʻq</string>
+    <string name="weekly_empty_body">Bola telefoni maʼlumot yuborgach, hafta shu yerda koʻrinadi.</string>
+
+    <!-- ============ P08 · Ilovalar boʻyicha vaqt ============ -->
+    <string name="app_usage_title">Ilovalar</string>
+    <string name="app_usage_total">Jami %1$s</string>
+    <string name="app_usage_action_table">Jadval koʻrinishi</string>
+    <string name="app_usage_action_chart">Grafik koʻrinishi</string>
+    <string name="app_usage_table_app">Ilova</string>
+    <string name="app_usage_table_time">Vaqt</string>
+    <string name="app_usage_table_share">Ulushi</string>
+    <string name="app_usage_share_percent">%1$d%%</string>
+    <string name="app_usage_other">Boshqalar</string>
+    <string name="app_usage_chart_description">Ilovalar boʻyicha vaqt. %1$s</string>
+    <string name="app_usage_chart_entry">%1$s %2$s</string>
+    <string name="app_usage_empty_title">Hali maʼlumot yoʻq</string>
+    <string name="app_usage_empty_body">Bola telefoni foydalanish statistikasini yuborgach paydo boʻladi.</string>
+
+    <!-- ============ Oʻtgan vaqt. Bir model, ikki joyda: signal yoshi va joylashuv yoshi. ============ -->
+    <string name="elapsed_just_now">hozirgina</string>
+    <string name="elapsed_minutes">%1$d daqiqa oldin</string>
+    <string name="elapsed_hours">%1$d soat oldin</string>
+    <string name="elapsed_stale_hours">%1$d soatdan koʻproq oldin</string>
+
+    <!-- ============ P15 · SOS signali. Kritik ekran — ortiqcha element yoʻq. ============ -->
+    <string name="sos_header_title">%1$s SOS yubordi</string>
+    <string name="sos_header_title_unnamed">Bola SOS yubordi</string>
+    <string name="sos_header_meta">%1$s · %2$s</string>
+    <string name="sos_location_label">Joylashuv</string>
+    <string name="sos_location_accuracy">Aniqlik ±%1$d m</string>
+    <string name="sos_location_fix_taken">%1$s da olingan · %2$s</string>
+    <string name="sos_location_fix_time_unknown">Joylashuv qachon olingani nomaʼlum</string>
+    <string name="sos_location_stale_note">Joylashuv eskirgan — bola hozir bu yerda boʻlmasligi mumkin.</string>
+    <string name="sos_location_coordinates">%1$s, %2$s</string>
+    <string name="sos_location_unknown_title">Joylashuv hali kelmadi</string>
+    <string name="sos_location_unknown_body">Telefon joylashuvni yubormadi. Qoʻngʻiroq qilib koʻring.</string>
+    <string name="sos_fact_battery">Batareya</string>
+    <string name="sos_fact_battery_value">%1$d%%</string>
+    <string name="sos_fact_unknown">Nomaʼlum</string>
+    <string name="sos_fact_connection">Aloqa</string>
+    <string name="sos_connection_online">Onlayn</string>
+    <string name="sos_connection_offline">Oflayn</string>
+    <string name="sos_action_call_child">%1$sga qoʻngʻiroq qilish</string>
+    <string name="sos_action_call_child_unnamed">Bolaga qoʻngʻiroq qilish</string>
+    <string name="sos_call_child_unavailable">Bola telefon raqami hali maʼlum emas.</string>
+    <string name="sos_action_directions">Yoʻnalishni ochish</string>
+    <string name="sos_action_call_emergency">%1$s ga qoʻngʻiroq</string>
+    <string name="sos_emergency_number">112</string>
+    <string name="sos_acknowledge_action">Koʻrdim</string>
+    <string name="sos_acknowledged_note">Koʻrganingiz %1$s da bildirildi</string>
+    <string name="sos_acknowledged_note_no_time">Koʻrganingiz bildirildi</string>
+    <string name="sos_action_unavailable">Bu amalni bajaradigan ilova topilmadi.</string>
+    <string name="sos_acknowledge_failed">Koʻrdim belgisi yuborilmadi. Qayta urinib koʻring.</string>
+    <string name="sos_cancelled_note">%1$s signalni oʻzi bekor qildi</string>
+    <string name="sos_cancelled_note_unnamed">Bola signalni oʻzi bekor qildi</string>
+    <string name="sos_resolved_note">Signal yakunlandi</string>
+    <string name="sos_not_found_title">Bu signal topilmadi</string>
+    <string name="sos_not_found_body">Signal bekor qilingan yoki muddati oʻtgan boʻlishi mumkin.</string>
+    <string name="sos_missing_id_title">Signal koʻrsatilmadi</string>
+    <string name="sos_missing_id_body">Bildirishnomani qayta oching.</string>
+    <string name="content_description_sos_location">Farzandingiz joylashuvi xaritada</string>
+
+    <!-- ============ P05 · SOS bildirgisi. Hamma narsadan yuqorida turadi. ============ -->
+    <string name="home_sos_banner_title">SOS signali</string>
+    <string name="home_sos_banner_title_named">%1$s SOS yubordi</string>
+    <string name="home_sos_banner_body">Bola SOS yubordi. Oching va koʻring.</string>
+    <string name="home_sos_banner_body_when">%1$s · hali javob berilmadi</string>
+    <string name="home_sos_banner_action">Ochish</string>
+
+    <!-- ============ P17 · Vaqt soʻroviga javob ============ -->
+    <string name="time_request_header">%1$s +%2$d daqiqa soʻradi</string>
+    <string name="time_request_header_unnamed">Bola +%1$d daqiqa soʻradi</string>
+    <string name="time_request_header_meta">%1$s · bugun</string>
+    <string name="time_request_reason_label">Sababi</string>
+    <string name="time_request_reason_quoted">«%1$s»</string>
+    <string name="time_request_reason_empty">Sabab yozilmagan</string>
+    <string name="time_request_context_used">Bugun allaqachon %1$s ishlatgan.</string>
+    <string name="time_request_context_week">Bu hafta %1$d marta qoʻshimcha soʻragan.</string>
+    <string name="time_request_context_week_first">Bu hafta birinchi marta soʻrayapti.</string>
+    <string name="time_request_action_approve">✓ %1$d daqiqa berish</string>
+    <string name="time_request_action_partial">%1$d daqiqa berish</string>
+    <string name="time_request_action_decline">✕ Rad etish</string>
+    <string name="time_request_note">Rad etsangiz, sabab yozishingiz mumkin — %1$s uni koʻradi.</string>
+    <string name="time_request_note_unnamed">Rad etsangiz, sabab yozishingiz mumkin — bola uni koʻradi.</string>
+    <string name="time_request_decline_label">Sabab</string>
+    <string name="time_request_decline_placeholder">Masalan: ertaga darsdan keyin gaplashamiz</string>
+    <string name="time_request_decline_confirm">Rad etishni yuborish</string>
+    <string name="time_request_decline_back">Orqaga qaytish</string>
+    <string name="time_request_decline_hint">Sababsiz rad etish bolani soʻrashdan butunlay toʻxtatadi.</string>
+    <string name="time_request_done_approved">%1$d daqiqa berildi</string>
+    <string name="time_request_done_declined">Soʻrov rad etildi</string>
+    <string name="time_request_done_expired">Soʻrov muddati oʻtdi</string>
+    <string name="time_request_empty_title">Kutilayotgan soʻrov yoʻq</string>
+    <string name="time_request_empty_body">Bola qoʻshimcha vaqt soʻrasa, shu yerda koʻrinadi.</string>
+    <string name="home_bedtime_delay_title">Uyqu vaqti soʻrovi</string>
+    <string name="home_bedtime_delay_body">%1$s bugungi uyquni %2$d daqiqa kechiktirishni soʻradi</string>
+    <string name="home_bedtime_delay_body_unnamed">Bola bugungi uyquni %1$d daqiqa kechiktirishni soʻradi</string>
+    <string name="time_request_header_delay">%1$s uyquni %2$d daqiqa kechiktirishni soʻradi</string>
+    <string name="time_request_header_delay_unnamed">Bola uyquni %1$d daqiqa kechiktirishni soʻradi</string>
+    <string name="time_request_action_approve_delay">✓ %1$d daqiqa kechiktirish</string>
+    <string name="time_request_action_partial_delay">%1$d daqiqa kechiktirish</string>
+    <string name="time_request_delay_note">Faqat bugungi tun uchun. Ertaga uyqu vaqti oʻz holicha qoladi.</string>
+
+    <!-- ============ P18 · Himoya holati ============ -->
+    <string name="protection_level_healthy_title">Himoya faol</string>
+    <string name="protection_level_degraded_title">Himoya toʻliq emas</string>
+    <string name="protection_level_broken_title">Himoya ishlamayapti</string>
+    <string name="protection_body_all_working">Barcha ruxsatlar ishlayapti</string>
+    <string name="protection_body_needs_fixing">%1$d ta sozlama tuzatilishi kerak</string>
+    <string name="protection_permissions_label">Ruxsatlar</string>
+    <string name="protection_permission_usage_access">Foydalanish statistikasi</string>
+    <string name="protection_permission_overlay">Ekran ustidan koʻrsatish</string>
+    <string name="protection_permission_notifications">Bildirishnomalar</string>
+    <string name="protection_permission_location">Joylashuv</string>
+    <string name="protection_permission_battery">Batareya cheklovidan ozod</string>
+    <string name="protection_permission_autostart">Avtoishga tushish</string>
+    <string name="protection_state_granted">Ishlayapti</string>
+    <string name="protection_state_revoked">Oʻchib qolgan</string>
+    <string name="protection_state_denied">Yoqilmagan</string>
+    <string name="protection_state_skipped">Oʻtkazib yuborilgan</string>
+    <string name="protection_state_with_note">%1$s · %2$s</string>
+    <string name="protection_note_revoked">Telefon yangilangandan keyin oʻchib qolgan</string>
+    <string name="protection_note_denied">Bu ruxsat hali berilmagan</string>
+    <string name="protection_note_skipped">Sozlash paytida oʻtkazib yuborilgan</string>
+    <string name="protection_instruction_label">Nima qilish kerak</string>
+    <string name="protection_instruction_line">%1$s telefonida (%2$s): %3$s</string>
+    <string name="protection_instruction_line_unnamed">Bola telefonida (%1$s): %2$s</string>
+    <string name="protection_instruction_unknown">Sozlamalar → Ilovalar → Nozir boʻlimini oching va ruxsatni yoqing.</string>
+    <string name="protection_action_send">%1$sga yoʻriqnoma yuborish</string>
+    <string name="protection_action_send_unnamed">Yoʻriqnoma yuborish</string>
+    <string name="protection_send_sent">Yoʻriqnoma yuborildi. Bola telefonida koʻrinadi.</string>
+    <string name="protection_stale_note">Bola telefonidan %1$s xabar kelgan — bu holat taxminiy.</string>
+    <string name="protection_stale_note_never">Bola telefonidan hali xabar kelmagan — bu holat taxminiy.</string>
+    <string name="protection_empty_title">Ruxsatlar holati hali yoʻq</string>
+    <string name="protection_empty_body">Bola telefoni ulanib, birinchi xabarini yuborgach shu yerda koʻrinadi.</string>
+    <string name="protection_no_child_title">Bola tanlanmagan</string>
+    <string name="protection_no_child_body">Bosh ekrandan bolani tanlab, qaytadan oching.</string>
+
+    <!-- ============ OEM yoʻriqnomalari. Kalitni server beradi, matn shu yerda. ============ -->
+    <string name="oem_xiaomi_autostart">Sozlamalar → Ilovalar → Nozir → Avtoishga tushirish → yoqing</string>
+    <string name="oem_xiaomi_battery">Sozlamalar → Batareya → Nozir → Cheklovsiz</string>
+    <string name="oem_oppo_autostart">Sozlamalar → Ilovalarni boshqarish → Nozir → Avtoishga tushirish → yoqing</string>
+    <string name="oem_vivo_autostart">Sozlamalar → Ilovalar → Nozir → Fon quvvati → ruxsat bering</string>
+    <string name="oem_samsung_battery">Sozlamalar → Batareya → Fon foydalanishi chegaralari → Nozirni roʻyxatdan chiqaring</string>
+    <string name="oem_realme_autostart">Sozlamalar → Ilovalar → Nozir → Avtoishga tushirish → yoqing</string>
+    <string name="oem_infinix_autostart">Sozlamalar → Ilovalar → Nozir → Avtoishga tushirish → yoqing</string>
+    <string name="oem_generic_autostart">Sozlamalar → Ilovalar → Nozir → avtoishga tushirishga ruxsat bering</string>
+    <string name="oem_generic_usage">Sozlamalar → Maxfiylik → Foydalanish statistikasi → Nozir → yoqing</string>
+    <string name="oem_generic_overlay">Sozlamalar → Ilovalar → Maxsus ruxsatlar → Ekran ustidan koʻrsatish → Nozir</string>
+    <string name="oem_generic_battery">Sozlamalar → Batareya → Batareya optimallashtirish → Nozir → Cheklanmagan</string>
+
+
+    <!-- ============ Qoidalar · umumiy ============ -->
+    <string name="rules_action_save">Saqlash</string>
+    <string name="rules_action_cancel">Bekor qilish</string>
+    <string name="rules_saved_named">Saqlandi. %1$s telefoni yangi qoidani keyingi aloqada oladi.</string>
+    <string name="rules_saved">Saqlandi. Bola telefoni yangi qoidani keyingi aloqada oladi.</string>
+    <string name="rules_conflict_notice">Bu qoidalar siz oʻqiganingizdan keyin oʻzgargan. Oxirgi holat yuklandi — oʻzgarishingizni qaytadan kiriting.</string>
+    <string name="rules_no_child_title">Bola tanlanmagan</string>
+    <string name="rules_no_child_body">Bosh ekrandan bolani tanlab, qaytadan oching.</string>
+    <string name="rules_other_label">Boshqa qoidalar</string>
+    <string name="rules_link_bedtime">Uyqu vaqti</string>
+    <string name="rules_link_apps">Ilovalar</string>
+    <string name="rules_link_bonus">Bonus vaqt</string>
+    <string name="rules_link_apps_count">%1$d ta ilovada qoida bor</string>
+    <string name="rules_link_apps_none">Hech bir ilovada qoida yoʻq</string>
+    <string name="rules_link_bonus_ceiling">Kuniga %1$s gacha</string>
+    <string name="rules_time_range">%1$s – %2$s</string>
+
+    <!-- ============ P09 · Kunlik vaqt ============ -->
+    <string name="daily_limit_title">Kunlik vaqt</string>
+    <string name="daily_limit_school_days">Dars kunlari</string>
+    <string name="daily_limit_school_days_range">Dushanba – Juma</string>
+    <string name="daily_limit_weekend">Dam olish kunlari</string>
+    <string name="daily_limit_weekend_range">Shanba, Yakshanba</string>
+    <string name="daily_limit_every_day">Har kuni</string>
+    <string name="daily_limit_every_day_same">Har kuni bir xil</string>
+    <string name="daily_limit_range_min">30d</string>
+    <string name="daily_limit_range_max">6s</string>
+    <string name="daily_limit_slider_school">Dars kunlari uchun kunlik vaqt</string>
+    <string name="daily_limit_slider_weekend">Dam olish kunlari uchun kunlik vaqt</string>
+    <string name="daily_limit_notice_named">Qoida oʻzgarsa, %1$s telefoni buni keyingi aloqada oladi va sababini koʻradi. Bu qarshilikni kamaytiradi.</string>
+    <string name="daily_limit_notice">Qoida oʻzgarsa, bola telefoni buni keyingi aloqada oladi va sababini koʻradi. Bu qarshilikni kamaytiradi.</string>
+
+    <!-- ============ P10 · Uyqu vaqti ============ -->
+    <string name="bedtime_start_label">Boshlanishi</string>
+    <string name="bedtime_end_label">Tugashi</string>
+    <string name="bedtime_length">Telefon %1$s davomida yopiq boʻladi.</string>
+    <string name="bedtime_wind_down_title">Wind Down</string>
+    <string name="bedtime_wind_down_subtitle">%1$d daqiqa oldin ogohlantirish</string>
+    <string name="bedtime_wind_down_off">Ogohlantirishsiz</string>
+    <string name="bedtime_wind_down_slider">Wind Down uzunligi</string>
+    <string name="bedtime_allowlist_label">Uyqu vaqtida ham ishlaydi</string>
+    <string name="bedtime_allowlist_calls">Qoʻngʻiroq</string>
+    <string name="bedtime_allowlist_sos">SOS</string>
+    <string name="bedtime_allowlist_parent">Sizga yozish</string>
+    <string name="bedtime_allowlist_alarm">Budilnik</string>
+    <string name="bedtime_days_label">Kunlar</string>
+    <string name="bedtime_days_every_night">Har kuni</string>
+    <string name="bedtime_days_summary">Faol tunlar: %1$s</string>
+    <string name="bedtime_days_separator">, </string>
+    <string name="bedtime_days_hint">Kamida bitta tun tanlangan boʻlishi kerak.</string>
+
+    <!-- ============ P11 · Ilovalar ============ -->
+    <string name="app_rules_title">Ilovalar</string>
+    <string name="app_rules_subtitle">Dars vaqtida yoki umuman cheklash</string>
+    <string name="app_rule_none">Cheklov yoʻq</string>
+    <string name="app_rule_daily_limit">Kuniga %1$s</string>
+    <string name="app_rule_schedule">%1$s–%2$s yopiq</string>
+    <string name="app_rule_always">Doim yopiq</string>
+    <string name="app_rule_mode_none">Cheklov yoʻq</string>
+    <string name="app_rule_mode_daily_limit">Kunlik vaqt</string>
+    <string name="app_rule_mode_schedule">Jadval</string>
+    <string name="app_rule_daily_limit_slider">Bu ilova uchun kunlik vaqt</string>
+    <string name="app_rule_window_start">Yopilishi</string>
+    <string name="app_rule_window_end">Ochilishi</string>
+    <string name="app_rule_window_days">Kunlar</string>
+    <string name="app_rules_never_blocked">Telefon, SMS, budilnik va Nozir hech qachon bloklanmaydi.</string>
+    <string name="app_rules_never_blocked_row">Har doim ochiq</string>
+    <string name="app_rules_add">Ilova qoʻshish</string>
+    <string name="app_rules_search_placeholder">Ilova nomini yozing</string>
+    <string name="app_rules_search_no_match">«%1$s» boʻyicha ilova topilmadi. Boshqacha yozib koʻring.</string>
+    <string name="app_rules_add_label">Qoida qoʻshish mumkin</string>
+    <string name="app_rules_empty_title">Hali qoida yoʻq</string>
+    <string name="app_rules_empty_body">Bola telefonida ishlatilgan ilovalar shu yerda koʻrinadi.</string>
+    <string name="app_rules_edit">%1$s qoidasini oʻzgartirish</string>
+
+    <!-- ============ P12 · Bonus vaqt ============ -->
+    <string name="bonus_title">Bonus vaqt</string>
+    <string name="bonus_caption_named">%1$s foydali ish qilib vaqt yutishi mumkin</string>
+    <string name="bonus_caption">Bola foydali ish qilib vaqt yutishi mumkin</string>
+    <string name="bonus_ceiling_title">Kunlik maksimum</string>
+    <string name="bonus_ceiling_subtitle">Bundan ortiq yuta olmaydi</string>
+    <string name="bonus_ceiling_value">+%1$s</string>
+    <string name="bonus_ceiling_slider">Kunlik bonus maksimumi</string>
+    <string name="bonus_ceiling_binding">Barcha vazifalar %1$s beradi — kunlik maksimum %2$s da toʻxtatadi.</string>
+    <string name="bonus_ceiling_zero">Maksimum 0 — hozircha hech qanday vazifa vaqt bermaydi.</string>
+    <string name="bonus_challenges_label">Vazifalar</string>
+    <string name="bonus_challenge_math">Matematika (10 masala)</string>
+    <string name="bonus_challenge_reading">Kitob oʻqish (15 daq)</string>
+    <string name="bonus_challenge_english">Ingliz tili quiz</string>
+    <string name="bonus_challenge_exercise">Jismoniy mashq</string>
+    <string name="bonus_challenge_subtitle">%1$s · Siz tasdiqlaysiz</string>
+    <string name="bonus_challenge_easy">Oson</string>
+    <string name="bonus_challenge_medium">Oʻrtacha</string>
+    <string name="bonus_challenge_hard">Qiyin</string>
+    <string name="bonus_challenge_minutes">+%1$s</string>
+    <string name="bonus_challenge_toggle">%1$s vazifasi</string>
+    <string name="bonus_empty_title">Vazifalar hali yoʻq</string>
+    <string name="bonus_empty_body">Vazifalar roʻyxati tayyor boʻlgach shu yerda koʻrinadi.</string>
+
+    <!-- ============ P16 · Bildirishnomalar ============ -->
+    <string name="notifications_filter_all">Hammasi</string>
+    <string name="notifications_filter_important">Muhim</string>
+    <string name="notifications_push_note">Sizga kuniga 1 tadan ortiq push yuborilmaydi — SOS bundan mustasno.</string>
+    <string name="notifications_offline_title">Telefon jim qolsa</string>
+    <string name="notifications_offline_body">Bola telefonidan shu muddat davomida hech qanday xabar kelmasa, sizga bildirishnoma yuboramiz. Tungi soatlar hisobga olinmaydi.</string>
+    <string name="notifications_offline_preset">%1$d s</string>
+    <string name="notifications_offline_value">%1$d soat</string>
+    <string name="notifications_offline_current">Hozir: %1$s</string>
+    <string name="notifications_in_app_only">Ilova ichida qoldi</string>
+    <string name="notifications_load_more">Yana koʻrsatish</string>
+    <string name="notifications_empty_title">Hali bildirishnoma yoʻq</string>
+    <string name="notifications_empty_body">Eʼtibor talab qiladigan narsa boʻlsa, shu yerda koʻrinadi.</string>
+    <string name="notifications_empty_important_title">Muhim bildirishnoma yoʻq</string>
+    <string name="notifications_empty_important_body">Bu yaxshi xabar — hammasi joyida.</string>
+    <string name="notification_moment_today">Bugun %1$s</string>
+    <string name="notification_moment_yesterday">Kecha %1$s</string>
+    <string name="notification_moment_date">%1$s %2$s</string>
+    <string name="notification_child_and_moment">%1$s · %2$s</string>
+    <string name="notification_digest_suppressed">%1$s ta bildirishnoma ilova ichida qoldi</string>
+    <string name="notification_sos_triggered">SOS yuborildi</string>
+    <string name="notification_safe_zone_entered">Belgilangan joyga yetib bordi</string>
+    <string name="notification_safe_zone_left">Belgilangan joydan chiqdi</string>
+    <string name="notification_safe_zone_entered_named">%1$s «%2$s»ga yetib keldi</string>
+    <string name="notification_safe_zone_left_named">%1$s «%2$s»dan chiqdi</string>
+    <string name="notification_protection_broken">Himoya toʻliq ishlamayapti</string>
+    <string name="notification_protection_restored">Himoya yana ishlayapti</string>
+    <string name="notification_device_offline">Telefondan xabar kelmayapti</string>
+    <string name="notification_extra_time_requested">Qoʻshimcha vaqt soʻradi</string>
+    <string name="notification_bedtime_delay_requested">Uyqu vaqtini kechiktirishni soʻradi</string>
+    <string name="notification_challenge_needs_approval">Vazifa tasdiqlashingizni kutmoqda</string>
+    <string name="notification_daily_summary_ready">Kunlik xulosa tayyor</string>
+    <string name="notification_weekly_report_ready">Haftalik hisobot tayyor</string>
+    <string name="notification_limit_reached">Bugungi vaqt tugadi</string>
+    <string name="notification_bedtime_violation">Uyqu vaqtidan keyin foydalanildi</string>
+    <string name="notification_usage_anomaly">Ekran vaqti sezilarli oʻzgardi</string>
+    <string name="notification_rules_changed">Qoidalar oʻzgardi</string>
+    <string name="notification_subscription_expiring">Obuna muddati tugayapti</string>
+    <string name="notification_unknown">Yangi bildirishnoma</string>
+
+    <!-- ============ Push kanallari. Nomlar telefon sozlamalarida koʻrinadi. ============ -->
+    <string name="notification_channel_sos_name">SOS signali</string>
+    <string name="notification_channel_sos_description">Bolangiz SOS tugmasini bosganda. Bu kanalni oʻchirib qoʻymang.</string>
+    <string name="notification_channel_alerts_name">Muhim xabarlar</string>
+    <string name="notification_channel_waiting_name">Bola javob kutmoqda</string>
+    <string name="notification_channel_waiting_description">Farzandingiz qoʻshimcha vaqt soʻraganda yoki vazifasini tasdiqlashni kutganda. Bu xabarlar ekranda darhol koʻrinadi.</string>
+    <string name="notification_channel_alerts_description">Javob berishingiz kerak boʻlgan xabarlar: qoʻshimcha vaqt soʻrovi, vazifa tasdigʻi, telefon himoyasi.</string>
+    <string name="notification_channel_digest_name">Kunlik xulosa</string>
+    <string name="notification_channel_digest_description">Kunlik va haftalik hisobotlar. Ovozsiz keladi.</string>
+
+    <!-- ============ P16 ga kirish ============ -->
+    <string name="glyph_bell">🔔</string>
+    <string name="content_description_notifications">Bildirishnomalar tarixi</string>
+
+
+    <!-- ============ Bildirishnoma ruxsatlari (P05 da bir marta soʻraladi, P16 da qaytish yoʻli) ============ -->
+    <string name="alerts_notifications_title">Bildirishnomalarga ruxsat bering</string>
+    <string name="alerts_notifications_body">Bolangiz SOS tugmasini bosganda telefoningiz shuni koʻrsatadi. Ruxsatsiz hech qanday xabar kelmaydi.</string>
+    <string name="alerts_notifications_action">Ruxsat berish</string>
+    <string name="alerts_do_not_disturb_title">Ovozi oʻchirilganda ham eshitilsin</string>
+    <string name="alerts_do_not_disturb_body">Telefon “Bezovta qilmang” rejimida boʻlsa ham SOS signali ovoz chiqaradi. Faqat SOS — qolgan xabarlar jim qoladi.</string>
+    <string name="alerts_do_not_disturb_action">Sozlamalarni ochish</string>
+    <string name="alerts_full_screen_title">Ekran oʻchiq boʻlsa ham koʻrinsin</string>
+    <string name="alerts_full_screen_body">SOS kelganda telefon ekrani yonadi va signal darhol koʻrinadi. Aks holda u faqat ovoz chiqaradi va shtorkada kutib turadi. Faqat SOS uchun.</string>
+    <string name="alerts_full_screen_action">Sozlamalarni ochish</string>
+    <string name="alerts_action_later">Hozir emas</string>
+
+    <!-- ============ P21 · Profil ============ -->
+    <string name="screen_profile_title">Profil</string>
+    <string name="profile_section_children">Bolalarim</string>
+    <string name="profile_section_settings">Sozlamalar</string>
+    <string name="profile_no_name">Ota-ona</string>
+    <string name="profile_child_name_and_age">%1$s, %2$d yosh</string>
+    <string name="profile_child_state_paired">Bogʻlangan</string>
+    <string name="profile_child_state_app_installed">Ilova oʻrnatildi</string>
+    <string name="profile_child_state_code_issued">Kod berilgan</string>
+    <string name="profile_child_state_not_paired">Bogʻlanmagan</string>
+    <string name="profile_action_repair">Qayta bogʻlash</string>
+    <string name="profile_action_pair">Bogʻlash</string>
+    <string name="profile_add_child">Bola qoʻshish</string>
+    <string name="profile_row_rules">Qoidalar</string>
+    <string name="profile_row_subscription">Obuna · Nozir PRO</string>
+    <string name="profile_row_notifications">Bildirishnomalar</string>
+    <string name="profile_row_privacy">Maxfiylik</string>
+    <string name="profile_row_theme">Koʻrinish</string>
+    <string name="profile_theme_light">Yorugʻ</string>
+    <string name="profile_theme_dark">Tungi</string>
+    <string name="profile_theme_system">Avto</string>
+    <string name="profile_row_language">Til</string>
+    <string name="theme_sheet_title">Koʻrinishni tanlang</string>
+    <string name="language_sheet_title">Tilni tanlang</string>
+    <!-- Each language is named in its own language, so a parent who has ended
+         up somewhere they cannot read can still find the way back. Not
+         translated for that reason. -->
+    <string name="language_uz" translatable="false">Oʻzbekcha</string>
+    <string name="language_ru" translatable="false">Русский</string>
+    <string name="language_en" translatable="false">English</string>
+    <string name="profile_action_sign_out">Chiqish</string>
+    <string name="profile_empty_children_title">Hali bola qoʻshilmagan</string>
+    <string name="profile_empty_children_body">Bola qoʻshing va uning telefonini juftlang.</string>
+    <string name="content_description_profile">Profil</string>
+    <string name="content_description_edit_profile">Profilni tahrirlash</string>
+
+    <!-- ============ P19 · Obuna ============ -->
+    <!--
+      Hech qanday narx, muddat yoki foiz shu yerda yozilmagan: ular serverdan
+      keladi. Bu yerda faqat oʻlchov birligi va tugma matnlari bor.
+    -->
+    <string name="subscription_top_bar">Nozir PRO</string>
+    <string name="subscription_plan_yearly">Yillik</string>
+    <string name="subscription_plan_monthly">Oylik</string>
+    <string name="subscription_price_unit_year">soʻm/yil</string>
+    <string name="subscription_price_unit_month">soʻm/oy</string>
+    <string name="subscription_monthly_equivalent">%1$s soʻm/oy hisobida</string>
+    <string name="subscription_saving_badge">%1$d%% tejaysiz</string>
+    <string name="subscription_action_pay">Toʻlash</string>
+    <string name="subscription_action_pay_with">%1$s orqali toʻlash · %2$s soʻm</string>
+    <string name="subscription_awaiting_payment">Toʻlov tasdiqlanishini kutyapmiz. Toʻlagach, obuna shu yerda oʻzi yoqiladi.</string>
+    <string name="subscription_check_payment">Toʻlovni tekshirish</string>
+    <string name="subscription_checkout_not_opened">Toʻlov sahifasini ochib boʻlmadi. Telefonda brauzer borligini tekshiring.</string>
+    <string name="subscription_payment_not_ready">Toʻlov hali ulanmagan. Quyidagi usullar tayyorlanmoqda — tayyor boʻlgach shu yerdan toʻlash mumkin boʻladi.</string>
+    <string name="subscription_sos_free">SOS doim bepul</string>
+    <string name="subscription_sos_free_body">SOS tugmasi va tez yordam raqamlari obunaga bogʻliq emas: ular har doim, har qanday holatda ishlaydi.</string>
+    <string name="subscription_active_title">Nozir PRO faol</string>
+    <string name="subscription_active_yearly">Yillik obuna</string>
+    <string name="subscription_active_monthly">Oylik obuna</string>
+    <string name="subscription_active_until">%1$s gacha amal qiladi</string>
+    <string name="subscription_active_no_end_date">Amal qilish muddati koʻrsatilmagan</string>
+    <string name="subscription_active_auto_renew_on">Muddati tugaganda avtomatik yangilanadi</string>
+    <string name="subscription_active_auto_renew_off">Avtomatik yangilanish yoqilmagan</string>
+    <string name="plan_lock_action_upgrade">PRO rejaga oʻtish</string>
+    <string name="plan_lock_sos_note">SOS, tez yordam raqamlari, kunlik limit va uyqu vaqti ishlashda davom etadi.</string>
+    <string name="plan_lock_location_title">Joylashuv PRO rejada</string>
+    <string name="plan_lock_location_body">Bolaning hozirgi joylashuvi va xavfsiz zonalar PRO rejada ochiladi. SOS bosilganda joylashuv baribir sizga yuboriladi.</string>
+    <string name="plan_lock_frozen_child_title">Bu bola muzlatilgan</string>
+    <string name="plan_lock_frozen_child_body">Bepul rejada bitta bola toʻliq faol boʻladi. Bu bolaning telefoni oxirgi qoʻyilgan limit va uyqu vaqtini bajarishda davom etadi, lekin qoidalarni oʻzgartirib boʻlmaydi. Hech narsa oʻchirilmagan.</string>
+    <string name="plan_lock_choose_active">Shu bolani faol qilish</string>
+    <string name="plan_lock_frozen_badge">Muzlatilgan</string>
+    <string name="subscription_trial_title">Bepul sinov davri</string>
+    <string name="subscription_trial_until">%1$s gacha hamma imkoniyat ochiq</string>
+    <string name="subscription_trial_body">Sinov tugagach joylashuv, zonalar va har kungi AI xulosa yopiladi. Bolalar va zonalar oʻchmaydi.</string>
+    <string name="subscription_grace_title">Obuna tugadi — 3 kun vaqtingiz bor</string>
+    <string name="subscription_grace_until">%1$s gacha toʻlasangiz, davr oʻsha kundan davom etadi</string>
+    <string name="subscription_expired_title">Obuna muddati tugagan</string>
+    <string name="subscription_expired_body">Quyidagi rejalardan birini tanlab davom ettirishingiz mumkin.</string>
+    <string name="subscription_plans_empty_title">Rejalar hozir koʻrsatilmadi</string>
+    <string name="subscription_plans_empty_body">Narxlar serverdan olinadi va ilova ichida saqlanmaydi. Qayta urinib koʻring.</string>
+    <string name="subscription_features_label">Nimalar kiradi</string>
+    <string name="payment_channel_payme">Payme</string>
+    <string name="payment_channel_click">Click</string>
+    <string name="payment_channel_uzum">Uzum</string>
+    <string name="payment_channel_card">Karta</string>
+    <string name="payment_channel_google_play">Google Play</string>
+    <string name="content_description_recommended_plan">Tavsiya etilgan reja</string>
+
+    <!-- ============ P20 · Maxfiylik ============ -->
+    <!--
+      Ikkala roʻyxat ham serverdan keladi — bola koʻradigan roʻyxat bilan bir xil
+      hujjat. Bu yerda roʻyxat matni yozilmaydi.
+    -->
+    <string name="privacy_caption_child">%1$s ham aynan shu roʻyxatni koʻradi</string>
+    <string name="privacy_caption_children">Farzandingiz ham aynan shu roʻyxatni koʻradi</string>
+    <string name="privacy_seen_label">Siz koʻrasiz</string>
+    <string name="privacy_not_seen_label">Siz koʻrmaysiz</string>
+    <!-- Opens the published policy in a browser. Shown only when the server
+         named a URL. -->
+    <string name="privacy_policy_row">Maxfiylik siyosati</string>
+    <string name="privacy_promise">Maʼlumotlaringiz hech kimga sotilmaydi va reklama uchun ishlatilmaydi.</string>
+    <string name="privacy_document_version">Hujjat versiyasi: %1$s</string>
+    <string name="privacy_action_delete">Maʼlumotlarimni oʻchirish</string>
+    <string name="privacy_delete_title">Maʼlumotlarni oʻchirishni soʻraysizmi?</string>
+    <string name="privacy_delete_body_with_days">Soʻrovdan keyin %1$d kun kutiladi, soʻng oilangizning barcha maʼlumotlari — farzandlaringiz, qoidalar, ilova statistikasi, joylashuv va SOS tarixi — serverdan butunlay oʻchiriladi. Buni ortga qaytarib boʻlmaydi.</string>
+    <string name="privacy_delete_body">Soʻrovdan keyin belgilangan kutish muddati oʻtadi, soʻng oilangizning barcha maʼlumotlari — farzandlaringiz, qoidalar, ilova statistikasi, joylashuv va SOS tarixi — serverdan butunlay oʻchiriladi. Buni ortga qaytarib boʻlmaydi.</string>
+    <string name="privacy_delete_confirm">Ha, oʻchirishni soʻrayman</string>
+    <string name="privacy_delete_cancel">Bekor qilish</string>
+    <string name="privacy_delete_requested_title">Soʻrov qabul qilindi</string>
+    <string name="privacy_delete_requested_body">Maʼlumotlaringiz %1$s da oʻchiriladi. Bu sanagacha ilova odatdagidek ishlashda davom etadi.</string>
+    <string name="privacy_disclosure_empty_title">Roʻyxat hozir olinmadi</string>
+    <string name="privacy_disclosure_empty_body">Bu roʻyxat serverdan olinadi va ilova ichida saqlanmaydi. Qayta urinib koʻring.</string>
+    <string name="glyph_cross">✕</string>
+    <string name="glyph_bullet">•</string>
+    <string name="content_description_privacy_seen">Siz koʻradigan maʼlumotlar</string>
+    <string name="content_description_privacy_not_seen">Siz koʻrmaydigan maʼlumotlar</string>
+
+
+    <!-- ============ P13 · Xarita va zonalar ============ -->
+    <!--
+      Joylashuv hodisaga asoslangan: doimiy GPS izi saqlanmaydi. Shuning uchun
+      har bir joylashuv yonida uning yoshi ham koʻrsatiladi - yoshsiz pin ota-
+      onani ikki soatlik maʼlumotni hozirgi deb oʻqishga undaydi.
+    -->
+    <string name="location_map_description">Farzandingiz joylashuvi xaritada</string>
+    <string name="location_child_at_place">%1$s · %2$s</string>
+    <string name="location_place_unknown">Manzil aniqlanmadi</string>
+    <string name="location_updated_at">%1$s yangilandi · soat %2$s da olingan</string>
+    <string name="location_accuracy">Aniqlik ±%1$d m</string>
+    <string name="location_battery">🔋 %1$d%%</string>
+    <string name="location_stale_note">Telefon uzoq vaqtdan beri xabar bermadi. Bu joylashuv eskirgan.</string>
+    <string name="location_unknown_title">Hozir qayerdaligi nomaʼlum</string>
+    <string name="location_unavailable_when">Telefon javobi: %1$s</string>
+    <string name="location_unavailable_off">Hozirgi aniq joylashuv olinmadi: bola telefonida joylashuv xizmati oʻchirilgan. Bolaga yoqishni soʻrang.</string>
+    <string name="location_unavailable_permission">Hozirgi aniq joylashuv olinmadi: Nozirga joylashuv ruxsati berilmagan.</string>
+    <string name="location_unavailable_no_fix">Hozirgi aniq joylashuv olinmadi: telefon signal topa olmadi. Bino ichida yoki metroda shunday boʻladi.</string>
+    <string name="location_add_zone">+ Zona</string>
+    <string name="location_request_fix">Hozir qayerdaligini soʻrash</string>
+    <string name="location_request_waiting">Telefondan soʻraldi — javob kutilmoqda…</string>
+    <string name="location_request_unreachable">Telefonga soʻrov yuborib boʻlmadi. Ilova oʻrnatilganini va telefon ulanganini tekshiring.</string>
+    <string name="location_never_reported_title">Hali birorta joylashuv kelmadi</string>
+    <string name="location_never_reported_body">Farzandingiz telefonida Nozir ochilib, joylashuv ruxsati berilgach, bu yerda koʻrinadi.</string>
+    <string name="location_no_child_title">Avval farzand qoʻshing</string>
+    <string name="location_no_child_body">Joylashuv faqat ulangan telefon uchun koʻrsatiladi.</string>
+
+
+    <!-- ============ P14 · Safe zone ============ -->
+    <!--
+      Kelish va ketish alohida tugmalar. Ikkalasi ham yoqilsa, bitta maktab kuni
+      ota-onaga to'rt xabar yuboradi va bu ilovani o'chirishga olib keladi.
+    -->
+    <string name="safe_zone_edit_title">Zonani tahrirlash</string>
+    <string name="safe_zone_map_description">Zona markazini xaritada tanlang</string>
+    <string name="safe_zone_name_label">Nomi</string>
+    <string name="safe_zone_name_placeholder">Maktab</string>
+    <string name="safe_zone_radius_label">Radius</string>
+    <string name="safe_zone_radius_value">%1$d metr</string>
+    <string name="safe_zone_notify_enter">Kelganda xabar berish</string>
+    <string name="safe_zone_notify_exit">Ketganda xabar berish</string>
+    <string name="safe_zone_notify_exit_hint">Kuniga bir necha marta xabar kelishi mumkin</string>
+    <string name="safe_zone_place_hint">Zona markazini belgilash uchun xaritani bosing.</string>
+    <string name="safe_zone_name_hint">Zonaga nom bering — u xaritada shu nom bilan koʻrinadi.</string>
+    <string name="safe_zone_centred_hint">Markaz farzandingizning oxirgi joylashuvi boʻyicha qoʻyildi. Boshqa joy uchun xaritani bosing.</string>
+    <string name="safe_zone_save">Saqlash</string>
+    <string name="safe_zone_delete">Zonani oʻchirish</string>
+    <string name="safe_zone_delete_title">«%1$s» zonasi oʻchirilsinmi?</string>
+    <string name="safe_zone_delete_body">Bu zona boʻyicha xabarlar toʻxtaydi. Avvalgi hodisalar tarixda qoladi.</string>
+    <string name="safe_zone_delete_cancel">Bekor qilish</string>
+    <string name="safe_zone_delete_confirm">Ha, oʻchirilsin</string>
+    <string name="safe_zone_no_child_title">Avval farzand qoʻshing</string>
+    <string name="safe_zone_no_child_body">Zona muayyan farzand uchun belgilanadi.</string>
+    <string name="data_error_safe_zone_limit_reached">Zonalar soni chegarasiga yetdingiz. Keraksiz zonani oʻchiring yoki PRO ga oʻting.</string>
+
+    <string name="notification_child_app_outdated">Farzandingiz telefonidagi Nozir eskirgan</string>
+    <string name="notification_app_installed">Telefonga yangi ilova oʻrnatildi</string>
+    <string name="notification_app_installed_count">%1$s ta yangi ilova oʻrnatildi. Qoida qoʻyasizmi?</string>
+
+    <!-- Ishonch zinapoyasi (P09). Bola qoidaga rioya qilgani sari avtomatik
+         ko'proq vaqt oladi; bu yerdagi raqam - eng ko'pi bilan qancha. -->
+    <string name="trust_ladder_title">Ishonch zinapoyasi</string>
+    <string name="trust_ladder_subtitle">Rioya qilgani uchun avtomatik qoʻshiladi</string>
+    <string name="trust_ladder_value">+%1$s</string>
+    <string name="trust_ladder_off_value">Oʻchiq</string>
+    <string name="trust_ladder_slider">Zinapoya maksimumi</string>
+    <string name="trust_ladder_note_off">Oʻchiq. Bola qancha kun rioya qilsa ham qoʻshimcha vaqt olmaydi.</string>
+    <string name="trust_ladder_note_rungs">7 kundan +10 daq, 14 kundan +20, 30 kundan +30, 60 kundan +45 — %1$s gacha. Seriya uzilsa nolga qaytadi.</string>
+    <string name="sign_in_choice_subtitle_telegram_only">Telegram orqali kiring</string>
+    <string name="sign_in_choice_subtitle_phone_only">Telefon raqamingiz bilan kiring</string>
+    <string name="sign_in_choice_subtitle_no_way_in">Hozir kirish imkoni yoʻq. Birozdan keyin qayta urinib koʻring.</string>
+    <string name="sign_in_error_phone_closed">Telefon raqami bilan kirish hozir yopiq. Telegram orqali kiring.</string>
+    <string name="sign_in_telegram_not_opened_only_door">Telegram ochilmadi. Telefoningizda Telegram oʻrnatilganini tekshiring va qayta urinib koʻring.</string>
+</resources>

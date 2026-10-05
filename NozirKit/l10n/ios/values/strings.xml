@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS-only strings. A key here wins over the Android string with the same key. -->
+<resources>
+    <!-- The App Store, not Play Store. -->
+    <string name="update_required_store_missing">Doʻkon ochilmadi. Ilovani App Store orqali qoʻlda yangilang.</string>
+    <!-- iOS signs in through Telegram only. -->
+    <string name="data_error_not_authenticated">Sessiya yakunlandi. Telegram orqali qaytadan kiring.</string>
+    <!-- Home stands in until sub-project 2b builds P05. -->
+    <string name="ios_home_placeholder_title">Siz Nozirga kirdingiz</string>
+    <string name="ios_home_placeholder_body">Asosiy ekran keyingi bosqichda quriladi.</string>
+    <!-- Android trims the trailing space of an unquoted ", ", so its night list
+         reads "Dushanba,Chorshanba". Quoted here so the space survives. -->
+    <string name="bedtime_days_separator">", "</string>
+</resources>
