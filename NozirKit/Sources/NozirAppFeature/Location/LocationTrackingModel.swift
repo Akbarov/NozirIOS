@@ -34,7 +34,10 @@ final class LocationTrackingModel {
         self.family = family
     }
 
+    /// A repeated `.task` (a tab switch) must not overwrite edits in progress:
+    /// only a load that has not produced a rule yet may run again (the retry).
     func load() async {
+        guard tracking == nil else { return }
         isLoading = true
         defer { isLoading = false }
         do {

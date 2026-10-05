@@ -31,6 +31,33 @@ private func setup(_ script: FakeFamily.Script) -> (LocationTrackingModel, FakeF
         #expect(model.canSave)
     }
 
+    @Test func loadingAgainKeepsTheEditsInProgress() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, tracking: every15)), .success(snapshot(version: 4, tracking: every15))]
+        let (model, _) = setup(script)
+        await model.load()
+        model.setInterval(30)
+
+        await model.load()
+
+        #expect(model.tracking?.intervalMinutes == 30)
+        #expect(model.canSave)
+    }
+
+    @Test func aFailedFirstLoadCanBeRetried() async {
+        var script = FakeFamily.Script()
+        script.rules = [.failure(offline), .success(snapshot(version: 4, tracking: every15))]
+        let (model, _) = setup(script)
+        await model.load()
+        #expect(model.tracking == nil)
+        #expect(model.loadFailure != nil)
+
+        await model.load()
+
+        #expect(model.tracking == every15)
+        #expect(model.loadFailure == nil)
+    }
+
     @Test func turningOffKeepsTheNumbers() async {
         var script = FakeFamily.Script()
         script.rules = [.success(snapshot(version: 4, tracking: every15))]
