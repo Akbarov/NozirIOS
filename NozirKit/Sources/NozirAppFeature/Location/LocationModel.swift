@@ -54,6 +54,10 @@ final class LocationModel {
     @ObservationIgnored private var shownChildId: UUID?
     /// Bumped when the child changes: an answer for the previous child is dropped.
     @ObservationIgnored private var generation = 0
+    /// The wait in progress, owned here so leaving the screen can cancel it.
+    @ObservationIgnored private var poll: Task<Void, Never>?
+    /// Bumped on every start and cancel: a wait that was cancelled never writes.
+    @ObservationIgnored private var requestToken = 0
 
     init(
         family: FamilyStore,
@@ -118,7 +122,14 @@ final class LocationModel {
         do {
             let fresh = try await location.location(of: id)
             guard mine == generation else { return }
-            show(fresh)
+            if let current = snapshot, Self.isNewer(current, than: fresh), !Self.isNewer(fresh, than: current) {
+                // An overlapping load answered with an older fix: keep the newer one.
+                phase = .ready
+                isOffline = false
+                inlineMessage = nil
+            } else {
+                show(fresh)
+            }
         } catch is CancellationError {
             return
         } catch let failure as ApiFailure where failure.isNotFound {
@@ -138,44 +149,83 @@ final class LocationModel {
                 phase = .failed(message)
             } else if message == .noConnection || message == .timeout {
                 isOffline = true
+                inlineMessage = nil
             } else {
+                isOffline = false
                 inlineMessage = message
             }
         }
-        await reloadZones()
+        await reloadZones(of: id, generation: mine)
     }
 
     /// Zones and the tracking rule. Either failing is quiet: they keep what they had.
     func reloadZones() async {
-        guard let id = childId, phase != .locked else { return }
-        let mine = generation
-        if let fresh = try? await location.safeZones(of: id), mine == generation {
+        guard let id = childId else { return }
+        await reloadZones(of: id, generation: generation)
+    }
+
+    private func reloadZones(of id: UUID, generation mine: Int) async {
+        guard phase != .locked else { return }
+        if let fresh = try? await location.safeZones(of: id), mine == generation, id == childId {
             zones = fresh
         }
-        if let rules = try? await family.service.rules(of: id), mine == generation {
+        if let rules = try? await family.service.rules(of: id), mine == generation, id == childId {
             tracking = rules.locationTracking
         }
+    }
+
+    /// Starts the wait on a task the model owns, so it can be cancelled when the
+    /// screen goes away. Does nothing while a wait is already running.
+    func startRequest() {
+        guard let id = beginRequest() else { return }
+        let token = requestToken
+        poll = Task { [weak self] in
+            await self?.runRequest(of: id, token: token)
+        }
+    }
+
+    /// The screen closed or went to the background: stop waiting, stop asking.
+    func cancelRequest() {
+        requestToken += 1
+        poll?.cancel()
+        poll = nil
+        if request == .waiting { request = .idle }
     }
 
     /// "Where are they now": wake the phone, then look again until something
     /// newer arrives or twelve looks have passed. Nothing newer is not an error.
     func requestFix() async {
-        guard request != .waiting, phase != .locked, let id = childId else { return }
+        guard let id = beginRequest() else { return }
+        await runRequest(of: id, token: requestToken)
+    }
+
+    private func beginRequest() -> UUID? {
+        guard request != .waiting, phase != .locked, let id = childId else { return nil }
+        requestToken += 1
+        request = .waiting
+        return id
+    }
+
+    private func runRequest(of id: UUID, token: Int) async {
         let mine = generation
         let before = snapshot
-        request = .waiting
+        func current() -> Bool { mine == generation && token == requestToken && !Task.isCancelled }
         do {
             let asked = try await location.requestLocation(of: id)
-            guard mine == generation else { return }
+            guard current() else { return }
             guard asked else {
                 request = .unreachable
                 return
             }
             for _ in 0..<Self.pollAttempts {
                 try await pause(Self.pollInterval)
-                guard mine == generation else { return }
+                guard current() else { return }
                 guard let fresh = try? await location.location(of: id) else { continue }
-                guard mine == generation else { return }
+                guard current() else { return }
+                if phase == .locked {
+                    request = .idle
+                    return
+                }
                 if Self.isNewer(fresh, than: before) {
                     show(fresh)
                     request = .idle
@@ -184,9 +234,14 @@ final class LocationModel {
             }
             request = .idle
         } catch is CancellationError {
-            if mine == generation { request = .idle }
+            if mine == generation, token == requestToken { request = .idle }
+        } catch let failure as ApiFailure where failure.code == .subscriptionRequired {
+            if current() {
+                phase = .locked
+                request = .idle
+            }
         } catch {
-            if mine == generation { request = .failed(UserMessage(error)) }
+            if current() { request = .failed(UserMessage(error)) }
         }
     }
 
@@ -213,6 +268,9 @@ final class LocationModel {
         tracking = nil
         isOffline = false
         inlineMessage = nil
+        requestToken += 1
+        poll?.cancel()
+        poll = nil
         request = .idle
         phase = .loading
     }

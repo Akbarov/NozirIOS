@@ -280,6 +280,71 @@ private func setup(
         #expect(aliLocations == 1)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func closingTheScreenStopsTheWait() async {
+        let gate = PauseGate()
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.success(fixAt()), .success(fixAt(minutesAfter: 5, latitude: 40.0))]
+        let (model, fake, _) = await setup(script, pause: { _ in await gate.pause() })
+        await model.load()
+
+        model.startRequest()
+        await gate.untilPaused()
+        #expect(model.request == .waiting)
+        model.cancelRequest()
+        #expect(model.request == .idle)
+        let before = await fake.calls
+        await gate.release()
+        // Let the cancelled task run to its end.
+        for _ in 0..<20 { await Task.yield() }
+
+        #expect(model.request == .idle)
+        #expect(await fake.calls == before)
+        #expect(model.snapshot == fixAt())
+    }
+
+    @Test func anOlderAnswerDoesNotReplaceANewerFix() async {
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.success(fixAt(minutesAfter: 5)), .success(fixAt())]
+        let (model, _, _) = await setup(script)
+        await model.load()
+
+        await model.load()
+
+        #expect(model.snapshot == fixAt(minutesAfter: 5))
+        #expect(model.phase == .ready)
+    }
+
+    @Test func aFreePlanFoundWhileAskingLocksTheScreen() async {
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.success(fixAt())]
+        script.requests = [.failure(.server(status: 403, error: ApiError(code: .subscriptionRequired)))]
+        let (model, _, _) = await setup(script)
+        await model.load()
+
+        await model.requestFix()
+
+        #expect(model.phase == .locked)
+        #expect(model.request == .idle)
+    }
+
+    @Test func goingOfflineClearsAMessageAndAMessageClearsOffline() async {
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.success(fixAt()), .failure(.unexpectedStatus(500)), .failure(offline), .failure(.unexpectedStatus(500))]
+        let (model, _, _) = await setup(script)
+        await model.load()
+        await model.load()
+        #expect(model.inlineMessage == .serverProblem)
+
+        await model.load()
+        #expect(model.isOffline)
+        #expect(model.inlineMessage == nil)
+
+        await model.load()
+        #expect(!model.isOffline)
+        #expect(model.inlineMessage == .serverProblem)
+    }
+
     @Test func newerMeansALaterFixOrALaterReason() {
         #expect(LocationModel.isNewer(fixAt(), than: nil))
         #expect(!LocationModel.isNewer(LocationSnapshot(isStale: true), than: nil))

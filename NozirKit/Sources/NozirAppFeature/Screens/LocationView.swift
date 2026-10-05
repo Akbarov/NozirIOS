@@ -13,7 +13,7 @@ struct LocationView: View {
     private let onAddChild: () -> Void
     @Environment(\.l10n) private var l10n
     @Environment(\.scenePhase) private var scenePhase
-    @State private var position: MapCameraPosition = MapCamera.region(LocationModel.fallbackCentre, metres: 4000)
+    @State private var position: MapCameraPosition
 
     init(
         model: LocationModel,
@@ -22,6 +22,7 @@ struct LocationView: View {
         onAddChild: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
+        _position = State(initialValue: MapCamera.region(model.cameraCentre, metres: model.snapshot?.coordinate == nil ? 2500 : 1200))
         self.onOpenZone = onOpenZone
         self.onOpenTracking = onOpenTracking
         self.onAddChild = onAddChild
@@ -48,8 +49,11 @@ struct LocationView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task { await model.load() }
+            } else {
+                model.cancelRequest()
             }
         }
+        .onDisappear { model.cancelRequest() }
         .onChange(of: model.cameraCentre) { _, centre in
             position = MapCamera.region(centre, metres: model.snapshot?.coordinate == nil ? 2500 : 1200)
         }
@@ -159,7 +163,7 @@ struct LocationView: View {
     @ViewBuilder
     private var requestSection: some View {
         NozirButton(l10n.locationRequestFix, variant: .secondary, isLoading: model.request == .waiting) {
-            Task { await model.requestFix() }
+            model.startRequest()
         }
         .disabled(model.request == .waiting)
         switch model.request {
