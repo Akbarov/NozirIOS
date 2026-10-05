@@ -6,8 +6,8 @@ import NozirL10n
 
 /// P07. Fifty-three ISO weeks (this one last) for one child; each page is the
 /// week's daily usage and the weekly summary's paragraphs. Pages stay in memory
-/// by Monday; the week before the one shown is fetched ahead; one request per
-/// (child, week) at a time. Usage then summary, one after the other (plan
+/// by Monday; the week before the one shown is fetched ahead; one load per
+/// (child, week) at a time, owned by the model. Usage then summary, one after the other (plan
 /// deviation E3); a summary failure, 403/404 included, only hides observations.
 @MainActor
 @Observable
@@ -47,7 +47,12 @@ final class WeeklyReportModel {
 
     private let insights: any InsightsService
     private let today: @MainActor () -> LocalDate
-    @ObservationIgnored private var inFlight: Set<Key> = []
+    private struct Load {
+        let id: UUID
+        let task: Task<Void, Never>
+    }
+
+    @ObservationIgnored private var loads: [Key: Load] = [:]
 
     init(childId: UUID, insights: any InsightsService, today: @escaping @MainActor () -> LocalDate) {
         self.childId = childId
@@ -109,33 +114,48 @@ final class WeeklyReportModel {
         return weeks[index + 1]
     }
 
+    /// Loads happen in model-owned tasks, so a caller's cancellation (the view's
+    /// `.task` restarting on a swipe) never abandons a page another caller is
+    /// waiting on: a second caller joins the load already running.
     private func loadIfNeeded(_ week: LocalDate) async {
         let child = childId
-        let key = Key(child: child, week: week)
-        guard !inFlight.contains(key) else { return }
         switch pages[week] {
         case .loaded?, .failed?: return
         case .loading?, nil: break
         }
-        inFlight.insert(key)
-        defer { inFlight.remove(key) }
+        let key = Key(child: child, week: week)
+        if let running = loads[key] {
+            await running.task.value
+            return
+        }
         pages[week] = .loading
+        let id = UUID()
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.fetch(key, id: id)
+        }
+        loads[key] = Load(id: id, task: task)
+        await task.value
+    }
+
+    private func fetch(_ key: Key, id: UUID) async {
+        defer {
+            if loads[key]?.id == id { loads[key] = nil }
+        }
+        let child = key.child
+        let week = key.week
         do {
             let usage = try await insights.dailyUsage(of: child, from: week, to: week.adding(days: 6))
             let summary = try? await insights.weeklySummary(of: child, weekStart: week)
             guard child == childId else { return }
-            guard !Task.isCancelled else {
-                pages[week] = nil
-                return
-            }
-            let page = Page(
+            pages[week] = .loaded(Page(
                 days: Self.days(of: week, from: usage, today: today()),
                 observations: summary?.paragraphs ?? [],
                 risk: summary?.riskLevel ?? .good
-            )
-            pages[week] = .loaded(page)
+            ))
         } catch is CancellationError {
-            if child == childId { pages[week] = nil }
+            // Nothing arrived; leave the page to be asked for again.
+            if child == childId, pages[week] == .loading { pages[week] = nil }
         } catch {
             guard child == childId else { return }
             pages[week] = .failed(UserMessage(error))
