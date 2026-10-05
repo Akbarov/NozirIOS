@@ -138,6 +138,19 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
         #expect(model.message == Copy.SignIn.telegramNotOpened)
     }
 
+    // E2E finding (item 6): clearing the rejected code echoes "" back through the
+    // code field; that echo is not typing and must not erase the explanation.
+    @Test func theFieldEchoingTheClearedCodeKeepsTheRejection() async {
+        let model = SignInModel(service: FakeTelegram(verify: .failure(failure(400, .otpCodeInvalid))), onSignedIn: {})
+        _ = await model.chooseTelegram()
+        model.updateCode("123456")
+        await model.verify()
+
+        model.updateCode("")
+
+        #expect(model.message == Copy.SignIn.codeRejected)
+    }
+
     @Test func typingClearsAnOldMessage() async {
         let model = SignInModel(service: FakeTelegram(), onSignedIn: {})
         _ = await model.chooseTelegram()

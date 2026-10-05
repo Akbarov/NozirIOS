@@ -64,9 +64,15 @@ public final class SignInModel {
 
     /// Keeps ASCII digits only, up to the code's length: the backend accepts
     /// `[0-9]` and nothing else, and a pasted "123 456" is still the code.
+    ///
+    /// Only a real change clears the message: the code field echoes back every
+    /// value the model sets, and the echo of a cleared, rejected code must not
+    /// erase the sentence explaining why it was cleared.
     public func updateCode(_ input: String) {
         let digits = input.filter { $0.isASCII && $0.isNumber }
-        code = String(digits.prefix(codeLength))
+        let normalized = String(digits.prefix(codeLength))
+        guard normalized != code else { return }
+        code = normalized
         message = nil
     }
 
