@@ -30,22 +30,24 @@ private func setup(_ script: FakeInsights.Script, today: Today? = nil) -> (Weekl
     return (model, insights)
 }
 
-/// Answers every usage request only once the test lets it through, and records
-/// who asked, so a test can cancel and switch while a load is in the air.
+/// Answers each child's usage requests only once the test lets that child
+/// through, and records who asked, so a test can cancel and switch while loads
+/// are in the air and decide which one lands first.
 private actor GatedInsights: InsightsService {
     private(set) var asked: [String] = []
-    private var waiting: [CheckedContinuation<Void, Never>] = []
-    private var open = false
+    private var waiting: [UUID: [CheckedContinuation<Void, Never>]] = [:]
+    private var open: Set<UUID> = []
     private let minutes: @Sendable (UUID) -> Int
 
     init(minutes: @escaping @Sendable (UUID) -> Int) {
         self.minutes = minutes
     }
 
-    func release() {
-        open = true
-        waiting.forEach { $0.resume() }
-        waiting = []
+    /// Lets this child's waiting requests, and any later ones, through.
+    func release(_ childId: UUID) {
+        open.insert(childId)
+        waiting[childId, default: []].forEach { $0.resume() }
+        waiting[childId] = nil
     }
 
     func home() async throws -> ParentHome { throw offline }
@@ -55,8 +57,8 @@ private actor GatedInsights: InsightsService {
 
     func dailyUsage(of childId: UUID, from: LocalDate, to: LocalDate) async throws -> [DailyUsage] {
         asked.append("\(childId == aliId ? "ali" : "vali") \(from.text)")
-        if !open {
-            await withCheckedContinuation { waiting.append($0) }
+        if !open.contains(childId) {
+            await withCheckedContinuation { waiting[childId, default: []].append($0) }
         }
         return usage([minutes(childId)], from: from)
     }
@@ -247,7 +249,8 @@ private actor GatedInsights: InsightsService {
         #expect(!WeeklyReportModel.isEmpty(WeeklyReportModel.Page(days: zeros, observations: ["Bir."], risk: .good)))
     }
 
-    @Test func aCancelledLoadStillFillsThePageForTheNextCaller() async {
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledLoadStillFillsThePageForTheNextCaller() async {
         let week = day("2026-10-05")
         let insights = GatedInsights { _ in 42 }
         let model = WeeklyReportModel(childId: aliId, insights: insights, today: { day("2026-10-07") })
@@ -257,7 +260,7 @@ private actor GatedInsights: InsightsService {
         first.cancel()
         let second = Task { await model.show(week) }
         await Task.yield()
-        await insights.release()
+        await insights.release(aliId)
         await first.value
         await second.value
 
@@ -269,7 +272,8 @@ private actor GatedInsights: InsightsService {
         #expect(await insights.asked.filter { $0 == "ali 2026-10-05" }.count == 1)
     }
 
-    @Test func anAnswerForAChildNoLongerShownIsDropped() async {
+    @Test(.timeLimit(.minutes(1)))
+    func anAnswerForAChildNoLongerShownIsDropped() async {
         let week = day("2026-10-05")
         let insights = GatedInsights { $0 == aliId ? 10 : 90 }
         let model = WeeklyReportModel(childId: aliId, insights: insights, today: { day("2026-10-07") })
@@ -278,9 +282,12 @@ private actor GatedInsights: InsightsService {
         await insights.untilAsked(1)
         let vali = Task { await model.setChild(valiId) }
         await insights.untilAsked(2)
-        await insights.release()
-        await ali.value
+        // vali's answer lands first and is on screen ...
+        await insights.release(valiId)
         await vali.value
+        // ... then ali's late answer arrives and must not replace it.
+        await insights.release(aliId)
+        await ali.value
 
         guard case .loaded(let page) = model.pages[week] else {
             Issue.record("expected a loaded page")
