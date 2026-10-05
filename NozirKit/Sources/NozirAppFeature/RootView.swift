@@ -44,9 +44,7 @@ public struct RootView: View {
         case .signedOut:
             SignedOutFlow(environment: environment)
         case .signedIn:
-            HomePlaceholderView(onSignOut: {
-                Task { await environment.appModel.signOut() }
-            })
+            SignedInView(model: environment.makeSignedInModel())
         }
     }
 }

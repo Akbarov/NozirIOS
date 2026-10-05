@@ -2,6 +2,7 @@ import Foundation
 import NozirAuth
 import NozirConfig
 import NozirDesignSystem
+import NozirFamily
 import NozirL10n
 import NozirNetworking
 
@@ -13,18 +14,21 @@ public final class AppEnvironment {
     public let appearance: AppearanceStore
     /// Nil until the app has an App Store ID (no developer account yet).
     let appStoreURL: URL?
+    private let authorised: ApiClient
     private let telegramSignIn: any TelegramSignInService
 
     init(
         appModel: AppModel,
         language: LanguageStore,
         appearance: AppearanceStore,
+        authorised: ApiClient,
         telegramSignIn: any TelegramSignInService,
         appStoreURL: URL?
     ) {
         self.appModel = appModel
         self.language = language
         self.appearance = appearance
+        self.authorised = authorised
         self.telegramSignIn = telegramSignIn
         self.appStoreURL = appStoreURL
     }
@@ -40,7 +44,8 @@ public final class AppEnvironment {
         // itself need a fresh access token.
         let anonymousAuth = AuthApi(client: anonymous)
         let refresher = TokenRefresher(store: store, refresh: { try await anonymousAuth.refresh($0) })
-        let authorisedAuth = AuthApi(client: anonymous.withTokens(refresher))
+        let authorised = anonymous.withTokens(refresher)
+        let authorisedAuth = AuthApi(client: authorised)
         let config = ConfigLoader(
             api: ConfigApi(client: anonymous),
             cache: UserDefaultsConfigCache(),
@@ -56,6 +61,7 @@ public final class AppEnvironment {
             appModel: appModel,
             language: LanguageStore(),
             appearance: AppearanceStore(),
+            authorised: authorised,
             telegramSignIn: TelegramSignIn(api: anonymousAuth, store: store, deviceLabel: deviceLabel),
             appStoreURL: nil
         )
@@ -63,5 +69,16 @@ public final class AppEnvironment {
 
     func makeSignInModel() -> SignInModel {
         SignInModel(service: telegramSignIn, onSignedIn: { [appModel] in appModel.didSignIn() })
+    }
+
+    func makeSignedInModel() -> SignedInModel {
+        let api = FamilyApi(client: authorised)
+        return SignedInModel(
+            family: FamilyStore(service: api),
+            language: language,
+            appearance: appearance,
+            localeSync: LocaleSync(store: language, send: { _ = try await api.updateLocale($0) }),
+            signOut: { [appModel] in await appModel.signOut() }
+        )
     }
 }
