@@ -203,4 +203,21 @@ private func makeModel(
 
         #expect(model.phase == .signedIn)
     }
+
+    @Test func theEmergencyNumberIsKeptForSos() async {
+        let model = makeModel(config: FakeConfig(config(updateRequired: false)), tokens: InMemoryTokenStore(someTokens))
+
+        await model.start()
+
+        #expect(model.phase == .signedIn)
+        #expect(model.emergencyNumber == "112")
+    }
+
+    @Test func noConfigNoEmergencyNumber() async {
+        let model = makeModel(config: FakeConfig(nil), tokens: InMemoryTokenStore(someTokens))
+
+        await model.start()
+
+        #expect(model.emergencyNumber == nil)
+    }
 }
