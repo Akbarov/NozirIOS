@@ -5,12 +5,16 @@ public struct NozirSwitcherChild: Identifiable, Equatable, Sendable {
     public let name: String
     public let tone: AvatarTone
     public let needsAttention: Bool
+    /// What VoiceOver says for the chip; it carries the attention dot, which is
+    /// hidden from VoiceOver itself. The name when not given.
+    public let accessibilityLabel: String
 
-    public init(id: UUID, name: String, tone: AvatarTone, needsAttention: Bool = false) {
+    public init(id: UUID, name: String, tone: AvatarTone, needsAttention: Bool = false, accessibilityLabel: String? = nil) {
         self.id = id
         self.name = name
         self.tone = tone
         self.needsAttention = needsAttention
+        self.accessibilityLabel = accessibilityLabel ?? name
     }
 }
 
@@ -66,7 +70,7 @@ public struct NozirChildSwitcher: View {
                     }
                 }
                 ForEach(children) { child in
-                    chip(isSelected: selection == child.id, label: child.name, accessibility: child.name) {
+                    chip(isSelected: selection == child.id, label: child.name, accessibility: child.accessibilityLabel) {
                         NozirAvatar(name: child.name, tone: child.tone, fallbackInitial: fallbackInitial, size: 44)
                             .overlay(alignment: .topTrailing) {
                                 if child.needsAttention {

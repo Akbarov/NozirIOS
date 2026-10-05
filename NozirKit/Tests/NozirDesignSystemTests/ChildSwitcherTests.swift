@@ -19,4 +19,9 @@ import Testing
     @Test func tappingEveryoneClearsTheChoice() {
         #expect(NozirChildSwitcher.selection(afterTapping: nil, current: ali, allowsAll: true) == nil)
     }
+
+    @Test func aChipIsReadAsItsNameUnlessToldOtherwise() {
+        #expect(NozirSwitcherChild(id: ali, name: "Ali", tone: .forKey(nil, position: 0)).accessibilityLabel == "Ali")
+        #expect(NozirSwitcherChild(id: ali, name: "Ali", tone: .forKey(nil, position: 0), accessibilityLabel: "Ali avatari").accessibilityLabel == "Ali avatari")
+    }
 }

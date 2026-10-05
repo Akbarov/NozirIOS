@@ -143,4 +143,23 @@ private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil) -> (Da
         #expect(model.title(l10n) == l10n.dailySummaryChildToday("Ali"))
         #expect(model.subtitle(l10n) == DateTexts.weekdayAndDate(day("2026-10-04"), l10n))
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func loadingAgainAfterAFailureShowsTheSpinner() async {
+        let insights = HangingInsights(hanging: [1, 2])
+        let model = DailySummaryModel(childId: aliId, childName: "Ali", insights: insights)
+        let first = Task { await model.load() }
+        await insights.waitUntilAsked("daily", 1)
+        first.cancel()
+        await first.value
+        #expect(model.state == .failed(.noConnection))
+
+        let second = Task { await model.load() }
+        await insights.waitUntilAsked("daily", 2)
+        #expect(model.state == .loading)
+
+        second.cancel()
+        await second.value
+        #expect(model.state == .failed(.noConnection))
+    }
 }

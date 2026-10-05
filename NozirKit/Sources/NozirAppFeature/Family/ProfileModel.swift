@@ -25,7 +25,7 @@ public final class ProfileModel {
         language: LanguageStore,
         appearance: AppearanceStore,
         localeSync: LocaleSync,
-        currentYear: Int = Calendar.current.component(.year, from: Date()),
+        currentYear: Int = Gregorian.currentYear,
         signOut: @escaping @MainActor () async -> Void
     ) {
         self.family = family

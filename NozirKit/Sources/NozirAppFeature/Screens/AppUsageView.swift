@@ -69,7 +69,7 @@ struct AppUsageView: View {
 
     private var chart: some View {
         let entries = model.entries
-        let shares = ChartMath.shares(entries.map(\.minutes))
+        let shares = AppUsageModel.barFractions(entries, total: model.total)
         let fractions = ChartMath.fractions(entries.map(\.minutes))
         return VStack(alignment: .leading, spacing: NozirSpacing.large) {
             NozirCard {

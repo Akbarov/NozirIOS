@@ -81,6 +81,14 @@ final class AppUsageModel {
         return index
     }
 
+    /// The stacked bar's segments: each app's minutes over the total the server
+    /// gave, the same denominator as the legend and the table (spec §5.5),
+    /// clamped to 0...1; a zero total draws nothing.
+    nonisolated static func barFractions(_ entries: [AppUsageEntry], total: Int) -> [Double] {
+        guard total > 0 else { return entries.map { _ in 0 } }
+        return entries.map { min(max(Double($0.minutes) / Double(total), 0), 1) }
+    }
+
     /// The stacked bar as VoiceOver reads it.
     nonisolated static func chartDescription(_ entries: [AppUsageEntry], _ l10n: L10n) -> String {
         let spoken = entries.map { l10n.appUsageChartEntry(name(of: $0, l10n), Durations.short($0.minutes, l10n)) }

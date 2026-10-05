@@ -316,6 +316,52 @@ private actor GatedInsights: InsightsService {
         guard case .loaded(let second)? = model.pages[current] else { Issue.record("not reloaded"); return }
         #expect(second.days[0].usedMinutes == 45)
     }
+
+    @Test func aRefreshThatFailsKeepsTheChartOnScreen() async {
+        var script = FakeInsights.Script()
+        script.usage = { _, from, _ in usage([30], from: from) }
+        let (model, insights) = setup(script)
+        await model.appear()
+        let current = model.currentWeek
+        let previous = day("2026-09-28")
+
+        await insights.add { $0.usage = { _, _, _ in throw offline } }
+        await model.refresh()
+
+        guard case .loaded(let page)? = model.pages[current] else { Issue.record("chart replaced"); return }
+        #expect(page.days[0].usedMinutes == 30)
+        guard case .loaded? = model.pages[previous] else { Issue.record("previous week replaced"); return }
+        #expect(await insights.calls.filter { $0 == "usage \(current.text)…\(current.adding(days: 6).text)" }.count == 2)
+    }
+
+    @Test func aRefreshKeepsOtherCachedWeeks() async {
+        var script = FakeInsights.Script()
+        script.usage = { _, from, _ in usage([10], from: from) }
+        let (model, insights) = setup(script)
+        let older = day("2026-09-07")
+        await model.show(older)
+        await model.appear()
+        let olderCall = "usage \(older.text)…\(older.adding(days: 6).text)"
+        #expect(await insights.calls.filter { $0 == olderCall }.count == 1)
+
+        await model.refresh()
+
+        guard case .loaded? = model.pages[older] else { Issue.record("cached week dropped"); return }
+        guard case .loaded? = model.pages[day("2026-08-31")] else { Issue.record("cached week dropped"); return }
+        #expect(await insights.calls.filter { $0 == olderCall }.count == 1)
+    }
+
+    @Test func aRefreshAsksAgainForAFailedWeek() async {
+        let (model, insights) = setup(FakeInsights.Script())
+        await model.appear()
+        #expect(model.pages[model.currentWeek] == .failed(.noConnection))
+
+        await insights.add { $0.usage = { _, from, _ in usage([5], from: from) } }
+        await model.refresh()
+
+        guard case .loaded(let page)? = model.pages[model.currentWeek] else { Issue.record("not reloaded"); return }
+        #expect(page.days[0].usedMinutes == 5)
+    }
 }
 
 private final class MinutesBox: @unchecked Sendable {

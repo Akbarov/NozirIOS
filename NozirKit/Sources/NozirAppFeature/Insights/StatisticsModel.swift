@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import NozirDesignSystem
 import NozirFamily
+import NozirL10n
 
 /// Which child the Statistics tab shows (spec decision: a switcher above P07,
 /// the choice carried on to P08). A child removed in Profile falls back to the
@@ -40,9 +41,14 @@ final class StatisticsModel {
         family.children.count > 1
     }
 
-    var switcherChildren: [NozirSwitcherChild] {
+    func switcherChildren(_ l10n: L10n) -> [NozirSwitcherChild] {
         family.children.enumerated().map { position, child in
-            NozirSwitcherChild(id: child.id, name: child.displayName, tone: .forKey(child.avatarKey, position: position))
+            NozirSwitcherChild(
+                id: child.id,
+                name: child.displayName,
+                tone: .forKey(child.avatarKey, position: position),
+                accessibilityLabel: l10n.contentDescriptionChildAvatar(child.displayName)
+            )
         }
     }
 }

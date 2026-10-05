@@ -29,7 +29,7 @@ public final class ChildDetailsModel {
     private let family: FamilyStore
     private let currentYear: Int
 
-    public init(child: Child, family: FamilyStore, currentYear: Int = Calendar.current.component(.year, from: Date())) {
+    public init(child: Child, family: FamilyStore, currentYear: Int = Gregorian.currentYear) {
         self.child = child
         self.family = family
         self.currentYear = currentYear

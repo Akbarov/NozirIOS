@@ -53,6 +53,10 @@ struct HomeView: View {
             }
         }
         .refreshable { await model.load() }
+        // The alarm ended while its sheet was open: close it rather than leave it blank.
+        .onChange(of: model.home?.activeSos == nil) { _, ended in
+            if ended { showsSos = false }
+        }
         .sheet(isPresented: $showsSos) {
             if let alert = model.sosAlert(emergencyNumber: emergencyNumber()) {
                 SosSheet(alert: alert)
@@ -166,7 +170,7 @@ struct HomeView: View {
             Text(DateTexts.dayAndMonth(home.date, l10n)).nozirText(.bodySmall, color: NozirColor.textTertiary)
         }
         NozirChildSwitcher(
-            children: model.switcherChildren,
+            children: model.switcherChildren(l10n),
             selection: $model.filter,
             allTitle: l10n.homeShowAllChildren,
             allAccessibilityLabel: l10n.homeShowAllChildrenDescription,

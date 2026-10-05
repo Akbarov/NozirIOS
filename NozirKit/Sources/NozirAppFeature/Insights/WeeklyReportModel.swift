@@ -83,17 +83,24 @@ final class WeeklyReportModel {
         await show(selectedWeek)
     }
 
-    /// Opening the tab again: the report asks the server again, this week's
-    /// minutes and any failed page included. A load already running for the
-    /// same page is still joined, and its answer written.
+    /// Opening the tab again: the report asks the server again for the shown
+    /// week and the one before it, a failed page included. A loaded page stays
+    /// on screen while it is asked for and is replaced only by a new answer;
+    /// other weeks already seen stay cached. A load already running for the
+    /// same page is joined, and its answer written. A Monday that has come
+    /// since moves the report on to the new week, as `appear()` does.
     func refresh() async {
         let current = today().monday
         if current != currentWeek {
             weeks = Self.weeks(endingAt: current)
             selectedWeek = current
+            pages = [:]
         }
-        pages = [:]
-        await show(selectedWeek)
+        let week = selectedWeek
+        await reload(week)
+        if let previous = self.week(before: week) {
+            await reload(previous)
+        }
     }
 
     /// Loads `week` (if not already there) and then the week before it.
@@ -127,6 +134,21 @@ final class WeeklyReportModel {
         return weeks[index + 1]
     }
 
+    /// Asks again for `week`: a loaded page is fetched in the background and
+    /// stays as it is until an answer replaces it; a failed or missing page
+    /// takes the ordinary path, spinner first.
+    private func reload(_ week: LocalDate) async {
+        switch pages[week] {
+        case .loaded?:
+            await load(Key(child: childId, week: week))
+        case .failed?:
+            pages[week] = nil
+            await loadIfNeeded(week)
+        case .loading?, nil:
+            await loadIfNeeded(week)
+        }
+    }
+
     /// Loads happen in model-owned tasks, so a caller's cancellation (the view's
     /// `.task` restarting on a swipe) never abandons a page another caller is
     /// waiting on: a second caller joins the load already running.
@@ -137,11 +159,17 @@ final class WeeklyReportModel {
         case .loading?, nil: break
         }
         let key = Key(child: child, week: week)
+        if loads[key] == nil { pages[week] = .loading }
+        await load(key)
+    }
+
+    /// Joins the load already running for `key`, or starts one in a
+    /// model-owned task, and waits for it.
+    private func load(_ key: Key) async {
         if let running = loads[key] {
             await running.task.value
             return
         }
-        pages[week] = .loading
         let id = UUID()
         let task = Task<Void, Never> { [weak self] in
             guard let self else { return }
@@ -171,6 +199,8 @@ final class WeeklyReportModel {
             if child == childId, pages[week] == .loading { pages[week] = nil }
         } catch {
             guard child == childId else { return }
+            // A refresh that fails leaves the chart already on screen.
+            if case .loaded? = pages[week] { return }
             pages[week] = .failed(UserMessage(error))
         }
     }

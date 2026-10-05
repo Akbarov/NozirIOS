@@ -78,7 +78,7 @@ struct StatisticsView: View {
     private var switcher: WeeklySwitcher? {
         guard statistics.showsSwitcher else { return nil }
         return WeeklySwitcher(
-            children: statistics.switcherChildren,
+            children: statistics.switcherChildren(l10n),
             selection: Binding(
                 get: { statistics.childId },
                 set: { statistics.selectedChildId = $0 }

@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import NozirFamily
+import NozirL10n
 @testable import NozirAppFeature
 
 @MainActor
@@ -20,7 +21,10 @@ private func family(_ children: [Child]) async -> FamilyStore {
 
         #expect(model.childId == ali.id)
         #expect(model.showsSwitcher)
-        #expect(model.switcherChildren.map(\.name) == ["Ali", "Vali"])
+        #expect(model.switcherChildren(L10n(.uz)).map(\.name) == ["Ali", "Vali"])
+        #expect(model.switcherChildren(L10n(.uz)).map(\.accessibilityLabel) == [
+            L10n(.uz).contentDescriptionChildAvatar("Ali"), L10n(.uz).contentDescriptionChildAvatar("Vali"),
+        ])
     }
 
     @Test func aChoiceIsKept() async {

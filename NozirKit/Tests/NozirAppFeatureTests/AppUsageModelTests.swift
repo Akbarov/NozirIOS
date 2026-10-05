@@ -190,4 +190,14 @@ private actor GatedInsights: InsightsService {
         #expect(AppUsageModel.rangeTitle(.lastSevenDays, l10n) == l10n.rangeSevenDays)
         #expect(AppUsageModel.rangeTitle(.lastThirtyDays, l10n) == l10n.rangeThirtyDays)
     }
+
+    // Spec §5.5: the bar, like the legend and the table, is each app's share of the total.
+    @Test func theBarIsTheShareOfTheTotal() {
+        let entries = [app("a", 30), app("b", 10)]
+
+        #expect(AppUsageModel.barFractions(entries, total: 80) == [0.375, 0.125])
+        #expect(AppUsageModel.barFractions(entries, total: 0) == [0, 0])
+        #expect(AppUsageModel.barFractions(entries, total: 20) == [1, 0.5])
+        #expect(AppUsageModel.barFractions([app("a", -5)], total: 20) == [0])
+    }
 }

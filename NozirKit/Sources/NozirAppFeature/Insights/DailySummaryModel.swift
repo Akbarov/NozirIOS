@@ -36,6 +36,8 @@ final class DailySummaryModel {
     /// On appear. A summary already read is not asked for again.
     func load() async {
         if case .loaded = state { return }
+        // A stale "no connection" never stays up while it asks again.
+        if case .failed = state { state = .loading }
         await fetch()
     }
 

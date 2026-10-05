@@ -33,11 +33,14 @@ final class HomeModel {
 
     private let insights: any InsightsService
     private let currentYear: Int
+    /// Latest wins: `.task(id:)`, the scene coming back and pull to refresh can
+    /// overlap, and an answer from a superseded load is dropped.
+    @ObservationIgnored private var generation = 0
 
     init(
         insights: any InsightsService,
         family: FamilyStore,
-        currentYear: Int = Calendar.current.component(.year, from: Date())
+        currentYear: Int = Gregorian.currentYear
     ) {
         self.insights = insights
         self.family = family
@@ -51,14 +54,22 @@ final class HomeModel {
     }
 
     func load() async {
+        generation += 1
+        let mine = generation
+        // A retry from the full error shows the spinner while it asks.
+        if home == nil { failure = nil }
         do {
             let fresh = try await insights.home()
+            guard mine == generation else { return }
             home = fresh
             failure = nil
             notice = nil
         } catch is CancellationError {
+            // Nothing on screen to fall back to: offer a retry rather than a spinner nobody drives.
+            if mine == generation, home == nil { failure = .noConnection }
             return
         } catch {
+            guard mine == generation else { return }
             let message = UserMessage(error)
             if home == nil {
                 failure = message
@@ -109,8 +120,19 @@ final class HomeModel {
         .forKey(card.avatarKey, position: cards.firstIndex { $0.id == card.id } ?? 0)
     }
 
-    var switcherChildren: [NozirSwitcherChild] {
-        cards.map { NozirSwitcherChild(id: $0.id, name: $0.displayName, tone: tone(of: $0), needsAttention: $0.needsAttention) }
+    /// The P05 avatar row; VoiceOver hears the attention dot in the label.
+    func switcherChildren(_ l10n: L10n) -> [NozirSwitcherChild] {
+        cards.map { card in
+            NozirSwitcherChild(
+                id: card.id,
+                name: card.displayName,
+                tone: tone(of: card),
+                needsAttention: card.needsAttention,
+                accessibilityLabel: card.needsAttention
+                    ? l10n.contentDescriptionChildAvatarAttention(card.displayName)
+                    : l10n.contentDescriptionChildAvatar(card.displayName)
+            )
+        }
     }
 
     func sosAlert(emergencyNumber: String?) -> SosAlert? {
