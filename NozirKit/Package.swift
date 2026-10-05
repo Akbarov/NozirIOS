@@ -12,6 +12,7 @@ let package = Package(
         .target(name: "NozirL10n"),
         .target(name: "NozirAuth", dependencies: ["NozirNetworking"]),
         .target(name: "NozirConfig", dependencies: ["NozirNetworking"]),
+        .target(name: "NozirFamily", dependencies: ["NozirNetworking"]),
         .target(name: "NozirDesignSystem"),
         .target(
             name: "NozirAppFeature",
@@ -25,6 +26,7 @@ let package = Package(
         .testTarget(name: "NozirNetworkingTests", dependencies: ["NozirNetworking", "NozirTestSupport"]),
         .testTarget(name: "NozirAuthTests", dependencies: ["NozirAuth", "NozirNetworking", "NozirTestSupport"]),
         .testTarget(name: "NozirConfigTests", dependencies: ["NozirConfig", "NozirNetworking", "NozirTestSupport"]),
+        .testTarget(name: "NozirFamilyTests", dependencies: ["NozirFamily", "NozirNetworking", "NozirTestSupport"]),
         .testTarget(name: "NozirDesignSystemTests", dependencies: ["NozirDesignSystem"]),
         .testTarget(name: "NozirL10nTests", dependencies: ["NozirL10n"]),
         .testTarget(
