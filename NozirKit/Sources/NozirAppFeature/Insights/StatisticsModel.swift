@@ -1,0 +1,33 @@
+import Foundation
+import Observation
+import NozirDesignSystem
+import NozirFamily
+
+/// Which child the Statistics tab shows (spec decision: a switcher above P07,
+/// the choice carried on to P08). A child removed in Profile falls back to the
+/// first; with no children there is nothing to show.
+@MainActor
+@Observable
+final class StatisticsModel {
+    var selectedChildId: UUID?
+    let family: FamilyStore
+
+    init(family: FamilyStore) {
+        self.family = family
+    }
+
+    var childId: UUID? {
+        if let selectedChildId, family.child(selectedChildId) != nil { return selectedChildId }
+        return family.children.first?.id
+    }
+
+    var showsSwitcher: Bool {
+        family.children.count > 1
+    }
+
+    var switcherChildren: [NozirSwitcherChild] {
+        family.children.enumerated().map { position, child in
+            NozirSwitcherChild(id: child.id, name: child.displayName, tone: .forKey(child.avatarKey, position: position))
+        }
+    }
+}
