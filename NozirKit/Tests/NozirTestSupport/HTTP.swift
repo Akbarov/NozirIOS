@@ -17,4 +17,10 @@ public extension URLRequest {
         guard let httpBody else { return nil }
         return try? JSONDecoder().decode([String: String].self, from: httpBody)
     }
+
+    /// The body as a JSON object with any value types, for numbers and nulls.
+    var jsonObject: [String: Any]? {
+        guard let httpBody else { return nil }
+        return (try? JSONSerialization.jsonObject(with: httpBody)) as? [String: Any]
+    }
 }
