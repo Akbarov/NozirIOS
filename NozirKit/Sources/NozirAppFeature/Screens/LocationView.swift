@@ -22,7 +22,7 @@ struct LocationView: View {
         onAddChild: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
-        _position = State(initialValue: MapCamera.region(model.cameraCentre, metres: model.snapshot?.coordinate == nil ? 2500 : 1200))
+        _position = State(initialValue: MapCamera.region(model.cameraTarget ?? LocationModel.fallbackCentre, metres: model.snapshot?.coordinate == nil ? 2500 : 1200))
         self.onOpenZone = onOpenZone
         self.onOpenTracking = onOpenTracking
         self.onAddChild = onAddChild
@@ -54,8 +54,9 @@ struct LocationView: View {
             }
         }
         .onDisappear { model.cancelRequest() }
-        .onChange(of: model.cameraCentre) { _, centre in
-            position = MapCamera.region(centre, metres: model.snapshot?.coordinate == nil ? 2500 : 1200)
+        .onChange(of: model.cameraTarget) { _, target in
+            guard let target else { return }
+            position = MapCamera.region(target, metres: model.snapshot?.coordinate == nil ? 2500 : 1200)
         }
         .refreshable { await model.load() }
     }
@@ -74,6 +75,10 @@ struct LocationView: View {
             )
         case .locked:
             LocationLockCard()
+            // Deleting is never restricted: a lapsed plan keeps its zones reachable.
+            if !model.zones.isEmpty {
+                lockedZoneChips
+            }
         case .failed(let message):
             NozirErrorState(
                 title: l10n.stateErrorTitle,
@@ -184,6 +189,18 @@ struct LocationView: View {
                 }
                 chip(l10n.locationAddZone, highlighted: false) {
                     if let childId = model.childId { onOpenZone(childId, nil) }
+                }
+            }
+        }
+    }
+
+    private var lockedZoneChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: NozirSpacing.small) {
+                ForEach(model.zones) { zone in
+                    chip(LocationTexts.zoneChip(zone, l10n), highlighted: false) {
+                        if let childId = model.childId { onOpenZone(childId, zone) }
+                    }
                 }
             }
         }

@@ -72,6 +72,40 @@ private func setup(
         #expect(model.phase == .locked)
     }
 
+    // A lapsed plan never blocks deleting: the zones are still read and shown.
+    @Test func aLockedLoadStillReadsTheZones() async {
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.failure(.server(status: 403, error: ApiError(code: .subscriptionRequired)))]
+        script.zones[ali.id] = .success([zone(for: ali.id, isActive: false)])
+        let (model, fake, _) = await setup(script)
+
+        await model.load()
+
+        #expect(model.phase == .locked)
+        #expect(model.zones.map(\.name) == ["Maktab"])
+        #expect(await fake.calls == ["location", "zones"])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aLockedLoadOfAnotherChildNeverShowsTheOldZones() async {
+        let gate = PauseGate()
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.failure(.server(status: 403, error: ApiError(code: .subscriptionRequired)))]
+        script.zones[ali.id] = .success([zone(for: ali.id)])
+        script.zonesGate = gate
+        let (model, _, _) = await setup(script, children: [ali, vali])
+
+        let late = Task { await model.load() }
+        await gate.untilPaused()
+        model.selectedChildId = vali.id
+        await model.load()
+        await gate.release()
+        await late.value
+
+        #expect(model.childId == vali.id)
+        #expect(model.zones.isEmpty)
+    }
+
     @Test func aFirstFailureIsAFullError() async {
         var script = FakeLocation.Script()
         script.locations[ali.id] = [.failure(offline)]
@@ -144,15 +178,40 @@ private func setup(
         var zoneOnly = FakeLocation.Script()
         zoneOnly.zones[ali.id] = .success([zone(for: ali.id)])
         let (model, _, _) = await setup(zoneOnly)
-        #expect(model.cameraCentre == LocationModel.fallbackCentre)
+        // Nothing is decided before the first load has finished.
+        #expect(model.cameraTarget == nil)
         await model.load()
-        #expect(model.cameraCentre == Coordinate(latitude: 41.30, longitude: 69.25))
+        #expect(model.cameraTarget == Coordinate(latitude: 41.30, longitude: 69.25))
 
         var withFix = zoneOnly
         withFix.locations[ali.id] = [.success(fixAt())]
         let (fixed, _, _) = await setup(withFix)
         await fixed.load()
-        #expect(fixed.cameraCentre == Coordinate(latitude: 41.3111, longitude: 69.2797))
+        #expect(fixed.cameraTarget == Coordinate(latitude: 41.3111, longitude: 69.2797))
+
+        let (empty, _, _) = await setup(FakeLocation.Script())
+        await empty.load()
+        #expect(empty.cameraTarget == LocationModel.fallbackCentre)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func switchingChildDoesNotSendTheCameraToTashkent() async {
+        let gate = PauseGate()
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.success(fixAt())]
+        let (model, fake, _) = await setup(script, children: [ali, vali])
+        await model.load()
+        await fake.add { $0.zonesGate = gate }
+
+        model.selectedChildId = vali.id
+        let loading = Task { await model.load() }
+        await gate.untilPaused()
+        // The old pin is gone and the new child's zones are not in yet: no target.
+        #expect(model.cameraTarget == nil)
+        await gate.release()
+        await loading.value
+
+        #expect(model.cameraTarget == LocationModel.fallbackCentre)
     }
 
     // MARK: "Where are they now"
@@ -234,6 +293,24 @@ private func setup(
         await model.requestFix()
 
         #expect(model.request == .failed(.rateLimited(seconds: 30)))
+    }
+
+    @Test func aStaleRequestMessageDoesNotOutliveTheScreen() async {
+        var script = FakeLocation.Script()
+        script.locations[ali.id] = [.success(fixAt())]
+        script.requests = [.success(false), .failure(.server(status: 429, error: ApiError(code: .rateLimited, retryAfterSeconds: 30)))]
+        let (model, _, _) = await setup(script)
+        await model.load()
+
+        await model.requestFix()
+        #expect(model.request == .unreachable)
+        model.cancelRequest()
+        #expect(model.request == .idle)
+
+        await model.requestFix()
+        #expect(model.request == .failed(.rateLimited(seconds: 30)))
+        model.cancelRequest()
+        #expect(model.request == .idle)
     }
 
     @Test(.timeLimit(.minutes(1)))

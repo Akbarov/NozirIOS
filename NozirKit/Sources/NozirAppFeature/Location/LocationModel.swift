@@ -48,6 +48,8 @@ final class LocationModel {
     private(set) var zones: [SafeZone] = []
     private(set) var tracking: LocationTracking?
     private(set) var request: Request = .idle
+    /// True once a load for the shown child has finished, zones included.
+    private(set) var isSettled = false
 
     private let location: any LocationService
     private let pause: @Sendable (Duration) async throws -> Void
@@ -93,9 +95,13 @@ final class LocationModel {
         }
     }
 
-    /// The pin, else the first zone, else Tashkent.
-    var cameraCentre: Coordinate {
-        snapshot?.coordinate ?? zones.first?.coordinate ?? Self.fallbackCentre
+    /// Where the camera belongs: the pin, else (once loading has finished) the
+    /// first zone, else Tashkent. `nil` while the answer is not in yet, so a child
+    /// switch never flashes Tashkent.
+    var cameraTarget: Coordinate? {
+        if let pin = snapshot?.coordinate { return pin }
+        guard isSettled else { return nil }
+        return zones.first?.coordinate ?? Self.fallbackCentre
     }
 
     /// Every time the tab (or the chosen child) is shown.
@@ -156,6 +162,7 @@ final class LocationModel {
             }
         }
         await reloadZones(of: id, generation: mine)
+        if mine == generation { isSettled = true }
     }
 
     /// Zones and the tracking rule. Either failing is quiet: they keep what they had.
@@ -165,10 +172,12 @@ final class LocationModel {
     }
 
     private func reloadZones(of id: UUID, generation mine: Int) async {
-        guard phase != .locked else { return }
+        // Zones are read on a lapsed plan too: deleting is never restricted.
         if let fresh = try? await location.safeZones(of: id), mine == generation, id == childId {
             zones = fresh
         }
+        // The tracking row is not shown while locked, so its rule is not read.
+        guard phase != .locked else { return }
         if let rules = try? await family.service.rules(of: id), mine == generation, id == childId {
             tracking = rules.locationTracking
         }
@@ -189,7 +198,8 @@ final class LocationModel {
         requestToken += 1
         poll?.cancel()
         poll = nil
-        if request == .waiting { request = .idle }
+        // A "phone unreachable" or "try again in 30 s" is about that moment only.
+        request = .idle
     }
 
     /// "Where are they now": wake the phone, then look again until something
@@ -272,6 +282,7 @@ final class LocationModel {
         poll?.cancel()
         poll = nil
         request = .idle
+        isSettled = false
         phase = .loading
     }
 }

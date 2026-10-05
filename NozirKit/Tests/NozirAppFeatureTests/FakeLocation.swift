@@ -19,6 +19,8 @@ actor FakeLocation: LocationService {
         /// Held once by the next `sosAlert` / `acknowledgeSos` call, after its answer is taken.
         var sosGate: PauseGate?
         var acknowledgeGate: PauseGate?
+        /// Held once by the next `safeZones` call, after its answer is taken.
+        var zonesGate: PauseGate?
     }
 
     private var script: Script
@@ -56,7 +58,12 @@ actor FakeLocation: LocationService {
     func safeZones(of childId: UUID) async throws -> [SafeZone] {
         calls.append("zones")
         childIds.append(childId)
-        return try (script.zones[childId] ?? .success([])).get()
+        let answer = script.zones[childId] ?? .success([])
+        if let gate = script.zonesGate {
+            script.zonesGate = nil
+            await gate.pause()
+        }
+        return try answer.get()
     }
 
     func createSafeZone(_ draft: SafeZoneDraft, for childId: UUID) async throws -> SafeZone {
