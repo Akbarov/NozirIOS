@@ -62,6 +62,18 @@ private struct Echo: Decodable, Equatable {
         #expect(sent.value(forHTTPHeaderField: "Authorization") == nil)
     }
 
+    // Final review: /v1/config is served with Cache-Control max-age=900 and no
+    // Vary on X-Nozir-Client, so a cached "update required" would outlive the update.
+    @Test func everyRequestBypassesTheHTTPCache() async throws {
+        let transport = FakeTransport([.ok(#"{"value":"x"}"#)])
+        let client = ApiClient(baseURL: base, transport: transport, identity: identity)
+
+        _ = try await client.send(ApiRequest(method: .get, path: "/v1/config", requiresAuth: false), as: Echo.self)
+
+        let requests = await transport.requests
+        #expect(requests.first?.cachePolicy == .reloadIgnoringLocalCacheData)
+    }
+
     @Test func aTrailingSlashOnTheBaseURLDoesNotDoubleTheSlash() async throws {
         let transport = FakeTransport([.ok(#"{"value":"x"}"#)])
         let client = ApiClient(baseURL: URL(string: "https://api.test/")!, transport: transport, identity: identity)

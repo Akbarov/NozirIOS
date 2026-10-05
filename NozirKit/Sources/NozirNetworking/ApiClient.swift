@@ -113,7 +113,10 @@ public struct ApiClient: Sendable {
         guard let url = components.url else {
             preconditionFailure("Unbuildable API URL: \(request.path)")
         }
-        var urlRequest = URLRequest(url: url)
+        // Never from the HTTP cache: /v1/config is cacheable for 15 minutes and
+        // does not vary on X-Nozir-Client, so a cached "update required" would
+        // survive the very update it asked for.
+        var urlRequest = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         urlRequest.httpMethod = request.method.rawValue
         if let timeout = request.timeout {
             urlRequest.timeoutInterval = timeout
