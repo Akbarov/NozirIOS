@@ -83,6 +83,19 @@ final class WeeklyReportModel {
         await show(selectedWeek)
     }
 
+    /// Opening the tab again: the report asks the server again, this week's
+    /// minutes and any failed page included. A load already running for the
+    /// same page is still joined, and its answer written.
+    func refresh() async {
+        let current = today().monday
+        if current != currentWeek {
+            weeks = Self.weeks(endingAt: current)
+            selectedWeek = current
+        }
+        pages = [:]
+        await show(selectedWeek)
+    }
+
     /// Loads `week` (if not already there) and then the week before it.
     func show(_ week: LocalDate) async {
         await loadIfNeeded(week)

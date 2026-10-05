@@ -78,7 +78,7 @@ struct SignedInView: View {
                 .navigationDestination(for: ProfileStep.self) { step in
                     switch step {
                     case .child(let child):
-                        ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { profilePath.removeAll() })
+                        ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { clearPaths() })
                     case .pairing(let child):
                         PairingView(model: model.makePairingModel(child), onFinished: { profilePath.removeAll() })
                     }
@@ -90,9 +90,7 @@ struct SignedInView: View {
         .tint(NozirColor.primary)
         .fullScreenCover(isPresented: $model.isAddingChild) {
             AddChildFlow(model: model, onClose: {
-                homePath.removeAll()
-                statisticsPath.removeAll()
-                profilePath.removeAll()
+                clearPaths()
                 model.finishAddChild()
             })
                 // Said again for the cover, so it cannot fall back to the defaults.
@@ -100,6 +98,12 @@ struct SignedInView: View {
                 .environment(\.locale, locale)
         }
         .task(id: scenePhase == .active) { if scenePhase == .active { await model.start() } }
+    }
+
+    private func clearPaths() {
+        homePath.removeAll()
+        statisticsPath.removeAll()
+        profilePath.removeAll()
     }
 
     @ViewBuilder
@@ -124,7 +128,7 @@ struct SignedInView: View {
         case .apps(let childId):
             AppUsageView(model: model.makeAppUsageModel(childId: childId))
         case .details(let child):
-            ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { homePath.removeAll() })
+            ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { clearPaths() })
         }
     }
 }

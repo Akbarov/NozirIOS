@@ -296,4 +296,29 @@ private actor GatedInsights: InsightsService {
         #expect(model.childId == valiId)
         #expect(page.days[0].usedMinutes == 90)
     }
+
+    @Test func refreshAsksTheServiceAgainForTheShownWeek() async {
+        let box = MinutesBox(30)
+        var script = FakeInsights.Script()
+        script.usage = { [box] _, from, _ in usage([box.value, 0, 0, 0, 0, 0, 0], from: from) }
+        let (model, insights) = setup(script)
+        await model.appear()
+        let current = model.currentWeek
+        guard case .loaded(let first)? = model.pages[current] else { Issue.record("not loaded"); return }
+        #expect(first.days[0].usedMinutes == 30)
+        let before = await insights.calls.filter { $0 == "usage \(current.text)…\(current.adding(days: 6).text)" }.count
+
+        box.value = 45
+        await model.refresh()
+
+        let after = await insights.calls.filter { $0 == "usage \(current.text)…\(current.adding(days: 6).text)" }.count
+        #expect(after == before + 1)
+        guard case .loaded(let second)? = model.pages[current] else { Issue.record("not reloaded"); return }
+        #expect(second.days[0].usedMinutes == 45)
+    }
+}
+
+private final class MinutesBox: @unchecked Sendable {
+    var value: Int
+    init(_ value: Int) { self.value = value }
 }

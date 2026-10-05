@@ -11,6 +11,7 @@ struct StatisticsView: View {
     private let onAddChild: () -> Void
     private let onOpenApps: (UUID) -> Void
     @State private var weekly: WeeklyReportModel?
+    @State private var hasAppeared = false
     @Environment(\.l10n) private var l10n
 
     init(
@@ -41,12 +42,21 @@ struct StatisticsView: View {
                 }
                 .background(NozirColor.background.ignoresSafeArea())
                 .navigationTitle(l10n.tabStatistics)
+            } else if let failure = statistics.familyFailure {
+                NozirErrorState(
+                    title: l10n.stateErrorTitle,
+                    message: failure.text(l10n),
+                    retryTitle: l10n.stateActionRetry
+                ) {
+                    Task { await statistics.loadFamily() }
+                }
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(NozirColor.background.ignoresSafeArea())
             }
         }
+        .task { await statistics.loadFamily() }
         .task(id: statistics.childId) {
             guard let id = statistics.childId else { return }
             if let weekly {
@@ -54,6 +64,14 @@ struct StatisticsView: View {
             } else {
                 weekly = makeWeekly(id)
             }
+        }
+        .onAppear {
+            // Opening the tab again asks again; the first appearance is the
+            // model's own first load.
+            if hasAppeared, let weekly, weekly.childId == statistics.childId {
+                Task { await weekly.refresh() }
+            }
+            hasAppeared = true
         }
     }
 

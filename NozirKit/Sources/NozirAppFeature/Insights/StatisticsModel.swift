@@ -11,9 +11,24 @@ import NozirFamily
 final class StatisticsModel {
     var selectedChildId: UUID?
     let family: FamilyStore
+    private(set) var familyFailure: UserMessage?
 
     init(family: FamilyStore) {
         self.family = family
+    }
+
+    /// The tab's own ask for the family, for a cold start that never loaded it
+    /// (offline). A failure is kept to be shown; the next call tries again.
+    func loadFamily() async {
+        guard !family.hasLoaded else { return }
+        familyFailure = nil
+        do {
+            try await family.refresh()
+        } catch is CancellationError {
+            return
+        } catch {
+            familyFailure = UserMessage(error)
+        }
     }
 
     var childId: UUID? {

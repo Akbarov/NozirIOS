@@ -45,6 +45,22 @@ private func family(_ children: [Child]) async -> FamilyStore {
         #expect(!model.showsSwitcher)
     }
 
+    @Test func familyFailureThenRetry() async {
+        var script = FakeFamily.Script()
+        script.children = [.failure(.network(code: URLError.notConnectedToInternet.rawValue)), .success([makeChild("Ali")])]
+        let store = FamilyStore(service: FakeFamily(script))
+        let model = StatisticsModel(family: store)
+
+        await model.loadFamily()
+        #expect(model.familyFailure == .noConnection)
+        #expect(!store.hasLoaded)
+
+        await model.loadFamily()
+        #expect(model.familyFailure == nil)
+        #expect(store.hasLoaded)
+        #expect(model.childId != nil)
+    }
+
     @Test func noChildrenNoChild() async {
         let model = StatisticsModel(family: await family([]))
 
