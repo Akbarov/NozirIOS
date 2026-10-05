@@ -36,6 +36,12 @@ struct SosDetailView: View {
                         if model.isOffline {
                             NozirOfflineNotice(l10n.stateOfflineNotice)
                         }
+                        if model.isGone {
+                            NozirCard(tone: .attention) {
+                                Text(l10n.sosNotFoundTitle).nozirText(.titleSmall)
+                                Text(l10n.sosNotFoundBody).nozirText(.bodySmall, color: NozirColor.textSecondary)
+                            }
+                        }
                         if let detail = model.detail {
                             facts(detail)
                             locationCard(detail, now: context.date)

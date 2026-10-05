@@ -18,6 +18,8 @@ private func detail(
     name: String? = "Ali",
     phone: String? = "+998901234567",
     hasLocation: Bool = true,
+    latitude: Double = 41.3111,
+    longitude: Double = 69.2797,
     acknowledgedAt: Date? = nil
 ) -> SosAlertDetail {
     SosAlertDetail(
@@ -29,8 +31,8 @@ private func detail(
         status: status,
         batteryPercent: 31,
         deviceOnline: true,
-        latitude: hasLocation ? 41.3111 : nil,
-        longitude: hasLocation ? 69.2797 : nil,
+        latitude: hasLocation ? latitude : nil,
+        longitude: hasLocation ? longitude : nil,
         accuracyMeters: 12,
         locationFixAt: hasLocation ? triggered : nil,
         acknowledgedAt: acknowledgedAt
@@ -68,7 +70,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         #expect(model.canAcknowledge)
         #expect(model.call.childCallURL == URL(string: "tel:+998901234567"))
         #expect(model.call.emergencyCallURL == URL(string: "tel:112"))
-        #expect(model.directionsURL == URL(string: "https://maps.apple.com/?daddr=41.3111,69.2797"))
+        #expect(model.directionsURL == URL(string: "https://maps.apple.com/?daddr=41.311100,69.279700"))
     }
 
     @Test func anAlarmThatIsGoneIsNotAnError() async {
@@ -121,19 +123,26 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         #expect(await fake.calls == ["sos", "acknowledge"])
     }
 
-    // Review Focus 5.
+    // Review Focus 5: the second tap lands while the first is still in flight.
     @Test(.timeLimit(.minutes(1)))
     func twoTapsAcknowledgeOnce() async {
+        let gate = PauseGate()
         var script = FakeLocation.Script()
         script.sos = [.success(detail())]
         script.acknowledge = [.success(detail(status: .acknowledged))]
+        script.acknowledgeGate = gate
         let (model, fake) = setup(script)
         await model.load()
 
-        async let first: Void = model.acknowledge()
-        async let second: Void = model.acknowledge()
-        _ = await (first, second)
+        let first = Task { await model.acknowledge() }
+        await gate.untilPaused()
+        #expect(model.isAcknowledging)
+        await model.acknowledge()
+        #expect(await fake.calls.filter { $0 == "acknowledge" }.count == 1)
 
+        await gate.release()
+        await first.value
+        #expect(model.detail?.status == .acknowledged)
         #expect(await fake.calls.filter { $0 == "acknowledge" }.count == 1)
     }
 
@@ -143,7 +152,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         var script = FakeLocation.Script()
         script.sos = [.success(detail())]
         script.acknowledge = [.failure(offline), .success(detail(status: .acknowledged))]
-        let (model, _) = setup(script)
+        let (model, fake) = setup(script)
         await model.load()
 
         await model.acknowledge()
@@ -153,6 +162,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         await model.acknowledge()
         #expect(!model.acknowledgeFailed)
         #expect(model.detail?.status == .acknowledged)
+        #expect(await fake.calls.filter { $0 == "acknowledge" }.count == 2)
     }
 
     @Test(arguments: [SosStatus.acknowledged, .cancelledByChild, .resolved, .unknown])
@@ -207,5 +217,82 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         await model.load()
 
         #expect(model.childName == "Alijon")
+    }
+
+    @Test func fixedPrecisionKeepsTheDirectionsFreeOfExponents() async {
+        var script = FakeLocation.Script()
+        script.sos = [.success(detail(latitude: 0.00001, longitude: 69.2797))]
+        let (model, _) = setup(script)
+
+        await model.load()
+
+        #expect(model.directionsURL == URL(string: "https://maps.apple.com/?daddr=0.000010,69.279700"))
+    }
+
+    @Test func aBlankConfiguredNumberFallsBackToTheCompiledOne() {
+        #expect(SosDetailModel.dialNumber(configured: nil, fallback: "112") == "112")
+        #expect(SosDetailModel.dialNumber(configured: "", fallback: "112") == "112")
+        #expect(SosDetailModel.dialNumber(configured: "  \n", fallback: "112") == "112")
+        #expect(SosDetailModel.dialNumber(configured: " 103 ", fallback: "112") == "103")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aLateOlderAnswerDoesNotUndoAcknowledge() async {
+        var script = FakeLocation.Script()
+        script.sos = [.success(detail())]
+        script.acknowledge = [.success(detail(status: .acknowledged))]
+        let (model, fake) = setup(script)
+        await model.load()
+        let gate = PauseGate()
+        await fake.add {
+            $0.sos = [.success(detail())]
+            $0.sosGate = gate
+        }
+
+        let late = Task { await model.load() }
+        await gate.untilPaused()
+        await model.acknowledge()
+        await gate.release()
+        await late.value
+
+        #expect(model.detail?.status == .acknowledged)
+        #expect(!model.canAcknowledge)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aLateFailureAfterAcknowledgeIsNotOffline() async {
+        var script = FakeLocation.Script()
+        script.sos = [.success(detail())]
+        script.acknowledge = [.success(detail(status: .acknowledged))]
+        let (model, fake) = setup(script)
+        await model.load()
+        let gate = PauseGate()
+        await fake.add {
+            $0.sos = [.failure(offline)]
+            $0.sosGate = gate
+        }
+
+        let late = Task { await model.load() }
+        await gate.untilPaused()
+        await model.acknowledge()
+        await gate.release()
+        await late.value
+
+        #expect(!model.isOffline)
+        #expect(model.detail?.status == .acknowledged)
+    }
+
+    @Test func anAlarmThatEndsUnderAShownDetailSaysSoAndStopsAcknowledging() async {
+        var script = FakeLocation.Script()
+        script.sos = [.success(detail()), .failure(notFound)]
+        let (model, _) = setup(script)
+        await model.load()
+
+        await model.load()
+
+        #expect(model.phase == .ready)
+        #expect(model.detail == detail())
+        #expect(model.isGone)
+        #expect(!model.canAcknowledge)
     }
 }

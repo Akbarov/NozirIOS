@@ -26,6 +26,10 @@ final class SosDetailModel {
     private(set) var isOffline = false
     private(set) var isAcknowledging = false
     private(set) var acknowledgeFailed = false
+    /// A refresh said 404 while a detail is on screen: the alarm ended under it.
+    private(set) var isGone = false
+    /// Bumped by every load and acknowledge: an older answer never overwrites a newer state.
+    private var generation = 0
 
     private let child: Child?
     private let emergencyNumber: String
@@ -40,16 +44,31 @@ final class SosDetailModel {
         self.location = location
     }
 
+    nonisolated static func dialNumber(configured: String?, fallback: String) -> String {
+        LocationTexts.present(configured) ?? fallback
+    }
+
     func load() async {
+        generation += 1
+        let mine = generation
         do {
-            detail = try await location.sosAlert(seed.sosId)
+            let fetched = try await location.sosAlert(seed.sosId)
+            guard mine == generation else { return }
+            detail = fetched
             phase = .ready
             isOffline = false
+            isGone = false
         } catch is CancellationError {
             return
         } catch let failure as ApiFailure where failure.isNotFound {
-            phase = detail == nil ? .missing : phase
+            guard mine == generation else { return }
+            if detail == nil {
+                phase = .missing
+            } else {
+                isGone = true
+            }
         } catch {
+            guard mine == generation else { return }
             if detail == nil {
                 phase = .failed(UserMessage(error))
             } else {
@@ -60,11 +79,15 @@ final class SosDetailModel {
 
     func acknowledge() async {
         guard canAcknowledge else { return }
+        generation += 1
         isAcknowledging = true
         acknowledgeFailed = false
         defer { isAcknowledging = false }
         do {
-            detail = try await location.acknowledgeSos(seed.sosId)
+            let settled = try await location.acknowledgeSos(seed.sosId)
+            generation += 1
+            detail = settled
+            isOffline = false
         } catch {
             acknowledgeFailed = true
         }
@@ -85,12 +108,12 @@ final class SosDetailModel {
     }
 
     var canAcknowledge: Bool {
-        detail?.status == .active && !isAcknowledging
+        detail?.status == .active && !isAcknowledging && !isGone
     }
 
     /// Apple Maps with the alarm's position as the destination.
     var directionsURL: URL? {
         guard let coordinate = detail?.coordinate else { return nil }
-        return URL(string: "https://maps.apple.com/?daddr=\(coordinate.latitude),\(coordinate.longitude)")
+        return URL(string: String(format: "https://maps.apple.com/?daddr=%.6f,%.6f", coordinate.latitude, coordinate.longitude))
     }
 }

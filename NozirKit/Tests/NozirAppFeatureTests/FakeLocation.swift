@@ -16,6 +16,9 @@ actor FakeLocation: LocationService {
         var delete: [Result<Void, ApiFailure>] = []
         var sos: [Result<SosAlertDetail, ApiFailure>] = []
         var acknowledge: [Result<SosAlertDetail, ApiFailure>] = []
+        /// Held once by the next `sosAlert` / `acknowledgeSos` call, after its answer is taken.
+        var sosGate: PauseGate?
+        var acknowledgeGate: PauseGate?
     }
 
     private var script: Script
@@ -82,13 +85,21 @@ actor FakeLocation: LocationService {
     func sosAlert(_ sosId: UUID) async throws -> SosAlertDetail {
         calls.append("sos")
         guard !script.sos.isEmpty else { throw offline }
-        return try script.sos.removeFirst().get()
+        let answer = script.sos.removeFirst()
+        if let gate = script.sosGate {
+            script.sosGate = nil
+            await gate.pause()
+        }
+        return try answer.get()
     }
 
     func acknowledgeSos(_ sosId: UUID) async throws -> SosAlertDetail {
         calls.append("acknowledge")
-        guard !script.acknowledge.isEmpty else { throw offline }
-        return try script.acknowledge.removeFirst().get()
+        let gate = script.acknowledgeGate
+        script.acknowledgeGate = nil
+        let answer: Result<SosAlertDetail, ApiFailure> = script.acknowledge.isEmpty ? .failure(offline) : script.acknowledge.removeFirst()
+        if let gate { await gate.pause() }
+        return try answer.get()
     }
 }
 

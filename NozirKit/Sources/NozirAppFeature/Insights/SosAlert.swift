@@ -33,7 +33,7 @@ struct SosAlert: Equatable {
     }
 
     var childCallURL: URL? {
-        childPhone.flatMap { URL(string: "tel:\($0)") }
+        childPhone.flatMap { Self.dialURL($0) }
     }
 
     func emergencyTitle(_ l10n: L10n) -> String? {
@@ -41,7 +41,13 @@ struct SosAlert: Equatable {
     }
 
     var emergencyCallURL: URL? {
-        emergencyNumber.flatMap { URL(string: "tel:\($0)") }
+        emergencyNumber.flatMap { Self.dialURL($0) }
+    }
+
+    /// `tel:` with only `+` and digits: spaces and dashes break the URL.
+    private static func dialURL(_ number: String) -> URL? {
+        let dialable = number.filter { $0 == "+" || $0.isASCII && $0.isNumber }
+        return dialable.isEmpty ? nil : URL(string: "tel:\(dialable)")
     }
 
     private static func present(_ text: String?) -> String? {

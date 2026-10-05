@@ -30,6 +30,14 @@ private func sos(name: String?, minutesAgo: Double = 5) -> ActiveSos {
         #expect(SosAlert(sos(name: "Ali"), child: child, emergencyNumber: nil, phone: " ").childCallURL == URL(string: "tel:+998901111111"))
     }
 
+    @Test func aFormattedNumberDialsWithOnlyPlusAndDigits() {
+        let child = makeChild("Ali", id: childId, phone: "+998 90 123-45-67")
+
+        let alert = SosAlert(sos(name: "Ali"), child: child, emergencyNumber: nil)
+
+        #expect(alert.childCallURL == URL(string: "tel:+998901234567"))
+    }
+
     // Review Focus 5.
     @Test func aNamelessSosTakesTheNameFromTheFamily() {
         let child = makeChild("Vali", id: childId, phone: "+998901234567")

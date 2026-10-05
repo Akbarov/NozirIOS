@@ -165,7 +165,7 @@ struct SignedInView: View {
         case .sos(let seed):
             SosDetailView(model: model.makeSosDetailModel(
                 seed: seed,
-                emergencyNumber: model.currentEmergencyNumber ?? l10n.sosEmergencyNumber
+                emergencyNumber: SosDetailModel.dialNumber(configured: model.currentEmergencyNumber, fallback: l10n.sosEmergencyNumber)
             ))
         }
     }
