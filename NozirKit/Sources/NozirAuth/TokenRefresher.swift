@@ -51,9 +51,11 @@ public actor TokenRefresher: AccessTokenProvider {
         return try await rotate(using: tokens.refreshToken).accessToken
     }
 
-    /// The server no longer accepts this session (see `ApiClient`): forget it
-    /// and tell the app, exactly as a refused refresh does.
-    public func endSession() {
+    /// The server refused `token` for good (see `ApiClient`). Ends the session
+    /// only if `token` is still the stored one: a late answer to an old request
+    /// must not sign out a parent who has since signed in again.
+    public func endSession(rejecting token: String) {
+        guard store.load()?.accessToken == token else { return }
         store.clear()
         sessionEndedContinuation.yield()
     }
@@ -63,21 +65,34 @@ public actor TokenRefresher: AccessTokenProvider {
             return try await inFlight.value
         }
         let task = Task { [store, refresh, sessionEndedContinuation] () async throws -> TokenPair in
+            // Every write below is conditional on the store still holding the
+            // session this refresh started from: while it was in flight the
+            // session may have been ended, or replaced by a new sign-in.
             do {
                 let renewed = try await refresh(refreshToken)
-                // A failed save is not a failed refresh: the new pair is valid
-                // for this run. The next launch will find the old pair, present
-                // a spent token and be signed out, which is the safe outcome.
-                try? store.save(renewed)
+                guard store.load()?.refreshToken == refreshToken else {
+                    throw ApiFailure.sessionEnded
+                }
+                do {
+                    try store.save(renewed)
+                } catch {
+                    // The old pair is spent and the new one cannot be kept, so
+                    // nothing usable remains: end the session now, visibly.
+                    store.clear()
+                    sessionEndedContinuation.yield()
+                    throw ApiFailure.sessionEnded
+                }
                 return renewed
             } catch let failure as ApiFailure where failure.endsSession {
-                store.clear()
-                sessionEndedContinuation.yield()
+                if store.load()?.refreshToken == refreshToken {
+                    store.clear()
+                    sessionEndedContinuation.yield()
+                }
                 throw ApiFailure.sessionEnded
             }
         }
         inFlight = task
-        defer { inFlight = nil }
+        defer { if inFlight == task { inFlight = nil } }
         return try await task.value
     }
 }

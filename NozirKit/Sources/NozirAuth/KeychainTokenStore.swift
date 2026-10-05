@@ -38,13 +38,18 @@ public struct KeychainTokenStore: TokenStore {
         return try? JSONDecoder().decode(TokenPair.self, from: data)
     }
 
+    /// Updates in place and adds only when there is nothing yet, so a failed
+    /// write leaves the previous pair rather than no pair at all.
     public func save(_ tokens: TokenPair) throws {
         let data = try JSONEncoder().encode(tokens)
-        SecItemDelete(baseQuery as CFDictionary)
-        var attributes = baseQuery
-        attributes[kSecValueData as String] = data
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        let status = SecItemAdd(attributes as CFDictionary, nil)
+        let update = [kSecValueData as String: data] as CFDictionary
+        var status = SecItemUpdate(baseQuery as CFDictionary, update)
+        if status == errSecItemNotFound {
+            var attributes = baseQuery
+            attributes[kSecValueData as String] = data
+            attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            status = SecItemAdd(attributes as CFDictionary, nil)
+        }
         guard status == errSecSuccess else { throw KeychainError(status: status) }
     }
 
