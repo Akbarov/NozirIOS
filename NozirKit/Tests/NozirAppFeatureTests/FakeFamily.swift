@@ -37,6 +37,8 @@ actor FakeFamily: FamilyService {
     private(set) var screenTimeWrites: [RuleWrite<ScreenTimeLimit>] = []
     private(set) var bedtimeWrites: [RuleWrite<BedtimeSchedule>] = []
     private(set) var locales: [String] = []
+    /// The child each call was about, in call order.
+    private(set) var childIds: [UUID] = []
 
     init(_ script: Script = Script()) {
         self.script = script
@@ -53,7 +55,10 @@ actor FakeFamily: FamilyService {
     }
 
     func children() async throws -> [Child] { try next("children", \.children) }
-    func child(_ id: UUID) async throws -> Child { try next("child", \.child) }
+    func child(_ id: UUID) async throws -> Child {
+        childIds.append(id)
+        return try next("child", \.child)
+    }
 
     func createChild(_ child: ChildCreate) async throws -> Child {
         created.append(child)
@@ -61,28 +66,49 @@ actor FakeFamily: FamilyService {
     }
 
     func updateChild(_ id: UUID, _ update: ChildUpdate) async throws -> Child {
+        childIds.append(id)
         updates.append(update)
         return try next("update", \.update)
     }
 
-    func removeChild(_ id: UUID) async throws { try next("remove", \.remove) }
-    func rules(of childId: UUID) async throws -> RuleSnapshot { try next("rules", \.rules) }
+    func removeChild(_ id: UUID) async throws {
+        childIds.append(id)
+        try next("remove", \.remove)
+    }
+    func rules(of childId: UUID) async throws -> RuleSnapshot {
+        childIds.append(childId)
+        return try next("rules", \.rules)
+    }
 
     func setScreenTime(_ limit: ScreenTimeLimit, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        childIds.append(childId)
         screenTimeWrites.append(RuleWrite(value: limit, version: version))
         return try next("screenTime", \.screenTime)
     }
 
     func setBedtime(_ bedtime: BedtimeSchedule, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        childIds.append(childId)
         bedtimeWrites.append(RuleWrite(value: bedtime, version: version))
         return try next("bedtime", \.bedtime)
     }
 
-    func currentPairingCode(for childId: UUID) async throws -> PairingCode? { try next("currentCode", \.currentCode) }
-    func issuePairingCode(for childId: UUID) async throws -> PairingCode { try next("issueCode", \.issueCode) }
-    func devices(of childId: UUID) async throws -> [ChildDevice] { try next("devices", \.devices) }
+    func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
+        childIds.append(childId)
+        return try next("currentCode", \.currentCode)
+    }
+    func issuePairingCode(for childId: UUID) async throws -> PairingCode {
+        childIds.append(childId)
+        return try next("issueCode", \.issueCode)
+    }
+    func devices(of childId: UUID) async throws -> [ChildDevice] {
+        childIds.append(childId)
+        return try next("devices", \.devices)
+    }
     func subscription() async throws -> Subscription { try next("subscription", \.subscription) }
-    func chooseActiveChild(_ childId: UUID) async throws -> Subscription { try next("activeChild", \.activeChild) }
+    func chooseActiveChild(_ childId: UUID) async throws -> Subscription {
+        childIds.append(childId)
+        return try next("activeChild", \.activeChild)
+    }
     func me() async throws -> ParentProfile { try next("me", \.me) }
 
     func updateLocale(_ locale: String) async throws -> ParentProfile {
