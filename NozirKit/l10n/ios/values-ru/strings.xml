@@ -4,4 +4,5 @@
     <string name="data_error_not_authenticated">Сессия завершена. Войдите через Telegram заново.</string>
     <string name="ios_home_placeholder_title">Вы вошли в Nozir</string>
     <string name="ios_home_placeholder_body">Главный экран появится на следующем этапе.</string>
+    <string name="ios_safe_zone_inactive">Неактивна</string>
 </resources>

@@ -2191,6 +2191,15 @@ public extension L10n {
         }
     }
 
+    /// `ios_safe_zone_inactive`
+    var iosSafeZoneInactive: String {
+        switch language {
+        case .uz: "Faol emas"
+        case .ru: "Неактивна"
+        case .en: "Inactive"
+        }
+    }
+
     /// `language_en`
     var languageEn: String {
         switch language {

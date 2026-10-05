@@ -4,4 +4,5 @@
     <string name="data_error_not_authenticated">Your session has ended. Sign in with Telegram again.</string>
     <string name="ios_home_placeholder_title">You are signed in to Nozir</string>
     <string name="ios_home_placeholder_body">The home screen comes in the next stage.</string>
+    <string name="ios_safe_zone_inactive">Inactive</string>
 </resources>
