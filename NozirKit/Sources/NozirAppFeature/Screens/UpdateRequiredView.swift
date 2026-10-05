@@ -9,6 +9,19 @@ struct UpdateRequiredView: View {
     @State private var message: String?
 
     var body: some View {
+        // Scrolls, so the emergency button stays reachable at large text sizes
+        // and in landscape; centred while it fits.
+        GeometryReader { proxy in
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             NozirLogoMark(accessibilityLabel: Copy.Welcome.logoDescription)
             Text(Copy.Update.title)
@@ -32,7 +45,7 @@ struct UpdateRequiredView: View {
             }
         }
         .padding(.horizontal, NozirSpacing.large)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, NozirSpacing.extraLarge)
     }
 
     private func openStore() {
