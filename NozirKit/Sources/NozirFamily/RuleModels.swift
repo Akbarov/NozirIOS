@@ -26,6 +26,15 @@ public struct ClockTime: Hashable, Sendable {
     public var minutesSinceMidnight: Int {
         hour * 60 + minute
     }
+
+    /// The "HH:mm" string under `key`, read as a time; shared by every DTO that carries one.
+    static func decode<Key: CodingKey>(_ container: KeyedDecodingContainer<Key>, _ key: Key) throws -> ClockTime {
+        let text = try container.decode(String.self, forKey: key)
+        guard let time = ClockTime(text) else {
+            throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "Not HH:mm: \(text)")
+        }
+        return time
+    }
 }
 
 /// `ScreenTimeLimitDto`. "Same every day" is not stored: it is school == weekend.
@@ -70,8 +79,8 @@ public struct BedtimeSchedule: Codable, Equatable, Sendable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        start = try Self.time(container, .startTime)
-        end = try Self.time(container, .endTime)
+        start = try ClockTime.decode(container, .startTime)
+        end = try ClockTime.decode(container, .endTime)
         windDownMinutes = try container.decode(Int.self, forKey: .windDownMinutes)
         activeDays = try container.decode([Int].self, forKey: .activeDays)
     }
@@ -82,14 +91,6 @@ public struct BedtimeSchedule: Codable, Equatable, Sendable {
         try container.encode(end.text, forKey: .endTime)
         try container.encode(windDownMinutes, forKey: .windDownMinutes)
         try container.encode(activeDays, forKey: .activeDays)
-    }
-
-    private static func time(_ container: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) throws -> ClockTime {
-        let text = try container.decode(String.self, forKey: key)
-        guard let time = ClockTime(text) else {
-            throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "Not HH:mm: \(text)")
-        }
-        return time
     }
 }
 
@@ -137,23 +138,31 @@ public struct RuleSnapshot: Decodable, Equatable, Sendable {
     public let locationTracking: LocationTracking
     /// The trust ladder's ceiling (P09). 0 is off, which is where every child starts.
     public let maxTrustBonusMinutes: Int
+    /// P11's rules, in the server's order. A "no limit" row stays: there is no delete.
+    public let appPolicies: [AppPolicy]
+    /// Packages no rule may restrict (the dialler, SMS, the clock, Nozir).
+    public let neverBlockedPackages: [String]
 
     public init(
         version: Int64,
         screenTime: ScreenTimeLimit,
         bedtime: BedtimeSchedule,
         locationTracking: LocationTracking = .standard,
-        maxTrustBonusMinutes: Int = 0
+        maxTrustBonusMinutes: Int = 0,
+        appPolicies: [AppPolicy] = [],
+        neverBlockedPackages: [String] = []
     ) {
         self.version = version
         self.screenTime = screenTime
         self.bedtime = bedtime
         self.locationTracking = locationTracking
         self.maxTrustBonusMinutes = maxTrustBonusMinutes
+        self.appPolicies = appPolicies
+        self.neverBlockedPackages = neverBlockedPackages
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, screenTime, bedtime, locationTracking, maxTrustBonusMinutes
+        case version, screenTime, bedtime, locationTracking, maxTrustBonusMinutes, appPolicies, neverBlockedPackages
     }
 
     public init(from decoder: any Decoder) throws {
@@ -163,5 +172,7 @@ public struct RuleSnapshot: Decodable, Equatable, Sendable {
         bedtime = try container.decode(BedtimeSchedule.self, forKey: .bedtime)
         locationTracking = try container.decodeIfPresent(LocationTracking.self, forKey: .locationTracking) ?? .standard
         maxTrustBonusMinutes = try container.decodeIfPresent(Int.self, forKey: .maxTrustBonusMinutes) ?? 0
+        appPolicies = try container.decodeIfPresent([AppPolicy].self, forKey: .appPolicies) ?? []
+        neverBlockedPackages = try container.decodeIfPresent([String].self, forKey: .neverBlockedPackages) ?? []
     }
 }
