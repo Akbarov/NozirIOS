@@ -36,6 +36,8 @@ actor FakeFamily: FamilyService {
         var cancelNextCurrentCode = false
         /// When true the next `rules` call throws `CancellationError` once.
         var cancelNextRules = false
+        /// When true the next screen-time or trust-ladder write throws `CancellationError` once.
+        var cancelNextWrite = false
         /// When true the next `chooseActiveChild` throws `CancellationError` once.
         var cancelNextActiveChild = false
         /// Held once by the next `chooseActiveChild` call, after its answer is taken.
@@ -91,6 +93,13 @@ actor FakeFamily: FamilyService {
         return try answer.get()
     }
 
+    private func cancelIfAsked(_ name: String) throws {
+        guard script.cancelNextWrite else { return }
+        script.cancelNextWrite = false
+        calls.append(name)
+        throw CancellationError()
+    }
+
     func children() async throws -> [Child] { try next("children", \.children) }
     func child(_ id: UUID) async throws -> Child {
         childIds.append(id)
@@ -126,6 +135,7 @@ actor FakeFamily: FamilyService {
     func setScreenTime(_ limit: ScreenTimeLimit, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
         childIds.append(childId)
         screenTimeWrites.append(RuleWrite(value: limit, version: version))
+        try cancelIfAsked("screenTime")
         return try await held("screenTime", \.screenTime, \.writeGate)
     }
 
@@ -144,6 +154,7 @@ actor FakeFamily: FamilyService {
     func setTrustLadder(_ minutes: Int, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
         childIds.append(childId)
         trustLadderWrites.append(RuleWrite(value: minutes, version: version))
+        try cancelIfAsked("trustLadder")
         return try await held("trustLadder", \.trustLadder, \.writeGate)
     }
 
