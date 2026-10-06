@@ -218,6 +218,98 @@ private func setup(_ script: FakeFamily.Script) -> (ChildRulesSession, FakeFamil
         #expect(session.version == 4)
     }
 
+    @Test func aCancelledWriteSaysNothing() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4))]
+        let (session, _) = setup(script)
+        await session.load()
+
+        let outcome = await session.write { () async throws -> RuleSnapshot in throw CancellationError() }
+
+        #expect(outcome == .cancelled)
+        #expect(session.version == 4)
+        #expect(session.message == nil)
+    }
+
+    @Test func aCancelledMakeActiveSaysNothing() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4))]
+        script.subscription = [.success(Subscription(activeChildId: UUID()))]
+        script.cancelNextActiveChild = true
+        let (session, _) = setup(script)
+        await session.load()
+
+        await session.makeActive()
+
+        #expect(session.isFrozen)
+        #expect(session.message == nil)
+        #expect(!session.isMakingActive)
+    }
+
+    @Test(.timeLimit(.minutes(5)))
+    func aPlanReadAskedBeforeAnActivationDoesNotUndoIt() async {
+        let gate = PauseGate()
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4))]
+        script.subscription = [.success(Subscription(activeChildId: UUID()))]
+        script.activeChild = [.success(Subscription(activeChildId: ali.id))]
+        let (session, fake) = setup(script)
+        await session.load()
+        #expect(session.isFrozen)
+        let activation = PauseGate()
+        await fake.add {
+            $0.activeChildGate = activation
+            $0.rules = [.success(snapshot(version: 4))]
+            $0.subscription = [.success(Subscription(activeChildId: UUID()))]
+            $0.subscriptionGate = gate
+        }
+
+        let making = Task { await session.makeActive() }
+        await activation.untilPaused()
+        let late = Task { await session.reload() }
+        await gate.untilPaused()
+        await activation.release()
+        await making.value
+        #expect(!session.isFrozen)
+        await gate.release()
+        await late.value
+
+        #expect(!session.isFrozen)
+    }
+
+    @Test(.timeLimit(.minutes(5)))
+    func twoLoadsAtOnceAskOnce() async {
+        let gate = PauseGate()
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4)), .success(snapshot(version: 5))]
+        script.rulesGate = gate
+        let (session, fake) = setup(script)
+
+        let first = Task { await session.load() }
+        await gate.untilPaused()
+        await session.load()
+        await gate.release()
+        await first.value
+
+        #expect(session.version == 4)
+        #expect(await fake.calls.filter { $0 == "rules" }.count == 1)
+    }
+
+    @Test func aCancelledFirstLoadCanBeRetried() async {
+        var script = FakeFamily.Script()
+        script.cancelNextRules = true
+        script.rules = [.success(snapshot(version: 4))]
+        let (session, _) = setup(script)
+
+        await session.load()
+        #expect(session.snapshot == nil)
+        #expect(session.loadFailure == nil)
+        #expect(!session.isLoading)
+
+        await session.load()
+        #expect(session.version == 4)
+    }
+
     @Test func aSessionIsItsOwnIdentity() {
         let (first, _) = setup(FakeFamily.Script())
         let (second, _) = setup(FakeFamily.Script())

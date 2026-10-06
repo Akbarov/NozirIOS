@@ -34,6 +34,14 @@ actor FakeFamily: FamilyService {
         var locale: [Result<ParentProfile, ApiFailure>] = []
         /// When true the next `currentPairingCode` throws `CancellationError` once.
         var cancelNextCurrentCode = false
+        /// When true the next `rules` call throws `CancellationError` once.
+        var cancelNextRules = false
+        /// When true the next `chooseActiveChild` throws `CancellationError` once.
+        var cancelNextActiveChild = false
+        /// Held once by the next `chooseActiveChild` call, after its answer is taken.
+        var activeChildGate: PauseGate?
+        /// Held once by the next `subscription` call, after its answer is taken.
+        var subscriptionGate: PauseGate?
         /// Held once by the next `rules` call, after its answer is taken.
         var rulesGate: PauseGate?
         /// Held once by the next rule write of any kind, after its answer is taken.
@@ -107,6 +115,11 @@ actor FakeFamily: FamilyService {
 
     func rules(of childId: UUID) async throws -> RuleSnapshot {
         childIds.append(childId)
+        if script.cancelNextRules {
+            script.cancelNextRules = false
+            calls.append("rules")
+            throw CancellationError()
+        }
         return try await held("rules", \.rules, \.rulesGate)
     }
 
@@ -162,10 +175,17 @@ actor FakeFamily: FamilyService {
         childIds.append(childId)
         return try next("devices", \.devices)
     }
-    func subscription() async throws -> Subscription { try next("subscription", \.subscription) }
+    func subscription() async throws -> Subscription {
+        try await held("subscription", \.subscription, \.subscriptionGate)
+    }
     func chooseActiveChild(_ childId: UUID) async throws -> Subscription {
         childIds.append(childId)
-        return try next("activeChild", \.activeChild)
+        if script.cancelNextActiveChild {
+            script.cancelNextActiveChild = false
+            calls.append("activeChild")
+            throw CancellationError()
+        }
+        return try await held("activeChild", \.activeChild, \.activeChildGate)
     }
     func me() async throws -> ParentProfile { try next("me", \.me) }
 

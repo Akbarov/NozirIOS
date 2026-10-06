@@ -15,6 +15,8 @@ enum RuleSaveOutcome: Equatable, Sendable {
     /// Refused as stale. The session has read the rules again; nothing was resent.
     case conflict
     case failed(UserMessage)
+    /// The task was cancelled (the screen went away): nothing to say.
+    case cancelled
 }
 
 /// One child's rule set, shared by P09 and every screen opened from it.
@@ -56,7 +58,7 @@ final class ChildRulesSession {
 
     /// Reads once. A tab switch or a screen opened again leaves what is held alone.
     func load() async {
-        guard snapshot == nil else { return }
+        guard snapshot == nil, !isLoading else { return }
         await read()
     }
 
@@ -99,6 +101,8 @@ final class ChildRulesSession {
         do {
             accept(try await send())
             return .saved
+        } catch is CancellationError {
+            return .cancelled
         } catch {
             let failure = UserMessage(error)
             guard failure == .conflict else { return .failed(failure) }
@@ -115,7 +119,11 @@ final class ChildRulesSession {
         planGeneration += 1
         do {
             let subscription = try await family.service.chooseActiveChild(childId)
+            // A plan read asked before this answer would freeze the child again.
+            planGeneration += 1
             isFrozen = !subscription.isChildActive(childId)
+        } catch is CancellationError {
+            return
         } catch {
             message = UserMessage(error)
         }
