@@ -35,7 +35,7 @@ final class BedtimeModel {
 
     var hasChange: Bool {
         guard let edited, let editBase else { return false }
-        return edited != editBase
+        return !Self.same(edited, editBase)
     }
 
     var canSave: Bool {
@@ -85,7 +85,7 @@ final class BedtimeModel {
         notice = nil
         defer { isSaving = false }
         // Read again under this edit and changed elsewhere: never written over.
-        guard held.bedtime == editBase else {
+        guard Self.same(held.bedtime, editBase) else {
             discardEdit()
             notice = .conflict
             return
@@ -117,6 +117,12 @@ final class BedtimeModel {
         edited = copy
         notice = nil
         message = nil
+    }
+
+    /// The server may list the nights in any order: they are a set.
+    private static func same(_ lhs: BedtimeSchedule, _ rhs: BedtimeSchedule) -> Bool {
+        lhs.start == rhs.start && lhs.end == rhs.end && lhs.windDownMinutes == rhs.windDownMinutes
+            && Set(lhs.activeDays) == Set(rhs.activeDays)
     }
 
     private func discardEdit() {

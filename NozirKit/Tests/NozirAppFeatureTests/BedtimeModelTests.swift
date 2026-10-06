@@ -51,6 +51,19 @@ private func setup(_ script: FakeFamily.Script) async -> (BedtimeModel, ChildRul
         #expect(model.bedtime?.activeDays == [1, 3])
     }
 
+    @Test func aNightToggledOffAndOnAgainIsNoChange() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, bedtime: night(days: [5, 1, 3])))]
+        let (model, _, _) = await setup(script)
+
+        model.toggleDay(1)
+        #expect(model.canSave)
+        model.toggleDay(1)
+
+        #expect(!model.hasChange)
+        #expect(!model.canSave)
+    }
+
     @Test func windDownComesBackAtItsOwnLength() async {
         var script = FakeFamily.Script()
         script.rules = [.success(snapshot(version: 4, bedtime: night(windDown: 45)))]
