@@ -40,11 +40,16 @@ final class ChildRulesSession {
     /// A free family keeps another child active: these rules cannot change.
     private(set) var isFrozen = false
     private(set) var isMakingActive = false
+    /// A write of this hub is on its way. Every screen of the hub holds its
+    /// Save back meanwhile: two writes against one version would make this
+    /// phone's own save look like another phone's (spec D2).
+    private(set) var isWriting = false
     /// Why "make this child active" did not work.
     private(set) var message: UserMessage?
     /// Goes up with every read and every accepted answer; an older read is dropped.
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var planGeneration = 0
+    @ObservationIgnored private var writesInFlight = 0
 
     init(childId: UUID, family: FamilyStore) {
         self.childId = childId
@@ -98,17 +103,31 @@ final class ChildRulesSession {
     /// Sends one write and keeps its answer. A conflict reads the rules again
     /// and is never resent on the parent's behalf (openapi `RuleVersionConflict`).
     func write(_ send: () async throws -> RuleSnapshot) async -> RuleSaveOutcome {
-        do {
-            accept(try await send())
-            return .saved
-        } catch is CancellationError {
-            return .cancelled
-        } catch {
-            let failure = UserMessage(error)
-            guard failure == .conflict else { return .failed(failure) }
-            await reload()
-            return .conflict
+        await tracking {
+            do {
+                accept(try await send())
+                return .saved
+            } catch is CancellationError {
+                return .cancelled
+            } catch {
+                let failure = UserMessage(error)
+                guard failure == .conflict else { return .failed(failure) }
+                await reload()
+                return .conflict
+            }
         }
+    }
+
+    /// Counts `work` as a write of this hub for as long as it runs: a save made
+    /// of several calls (P09's two, P12's re-read and write) stays one.
+    func tracking<T>(_ work: () async throws -> T) async rethrows -> T {
+        writesInFlight += 1
+        isWriting = true
+        defer {
+            writesInFlight -= 1
+            isWriting = writesInFlight > 0
+        }
+        return try await work()
     }
 
     func makeActive() async {

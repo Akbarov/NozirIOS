@@ -262,6 +262,73 @@ private func setup(_ script: FakeFamily.Script) async -> (DailyLimitModel, Child
         #expect(await fake.screenTimeWrites.count == 1)
     }
 
+    // D2: this phone's own save on another screen is waited for, never raced.
+    @Test(.timeLimit(.minutes(5)))
+    func aBedtimeSaveInFlightHoldsTheLimitSaveBack() async {
+        let gate = PauseGate()
+        let later = BedtimeSchedule(start: ClockTime(hour: 21, minute: 0), end: ClockTime(hour: 7, minute: 0), windDownMinutes: 30, activeDays: [1, 2, 3, 4, 5, 6, 7])
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4))]
+        script.bedtime = [.success(snapshot(version: 5, bedtime: later))]
+        script.screenTime = [.success(snapshot(version: 6, limit: ScreenTimeLimit(schoolDayMinutes: 90, weekendMinutes: 180, maxDailyBonusMinutes: 60), bedtime: later))]
+        script.writeGate = gate
+        let (model, session, fake) = await setup(script)
+        let bedtime = BedtimeModel(session: session)
+        bedtime.setStart(ClockTime(hour: 21, minute: 0))
+        model.setSchoolDayMinutes(90)
+        #expect(model.canSave)
+
+        let bedtimeSave = Task { await bedtime.save() }
+        await gate.untilPaused()
+        #expect(!model.canSave)
+        await model.save()
+        #expect(await fake.screenTimeWrites.isEmpty)
+
+        await gate.release()
+        await bedtimeSave.value
+        #expect(bedtime.notice == .saved)
+        #expect(model.canSave)
+
+        await model.save()
+        #expect(await fake.screenTimeWrites.map(\.version) == [5])
+        #expect(model.notice == .saved)
+        #expect(await fake.calls.filter { $0 == "rules" }.count == 1)
+    }
+
+    // D2: both P09 writes count as one save; no other screen slips in between.
+    @Test(.timeLimit(.minutes(5)))
+    func aTwoStepSaveHoldsOtherScreensBackUntilBothWritesLand() async {
+        let ladderGate = PauseGate()
+        let limitGate = PauseGate()
+        let limit = ScreenTimeLimit(schoolDayMinutes: 90, weekendMinutes: 180, maxDailyBonusMinutes: 60)
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4))]
+        script.trustLadder = [.success(snapshot(version: 5, trust: 30))]
+        script.screenTime = [.success(snapshot(version: 6, limit: limit, trust: 30))]
+        script.writeGate = ladderGate
+        let (model, session, fake) = await setup(script)
+        let bedtime = BedtimeModel(session: session)
+        bedtime.setStart(ClockTime(hour: 21, minute: 0))
+        model.setTrustBonusMinutes(30)
+        model.setSchoolDayMinutes(90)
+        #expect(bedtime.canSave)
+
+        let saving = Task { await model.save() }
+        await ladderGate.untilPaused()
+        #expect(!bedtime.canSave)
+        await fake.add { $0.writeGate = limitGate }
+        await ladderGate.release()
+        await limitGate.untilPaused()
+        #expect(!bedtime.canSave)
+        await bedtime.save()
+        #expect(await fake.bedtimeWrites.isEmpty)
+
+        await limitGate.release()
+        await saving.value
+        #expect(model.notice == .saved)
+        #expect(bedtime.canSave)
+    }
+
     @Test func aFrozenChildCannotSave() async {
         var script = FakeFamily.Script()
         script.rules = [.success(snapshot(version: 4))]

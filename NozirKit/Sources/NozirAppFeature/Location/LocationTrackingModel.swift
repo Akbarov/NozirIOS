@@ -84,7 +84,9 @@ final class LocationTrackingModel {
     }
 
     var canSave: Bool {
-        guard !isSaving, !(session?.isFrozen ?? false), let tracking, version != nil else { return false }
+        guard !isSaving, !(session?.isWriting ?? false), !(session?.isFrozen ?? false), let tracking, version != nil else {
+            return false
+        }
         return tracking != saved
     }
 

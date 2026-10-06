@@ -39,7 +39,7 @@ final class BedtimeModel {
     }
 
     var canSave: Bool {
-        !isSaving && !session.isFrozen && session.version != nil && hasChange
+        !isSaving && !session.isWriting && !session.isFrozen && session.version != nil && hasChange
     }
 
     func load() async {

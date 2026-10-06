@@ -68,7 +68,8 @@ final class DailyLimitModel {
     }
 
     var canSave: Bool {
-        !isSaving && !session.isFrozen && session.version != nil && (hasLimitChange || hasTrustLadderChange)
+        !isSaving && !session.isWriting && !session.isFrozen && session.version != nil
+            && (hasLimitChange || hasTrustLadderChange)
     }
 
     func load() async {
@@ -115,6 +116,11 @@ final class DailyLimitModel {
             finish(.conflict)
             return
         }
+        // Both writes are one save: no other screen of the hub writes between them.
+        await session.tracking { await send(edited, held: held) }
+    }
+
+    private func send(_ edited: DailyLimitValues, held: RuleSnapshot) async {
         let service = session.family.service
         let childId = session.childId
         if hasTrustLadderChange {

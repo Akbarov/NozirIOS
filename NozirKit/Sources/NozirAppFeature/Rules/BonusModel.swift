@@ -36,7 +36,7 @@ final class BonusModel {
     }
 
     var canSave: Bool {
-        guard !isSaving, !session.isFrozen, session.version != nil, let edited else { return false }
+        guard !isSaving, !session.isWriting, !session.isFrozen, session.version != nil, let edited else { return false }
         return edited != saved
     }
 
@@ -77,6 +77,11 @@ final class BonusModel {
         message = nil
         notice = nil
         defer { isSaving = false }
+        // The re-read and the write are one write of the hub.
+        await session.tracking { await send(edited, version: version) }
+    }
+
+    private func send(_ edited: BonusConfig, version: Int64) async {
         let service = session.family.service
         let childId = session.childId
         // The session moved past what was read (a refresh, or another phone):
