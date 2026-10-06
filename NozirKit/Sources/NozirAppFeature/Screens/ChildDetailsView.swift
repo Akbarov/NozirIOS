@@ -21,7 +21,11 @@ struct ChildDetailsView: View {
                     NozirAvatar(name: model.name, tone: model.avatar, fallbackInitial: l10n.previewAvatarInitial, size: 56)
                     Text(model.child.displayName).nozirText(.titleLarge)
                 }
-                if model.isFrozen { frozenCard }
+                if model.isFrozen {
+                    FrozenChildCard(isMakingActive: model.isMakingActive) {
+                        Task { await model.makeActive() }
+                    }
+                }
                 form
                 if let message = model.message {
                     NozirInlineMessage(message.text(l10n))
@@ -90,21 +94,6 @@ struct ChildDetailsView: View {
                     accessibilityLabel: l10n.contentDescriptionAvatarChoice
                 )
             }
-        }
-    }
-
-    private var frozenCard: some View {
-        NozirCard(tone: .attention) {
-            HStack(spacing: NozirSpacing.small) {
-                NozirStatusDot(.attention)
-                Text(l10n.planLockFrozenBadge).nozirText(.label, color: NozirColor.attentionContent)
-            }
-            Text(l10n.planLockFrozenChildTitle).nozirText(.titleSmall)
-            Text(l10n.planLockFrozenChildBody).nozirText(.bodySmall)
-            NozirButton(l10n.planLockChooseActive, variant: .secondary, isLoading: model.isMakingActive) {
-                Task { await model.makeActive() }
-            }
-            Text(l10n.planLockSosNote).nozirText(.bodySmall, color: NozirColor.textSecondary)
         }
     }
 
