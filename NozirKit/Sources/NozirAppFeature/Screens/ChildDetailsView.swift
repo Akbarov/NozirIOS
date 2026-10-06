@@ -7,11 +7,13 @@ import NozirL10n
 struct ChildDetailsView: View {
     @State private var model: ChildDetailsModel
     private let onRemoved: () -> Void
+    private let onOpenRules: () -> Void
     @Environment(\.l10n) private var l10n
 
-    init(model: ChildDetailsModel, onRemoved: @escaping () -> Void) {
+    init(model: ChildDetailsModel, onRemoved: @escaping () -> Void, onOpenRules: @escaping () -> Void) {
         _model = State(initialValue: model)
         self.onRemoved = onRemoved
+        self.onOpenRules = onOpenRules
     }
 
     var body: some View {
@@ -27,6 +29,9 @@ struct ChildDetailsView: View {
                     }
                 }
                 form
+                NozirCard {
+                    NozirSettingsRow(l10n.profileRowRules, action: onOpenRules)
+                }
                 if let message = model.message {
                     NozirInlineMessage(message.text(l10n))
                 }

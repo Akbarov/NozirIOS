@@ -13,6 +13,9 @@ struct SignedInView: View {
         case apps(UUID)
         case details(Child)
         case sos(ActiveSos)
+        /// P09 from P03: that child, no switcher.
+        case rules(UUID)
+        case ruleScreen(RuleScreen)
     }
 
     enum StatisticsStep: Hashable {
@@ -28,6 +31,11 @@ struct SignedInView: View {
     enum ProfileStep: Hashable {
         case child(Child)
         case pairing(Child)
+        /// P09 from the Profile row: nil opens on the first child, with the switcher.
+        case rules(UUID?)
+        /// P09 from P03 opened in this tab: that child, no switcher.
+        case childRules(UUID)
+        case ruleScreen(RuleScreen)
     }
 
     @State private var model: SignedInModel
@@ -105,15 +113,11 @@ struct SignedInView: View {
                     model: model.makeProfileModel(),
                     onAddChild: { model.presentAddChild() },
                     onOpenChild: { profilePath.append(.child($0)) },
-                    onPair: { profilePath.append(.pairing($0)) }
+                    onPair: { profilePath.append(.pairing($0)) },
+                    onOpenRules: { profilePath.append(.rules(nil)) }
                 )
                 .navigationDestination(for: ProfileStep.self) { step in
-                    switch step {
-                    case .child(let child):
-                        ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { clearPaths() })
-                    case .pairing(let child):
-                        PairingView(model: model.makePairingModel(child), onFinished: { profilePath.removeAll() })
-                    }
+                    profileDestination(step)
                 }
             }
             .tabItem { Label(l10n.tabProfile, systemImage: "person.crop.circle") }
@@ -161,12 +165,63 @@ struct SignedInView: View {
         case .apps(let childId):
             AppUsageView(model: model.makeAppUsageModel(childId: childId))
         case .details(let child):
-            ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { clearPaths() })
+            ChildDetailsView(
+                model: model.makeDetailsModel(child),
+                onRemoved: { clearPaths() },
+                onOpenRules: { homePath.append(.rules(child.id)) }
+            )
         case .sos(let seed):
             SosDetailView(model: model.makeSosDetailModel(
                 seed: seed,
                 emergencyNumber: SosDetailModel.dialNumber(configured: model.currentEmergencyNumber, fallback: l10n.sosEmergencyNumber)
             ))
+        case .rules(let childId):
+            RulesHubView(
+                model: model.makeRulesHubModel(childId: childId, picksChild: false),
+                onOpen: { homePath.append(.ruleScreen($0)) }
+            )
+        case .ruleScreen(let screen):
+            ruleDestination(screen)
+        }
+    }
+
+    @ViewBuilder
+    private func profileDestination(_ step: ProfileStep) -> some View {
+        switch step {
+        case .child(let child):
+            ChildDetailsView(
+                model: model.makeDetailsModel(child),
+                onRemoved: { clearPaths() },
+                onOpenRules: { profilePath.append(.childRules(child.id)) }
+            )
+        case .pairing(let child):
+            PairingView(model: model.makePairingModel(child), onFinished: { profilePath.removeAll() })
+        case .rules(let childId):
+            RulesHubView(
+                model: model.makeRulesHubModel(childId: childId, picksChild: true),
+                onOpen: { profilePath.append(.ruleScreen($0)) }
+            )
+        case .childRules(let childId):
+            RulesHubView(
+                model: model.makeRulesHubModel(childId: childId, picksChild: false),
+                onOpen: { profilePath.append(.ruleScreen($0)) }
+            )
+        case .ruleScreen(let screen):
+            ruleDestination(screen)
+        }
+    }
+
+    /// P10, P12 and P12b on the session of the hub that opened them. Each view
+    /// keeps the first model it is given (`@State(initialValue:)`), like SafeZoneView.
+    @ViewBuilder
+    private func ruleDestination(_ screen: RuleScreen) -> some View {
+        switch screen {
+        case .bedtime(let session):
+            BedtimeView(model: model.makeBedtimeModel(session: session))
+        case .bonus(let session):
+            BonusView(model: model.makeBonusModel(session: session))
+        case .locationTracking(let session):
+            LocationTrackingView(model: model.makeLocationTrackingModel(session: session))
         }
     }
 }

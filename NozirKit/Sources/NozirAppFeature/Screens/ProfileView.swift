@@ -9,6 +9,7 @@ struct ProfileView: View {
     private let onAddChild: () -> Void
     private let onOpenChild: (Child) -> Void
     private let onPair: (Child) -> Void
+    private let onOpenRules: () -> Void
     @Environment(\.l10n) private var l10n
     @State private var showsTheme = false
     @State private var showsLanguage = false
@@ -17,12 +18,14 @@ struct ProfileView: View {
         model: ProfileModel,
         onAddChild: @escaping () -> Void,
         onOpenChild: @escaping (Child) -> Void,
-        onPair: @escaping (Child) -> Void
+        onPair: @escaping (Child) -> Void,
+        onOpenRules: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
         self.onAddChild = onAddChild
         self.onOpenChild = onOpenChild
         self.onPair = onPair
+        self.onOpenRules = onOpenRules
     }
 
     var body: some View {
@@ -45,6 +48,11 @@ struct ProfileView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                }
+                if model.showsRules {
+                    NozirCard {
+                        NozirSettingsRow(l10n.profileRowRules, action: onOpenRules)
+                    }
                 }
                 NozirSectionTitle(l10n.profileSectionSettings)
                 NozirCard {

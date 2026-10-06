@@ -142,4 +142,78 @@ private func setup(
         #expect(!model.makeSafeZoneModel(childId: child.id, zoneId: nil).isEditing)
         #expect(model.makeLocationTrackingModel(childId: child.id).childId == child.id)
     }
+
+    @Test func theRulesScreensShareTheHubsSession() async {
+        let ali = makeChild("Ali")
+        var script = FakeFamily.Script()
+        script.children = [.success([ali, makeChild("Vali")])]
+        script.rules = [.success(snapshot(version: 4)), .success(snapshot(version: 4))]
+        script.bonus = [.success(BonusConfig(ruleVersion: 4, maxDailyBonusMinutes: 30, challenges: []))]
+        let (model, fake) = setup(script)
+        try? await model.family.refresh()
+
+        let session = model.makeRulesSession(childId: ali.id)
+
+        #expect(session.childId == ali.id)
+        #expect(session.childName == "Ali")
+        let daily = model.makeDailyLimitModel(session: session)
+        let bedtime = model.makeBedtimeModel(session: session)
+        let bonus = model.makeBonusModel(session: session)
+        let tracking = model.makeLocationTrackingModel(session: session)
+        #expect(daily.session === session)
+        #expect(bedtime.session === session)
+        #expect(bonus.session === session)
+        #expect(tracking.childId == ali.id)
+        #expect(tracking.childName == "Ali")
+
+        // Behaviour, not identity: once the session has loaded, none of them reads "rules" again.
+        await session.load()
+        await tracking.load()
+        await bedtime.load()
+        await daily.load()
+        await bonus.load()
+        #expect(await fake.calls.filter { $0 == "rules" }.count == 1)
+        #expect(tracking.tracking != nil)
+        #expect(bedtime.bedtime != nil)
+    }
+
+    @Test func theProfileHubOpensOnTheFirstChildAndCanSwitch() async {
+        let ali = makeChild("Ali")
+        var script = FakeFamily.Script()
+        script.children = [.success([ali, makeChild("Vali")])]
+        let (model, _) = setup(script)
+        try? await model.family.refresh()
+
+        let hub = model.makeRulesHubModel(childId: nil, picksChild: true)
+
+        #expect(hub.selectedChildId == ali.id)
+        #expect(hub.showsSwitcher)
+        #expect(hub.dailyLimit?.session === hub.session)
+    }
+
+    @Test func aChildsDetailsHubIsForThatChildOnly() async {
+        let vali = makeChild("Vali")
+        var script = FakeFamily.Script()
+        script.children = [.success([makeChild("Ali"), vali])]
+        let (model, _) = setup(script)
+        try? await model.family.refresh()
+
+        let hub = model.makeRulesHubModel(childId: vali.id, picksChild: false)
+
+        #expect(hub.selectedChildId == vali.id)
+        #expect(!hub.showsSwitcher)
+    }
+
+    @Test func theProfileShowsRulesOnlyWithAChild() async {
+        var script = FakeFamily.Script()
+        script.children = [.success([]), .success([makeChild("Ali")])]
+        let (model, _) = setup(script)
+        let profile = model.makeProfileModel()
+
+        try? await model.family.refresh()
+        #expect(!profile.showsRules)
+
+        try? await model.family.refresh()
+        #expect(profile.showsRules)
+    }
 }
