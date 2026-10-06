@@ -152,6 +152,8 @@ final class ChildRulesSession {
         generation += 1
         let mine = generation
         isLoading = true
+        // Retry after a failed first read: the spinner, not the old error.
+        if snapshot == nil { loadFailure = nil }
         do {
             let fresh = try await family.service.rules(of: childId)
             guard mine == generation else { return }

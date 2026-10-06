@@ -60,6 +60,30 @@ private func setup(_ script: FakeFamily.Script) -> (ChildRulesSession, FakeFamil
         #expect(session.loadFailure == nil)
     }
 
+    @Test(.timeLimit(.minutes(5)))
+    func aRetryAfterAFailedFirstLoadShowsItIsLoading() async {
+        let gate = PauseGate()
+        var script = FakeFamily.Script()
+        script.rules = [.failure(offline)]
+        let (session, fake) = setup(script)
+        await session.load()
+        #expect(session.loadFailure == .noConnection)
+        await fake.add {
+            $0.rules = [.success(snapshot(version: 4))]
+            $0.rulesGate = gate
+        }
+
+        let retry = Task { await session.load() }
+        await gate.untilPaused()
+        #expect(session.loadFailure == nil)
+        #expect(session.isLoading)
+
+        await gate.release()
+        await retry.value
+        #expect(session.version == 4)
+        #expect(!session.isLoading)
+    }
+
     @Test func aReloadWithoutAConnectionKeepsWhatIsShown() async {
         var script = FakeFamily.Script()
         script.rules = [.success(snapshot(version: 4)), .failure(offline), .success(snapshot(version: 6))]
