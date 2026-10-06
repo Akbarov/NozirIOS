@@ -135,6 +135,14 @@ final class DailyLimitModel {
         }
         if hasLimitChange {
             let current = session.snapshot ?? held
+            // A refresh may have landed while the ladder was on its way, bringing
+            // another phone's limit: never sent over (the ladder stays saved).
+            guard let editBase,
+                  current.screenTime.schoolDayMinutes == editBase.schoolDayMinutes,
+                  current.screenTime.weekendMinutes == editBase.weekendMinutes else {
+                finish(.conflict)
+                return
+            }
             let limit = ScreenTimeLimit(
                 schoolDayMinutes: edited.schoolDayMinutes,
                 weekendMinutes: edited.weekendMinutes,

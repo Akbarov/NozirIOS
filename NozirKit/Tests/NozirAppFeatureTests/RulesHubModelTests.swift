@@ -92,6 +92,56 @@ private func setup(
         #expect(hub.dailyLimit?.values?.schoolDayMinutes == 60)
     }
 
+    // A refresh mid-save would move the version the save's next step writes against.
+    @Test(.timeLimit(.minutes(5)))
+    func aPullToRefreshIsANoOpWhileASaveIsInFlight() async {
+        let gate = PauseGate()
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, limit: aliLimit)), .success(snapshot(version: 6, limit: aliLimit, trust: 30))]
+        script.trustLadder = [.success(snapshot(version: 5, limit: aliLimit, trust: 30))]
+        script.writeGate = gate
+        let (hub, fake) = setup(script)
+        await hub.load()
+        hub.dailyLimit?.setTrustBonusMinutes(30)
+
+        let saving = Task { await hub.dailyLimit?.save() }
+        await gate.untilPaused()
+        await hub.refresh()
+        #expect(await fake.calls.filter { $0 == "rules" }.count == 1)
+
+        await gate.release()
+        await saving.value
+        await hub.refresh()
+        #expect(await fake.calls.filter { $0 == "rules" }.count == 2)
+        #expect(hub.session?.version == 6)
+    }
+
+    @Test(.timeLimit(.minutes(5)))
+    func aPullToRefreshIsANoOpWhileAnotherScreensWriteIsInFlight() async {
+        let gate = PauseGate()
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, limit: aliLimit))]
+        script.bedtime = [.success(snapshot(version: 5, limit: aliLimit))]
+        script.writeGate = gate
+        let (hub, fake) = setup(script)
+        await hub.load()
+        guard let session = hub.session else {
+            Issue.record("no session")
+            return
+        }
+        let bedtime = BedtimeModel(session: session)
+        bedtime.setStart(ClockTime(hour: 21, minute: 0))
+
+        let saving = Task { await bedtime.save() }
+        await gate.untilPaused()
+        await hub.refresh()
+        #expect(await fake.calls.filter { $0 == "rules" }.count == 1)
+
+        await gate.release()
+        await saving.value
+        #expect(bedtime.notice == .saved)
+    }
+
     // Review Focus 3.
     @Test(.timeLimit(.minutes(5)))
     func aLateAnswerForTheFormerChildNeverReachesTheNewOne() async {

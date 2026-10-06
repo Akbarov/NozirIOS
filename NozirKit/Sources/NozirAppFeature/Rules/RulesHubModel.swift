@@ -54,6 +54,13 @@ final class RulesHubModel {
         await dailyLimit?.load()
     }
 
+    /// Pull to refresh. Nothing while a save is in flight: a newer version read
+    /// mid-save would be the one the save's next step writes against.
+    func refresh() async {
+        guard let session, !session.isWriting, !(dailyLimit?.isSaving ?? false) else { return }
+        await session.reload()
+    }
+
     func switcherChildren(_ l10n: L10n) -> [NozirSwitcherChild] {
         family.children.enumerated().map { position, child in
             NozirSwitcherChild(

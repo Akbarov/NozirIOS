@@ -45,6 +45,6 @@ struct RulesHubView: View {
         .navigationBarTitleDisplayMode(.inline)
         // Once per child: a tab switch finds the session loaded and the edit untouched.
         .task(id: model.selectedChildId) { await model.load() }
-        .refreshable { await model.session?.reload() }
+        .refreshable { await model.refresh() }
     }
 }

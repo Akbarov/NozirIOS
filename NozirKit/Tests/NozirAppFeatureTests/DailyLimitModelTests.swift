@@ -262,6 +262,36 @@ private func setup(_ script: FakeFamily.Script) async -> (DailyLimitModel, Child
         #expect(await fake.screenTimeWrites.count == 1)
     }
 
+    // §1: a refresh that lands while the ladder is on its way brings another
+    // phone's limit; the limit is then never sent over it.
+    @Test(.timeLimit(.minutes(5)))
+    func aRefreshDuringTheLadderNeverLetsTheLimitGoOutOverAnotherPhones() async {
+        let gate = PauseGate()
+        let elsewhere = ScreenTimeLimit(schoolDayMinutes: 60, weekendMinutes: 60, maxDailyBonusMinutes: 60)
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4)), .success(snapshot(version: 6, limit: elsewhere, trust: 30))]
+        script.trustLadder = [.success(snapshot(version: 5, trust: 30))]
+        script.screenTime = [.success(snapshot(version: 7, limit: ScreenTimeLimit(schoolDayMinutes: 90, weekendMinutes: 180, maxDailyBonusMinutes: 60), trust: 30))]
+        script.writeGate = gate
+        let (model, session, fake) = await setup(script)
+        model.setTrustBonusMinutes(30)
+        model.setSchoolDayMinutes(90)
+
+        let saving = Task { await model.save() }
+        await gate.untilPaused()
+        await session.reload()
+        #expect(session.version == 6)
+        await gate.release()
+        await saving.value
+
+        #expect(await fake.trustLadderWrites == [RuleWrite(value: 30, version: 4)])
+        #expect(await fake.screenTimeWrites.isEmpty)
+        #expect(model.notice == .conflict)
+        #expect(model.edited == nil)
+        #expect(model.values == DailyLimitValues(schoolDayMinutes: 60, weekendMinutes: 60, trustBonusMinutes: 30))
+        #expect(!model.canSave)
+    }
+
     // D2: this phone's own save on another screen is waited for, never raced.
     @Test(.timeLimit(.minutes(5)))
     func aBedtimeSaveInFlightHoldsTheLimitSaveBack() async {
