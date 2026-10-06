@@ -62,6 +62,8 @@ final class AppRuleModel {
     /// "Doim yopiq" is offered only to a rule saved that way (spec D2): kept,
     /// never one tap away for a rule that is not.
     var modes: [AppPolicyMode] {
+        // The server answers 400 to a rule on a package it never blocks.
+        if session.snapshot?.neverBlockedPackages.contains(packageId) == true { return [.unrestricted] }
         let offered: [AppPolicyMode] = [.unrestricted, .dailyLimit, .scheduleBlock]
         return saved?.mode == .alwaysBlocked ? offered + [.alwaysBlocked] : offered
     }
@@ -203,15 +205,36 @@ final class AppRuleModel {
         }
     }
 
-    /// The name is not part of the rule; the days are a set.
+    /// The name is not part of the rule; the days are a set and the windows
+    /// have no order (the server returns them without one).
     private static func same(_ lhs: AppPolicy?, _ rhs: AppPolicy?) -> Bool {
         guard let lhs, let rhs else { return lhs == nil && rhs == nil }
         guard lhs.mode == rhs.mode,
               lhs.dailyLimitMinutes == rhs.dailyLimitMinutes,
               lhs.blockWindows.count == rhs.blockWindows.count else { return false }
-        return zip(lhs.blockWindows, rhs.blockWindows).allSatisfy { left, right in
-            left.start == right.start && left.end == right.end && Set(left.days) == Set(right.days)
+        return zip(canonical(lhs.blockWindows), canonical(rhs.blockWindows)).allSatisfy { $0 == $1 }
+    }
+
+    private struct WindowKey: Comparable {
+        let start: Int
+        let end: Int
+        let days: [Int]
+
+        static func < (lhs: WindowKey, rhs: WindowKey) -> Bool {
+            if lhs.start != rhs.start { return lhs.start < rhs.start }
+            if lhs.end != rhs.end { return lhs.end < rhs.end }
+            return lhs.days.lexicographicallyPrecedes(rhs.days)
         }
+    }
+
+    private static func canonical(_ windows: [BlockWindow]) -> [WindowKey] {
+        windows.map {
+            WindowKey(
+                start: $0.start.hour * 60 + $0.start.minute,
+                end: $0.end.hour * 60 + $0.end.minute,
+                days: Set($0.days).sorted()
+            )
+        }.sorted()
     }
 
     private func discardEdit() {

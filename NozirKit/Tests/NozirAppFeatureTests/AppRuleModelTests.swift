@@ -322,6 +322,76 @@ private func setup(
         #expect(model.policy == elsewhere)
     }
 
+    @Test func theSameWindowsInAnotherOrderAreNoConflict() async {
+        let evening = BlockWindow(start: ClockTime(hour: 19, minute: 0), end: ClockTime(hour: 21, minute: 0), days: [6, 7])
+        let before = appPolicy(roblox, name: "Roblox", mode: .scheduleBlock, windows: [schoolHours, evening])
+        let reordered = appPolicy(roblox, name: "Roblox", mode: .scheduleBlock, windows: [evening, schoolHours])
+        let later = BlockWindow(start: ClockTime(hour: 9, minute: 0), end: schoolHours.end, days: schoolHours.days)
+        let sent = appPolicy(roblox, name: "Roblox", mode: .scheduleBlock, windows: [later, evening])
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, apps: [before])), .success(snapshot(version: 5, apps: [reordered]))]
+        script.appPolicy = [.success(snapshot(version: 6, apps: [sent]))]
+        let (model, session, fake) = await setup(script)
+        model.setWindowStart(ClockTime(hour: 9, minute: 0))
+
+        await session.reload()
+        await model.save()
+
+        #expect(await fake.appPolicyWrites.count == 1)
+        #expect(model.notice == .saved)
+    }
+
+    @Test func theSameDaysInAnotherOrderAreNoChangeAndNoConflict() async {
+        let before = appPolicy(roblox, name: "Roblox", mode: .scheduleBlock, windows: [schoolHours])
+        let shuffled = BlockWindow(start: schoolHours.start, end: schoolHours.end, days: [5, 4, 3, 2, 1])
+        let after = appPolicy(roblox, name: "Roblox", mode: .scheduleBlock, windows: [shuffled])
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, apps: [before])), .success(snapshot(version: 5, apps: [after]))]
+        script.appPolicy = [.success(snapshot(version: 6, apps: [after]))]
+        let (model, session, fake) = await setup(script)
+        model.setWindowStart(ClockTime(hour: 9, minute: 0))
+        await session.reload()
+        await model.save()
+        #expect(await fake.appPolicyWrites.count == 1)
+        #expect(model.notice == .saved)
+
+        var quiet = FakeFamily.Script()
+        quiet.rules = [.success(snapshot(version: 4, apps: [before])), .success(snapshot(version: 5, apps: [after]))]
+        let (idle, idleSession, _) = await setup(quiet)
+        await idleSession.reload()
+        #expect(!idle.hasChange)
+        #expect(!idle.canSave)
+    }
+
+    @Test func onlyTheNameChangingIsNoChangeAndNoConflict() async {
+        let before = appPolicy(roblox, name: "Roblox", mode: .dailyLimit, minutes: 30)
+        let renamed = appPolicy(roblox, name: "Roblox Lite", mode: .dailyLimit, minutes: 30)
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, apps: [before])), .success(snapshot(version: 5, apps: [renamed]))]
+        script.appPolicy = [.success(snapshot(version: 6, apps: [anHour]))]
+        let (model, session, fake) = await setup(script)
+        model.setDailyLimitMinutes(60)
+        await session.reload()
+        await model.save()
+        #expect(await fake.appPolicyWrites.count == 1)
+        #expect(model.notice == .saved)
+
+        var quiet = FakeFamily.Script()
+        quiet.rules = [.success(snapshot(version: 4, apps: [before])), .success(snapshot(version: 5, apps: [renamed]))]
+        let (idle, idleSession, _) = await setup(quiet)
+        await idleSession.reload()
+        #expect(!idle.hasChange)
+        #expect(!idle.canSave)
+    }
+
+    @Test func aNeverBlockedAppOffersOnlyNoLimit() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, neverBlocked: [roblox]))]
+        let (model, _, _) = await setup(script)
+
+        #expect(model.modes == [.unrestricted])
+    }
+
     // Review Focus 3.
     @Test func anotherAppsRuleSavedMeanwhileIsNoConflict() async {
         let telegram = appPolicy("org.telegram.messenger", name: "Telegram", mode: .scheduleBlock, windows: [schoolHours])
