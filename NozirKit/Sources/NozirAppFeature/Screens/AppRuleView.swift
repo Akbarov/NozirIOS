@@ -95,7 +95,6 @@ struct AppRuleView: View {
             ForEach(model.modes, id: \.self) { mode in
                 Text(AppRuleTexts.modeLabel(mode, l10n))
                     .tag(mode as AppPolicyMode?)
-                    .accessibilityLabel(AppRuleTexts.modeLabel(mode, l10n))
             }
         }
         .pickerStyle(.segmented)
