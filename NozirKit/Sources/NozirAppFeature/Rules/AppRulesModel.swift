@@ -39,6 +39,12 @@ final class AppRulesModel {
         (installedApps ?? []).filter { isAddable($0) }
     }
 
+    /// The picker would show nothing and the list above already says why:
+    /// "Ilova qo'shish" has nothing to open. False while the apps are unread.
+    var hasNothingToAdd: Bool {
+        installedApps != nil && addableApps.isEmpty && policies.isEmpty
+    }
+
     var shownApps: [InstalledApp] {
         AppSearch.matching(addableApps, query)
     }

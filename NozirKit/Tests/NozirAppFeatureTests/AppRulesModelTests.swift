@@ -94,6 +94,29 @@ private func setup(_ script: FakeFamily.Script) async -> (AppRulesModel, ChildRu
         #expect(model.addableApps.isEmpty)
     }
 
+    @Test func nothingToAddIsKnownOnlyOnceThePhonesAppsAreRead() async {
+        var empty = FakeFamily.Script()
+        empty.rules = [.success(snapshot(version: 4))]
+        empty.installedApps = [.success([])]
+        let (none, _, _) = await setup(empty)
+        #expect(none.hasNothingToAdd)
+
+        var one = FakeFamily.Script()
+        one.rules = [.success(snapshot(version: 4))]
+        one.installedApps = [.success([robloxApp])]
+        let (some, _, _) = await setup(one)
+        #expect(!some.hasNothingToAdd)
+
+        let (unread, _, _) = makeModel(one)
+        #expect(!unread.hasNothingToAdd)
+
+        var ruled = FakeFamily.Script()
+        ruled.rules = [.success(snapshot(version: 4, apps: [robloxRule]))]
+        ruled.installedApps = [.success([robloxApp])]
+        let (withRules, _, _) = await setup(ruled)
+        #expect(!withRules.hasNothingToAdd)
+    }
+
     @Test func theAppsAreAskedForOnlyOnceTheRulesArrive() async {
         var script = FakeFamily.Script()
         script.rules = [.failure(offline), .success(snapshot(version: 4))]

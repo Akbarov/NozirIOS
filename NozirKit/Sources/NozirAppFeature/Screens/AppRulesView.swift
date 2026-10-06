@@ -32,7 +32,7 @@ struct AppRulesView: View {
                         Text(l10n.appRulesNeverBlocked).nozirText(.bodySmall)
                     }
                     NozirButton(l10n.appRulesAdd, variant: .ghost) { model.toggleChoosing() }
-                        .disabled(model.session.isFrozen)
+                        .disabled(model.session.isFrozen || model.hasNothingToAdd)
                     if model.isChoosingApp {
                         picker
                     }
