@@ -142,6 +142,7 @@ actor FakeFamily: FamilyService {
     func setBedtime(_ bedtime: BedtimeSchedule, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
         childIds.append(childId)
         bedtimeWrites.append(RuleWrite(value: bedtime, version: version))
+        try cancelIfAsked("bedtime")
         return try await held("bedtime", \.bedtime, \.writeGate)
     }
 
