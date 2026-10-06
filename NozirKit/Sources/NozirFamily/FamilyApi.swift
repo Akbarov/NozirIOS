@@ -58,6 +58,42 @@ public struct FamilyApi: FamilyService {
         return try await client.send(request, as: RuleSnapshot.self)
     }
 
+    /// The ladder's ceiling has a write of its own: the screen-time body does not carry it.
+    public func setTrustLadder(_ minutes: Int, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        struct Body: Encodable {
+            let maxTrustBonusMinutes: Int
+        }
+        let request = try ApiRequest.put(
+            Self.childPath(childId) + "/rules/trust-ladder",
+            json: Body(maxTrustBonusMinutes: minutes),
+            ifMatch: Self.entityTag(version)
+        )
+        return try await client.send(request, as: RuleSnapshot.self)
+    }
+
+    public func bonus(of childId: UUID) async throws -> BonusConfig {
+        try await client.send(ApiRequest(method: .get, path: Self.childPath(childId) + "/rules/bonus"), as: BonusConfig.self)
+    }
+
+    /// The whole configuration goes back. The server decides on `If-Match`,
+    /// never on the body's `ruleVersion`; the body states the same number anyway.
+    public func setBonus(_ config: BonusConfig, of childId: UUID, version: Int64) async throws -> BonusConfig {
+        struct Body: Encodable {
+            let childId: String
+            let ruleVersion: Int64
+            let maxDailyBonusMinutes: Int
+            let challenges: [BonusChallenge]
+        }
+        let body = Body(
+            childId: childId.uuidString.lowercased(),
+            ruleVersion: version,
+            maxDailyBonusMinutes: config.maxDailyBonusMinutes,
+            challenges: config.challenges
+        )
+        let request = try ApiRequest.put(Self.childPath(childId) + "/rules/bonus", json: body, ifMatch: Self.entityTag(version))
+        return try await client.send(request, as: BonusConfig.self)
+    }
+
     public func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
         do {
             return try await client.send(ApiRequest(method: .get, path: Self.childPath(childId) + "/pairing-code"), as: PairingCode.self)
