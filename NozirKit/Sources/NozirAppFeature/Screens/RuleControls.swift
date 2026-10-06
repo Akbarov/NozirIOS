@@ -95,24 +95,30 @@ struct RuleTimePicker: View {
 
 /// The seven nights as chips, what they add up to, and the hint when one is left.
 struct RuleDaysSection: View {
+    private let title: String?
+    private let describesNights: Bool
     private let activeDays: Set<Int>
     private let onToggle: (Int) -> Void
     @Environment(\.l10n) private var l10n
 
-    init(activeDays: Set<Int>, onToggle: @escaping (Int) -> Void) {
+    init(title: String? = nil, describesNights: Bool = true, activeDays: Set<Int>, onToggle: @escaping (Int) -> Void) {
+        self.title = title
+        self.describesNights = describesNights
         self.activeDays = activeDays
         self.onToggle = onToggle
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: NozirSpacing.medium) {
-            Text(l10n.bedtimeDaysLabel).nozirText(.body)
+            Text(title ?? l10n.bedtimeDaysLabel).nozirText(.body)
             HStack(spacing: NozirSpacing.extraSmall) {
                 ForEach(1...7, id: \.self) { day in chip(day) }
             }
-            Text(RuleDays.summary(activeDays, l10n)).nozirText(.bodySmall, color: NozirColor.textSecondary)
-            if activeDays.count == 1 {
-                Text(l10n.bedtimeDaysHint).nozirText(.bodySmall, color: NozirColor.textTertiary)
+            if describesNights {
+                Text(RuleDays.summary(activeDays, l10n)).nozirText(.bodySmall, color: NozirColor.textSecondary)
+                if activeDays.count == 1 {
+                    Text(l10n.bedtimeDaysHint).nozirText(.bodySmall, color: NozirColor.textTertiary)
+                }
             }
         }
     }

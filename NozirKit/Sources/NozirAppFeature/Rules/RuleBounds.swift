@@ -11,6 +11,8 @@ enum RuleMinuteRange {
     /// The same numbers as the bonus ceiling, and a separate rule. 0 means off.
     static let trustLadder = 0...120
     static let windDown = 15...60
+    /// One app's daily time on P11 (Android `APP_DAILY_LIMIT`).
+    static let appDailyLimit = 15...240
 }
 
 /// The nights a bedtime runs on, as ISO day numbers (1 = Monday).
