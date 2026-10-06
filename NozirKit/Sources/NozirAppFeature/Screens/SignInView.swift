@@ -7,6 +7,7 @@ struct SignInView: View {
     @State private var model: SignInModel
     @Environment(\.openURL) private var openURL
     @Environment(\.l10n) private var l10n
+    @State private var toast: String?
 
     init(model: SignInModel) {
         _model = State(initialValue: model)
@@ -27,6 +28,7 @@ struct SignInView: View {
             .padding(NozirSpacing.medium)
         }
         .background(NozirColor.background.ignoresSafeArea())
+        .nozirToast($toast)
     }
 
     private var choice: some View {
@@ -83,7 +85,7 @@ struct SignInView: View {
     private func open(_ link: URL) {
         openURL(link) { accepted in
             if !accepted {
-                Task { @MainActor in model.telegramDidNotOpen() }
+                Task { @MainActor in toast = l10n.signInTelegramNotOpenedOnlyDoor }
             }
         }
     }

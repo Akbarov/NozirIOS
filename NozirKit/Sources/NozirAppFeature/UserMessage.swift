@@ -11,7 +11,7 @@ public enum UserMessage: Equatable, Sendable {
     case sessionEnded, permissionDenied, notFound, invalidRequest, conflict
     case childLimitReached, subscriptionRequired, childNotActive, safeZoneLimitReached
     case rateLimited(seconds: Int?)
-    case codeRejected, telegramNotOpened
+    case codeRejected
 
     /// Android `DataErrorFromApiFailure` and `ApiFailureFromStatus`: the code
     /// first, then the status, and "check what you entered" for the rest.
@@ -82,7 +82,6 @@ public enum UserMessage: Equatable, Sendable {
         case .rateLimited(let seconds):
             if let seconds { l10n.dataErrorRateLimitedSeconds(seconds) } else { l10n.dataErrorRateLimited }
         case .codeRejected: l10n.signInTelegramCodeRejected
-        case .telegramNotOpened: l10n.signInTelegramNotOpenedOnlyDoor
         }
     }
 }

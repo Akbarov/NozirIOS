@@ -129,15 +129,6 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
         #expect(model.code == "123456")
     }
 
-    @Test func telegramNotOpeningIsSaidPlainly() async {
-        let model = SignInModel(service: FakeTelegram(), onSignedIn: {})
-        _ = await model.chooseTelegram()
-
-        model.telegramDidNotOpen()
-
-        #expect(model.message == .telegramNotOpened)
-    }
-
     // E2E finding (item 6): clearing the rejected code echoes "" back through the
     // code field; that echo is not typing and must not erase the explanation.
     @Test func theFieldEchoingTheClearedCodeKeepsTheRejection() async {
@@ -152,9 +143,10 @@ private func failure(_ status: Int, _ code: ApiErrorCode, retryAfter: Int? = nil
     }
 
     @Test func typingClearsAnOldMessage() async {
-        let model = SignInModel(service: FakeTelegram(), onSignedIn: {})
+        let offline = ApiFailure.network(code: URLError.Code.notConnectedToInternet.rawValue)
+        let model = SignInModel(service: FakeTelegram(start: .failure(offline)), onSignedIn: {})
         _ = await model.chooseTelegram()
-        model.telegramDidNotOpen()
+        #expect(model.message == .noConnection)
 
         model.updateCode("1")
 

@@ -10,7 +10,7 @@ struct SosDetailView: View {
     @State private var model: SosDetailModel
     @Environment(\.l10n) private var l10n
     @Environment(\.openURL) private var openURL
-    @State private var actionUnavailable = false
+    @State private var toast: String?
 
     init(model: SosDetailModel) {
         _model = State(initialValue: model)
@@ -58,6 +58,7 @@ struct SosDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .refreshable { await model.load() }
+        .nozirToast($toast)
     }
 
     private func header(now: Date) -> some View {
@@ -136,9 +137,6 @@ struct SosDetailView: View {
         if let emergencyTitle = call.emergencyTitle(l10n) {
             NozirButton(emergencyTitle, variant: .criticalOutline, size: .callToAction) { open(call.emergencyCallURL) }
         }
-        if actionUnavailable {
-            NozirInlineMessage(l10n.sosActionUnavailable)
-        }
     }
 
     @ViewBuilder
@@ -160,13 +158,12 @@ struct SosDetailView: View {
 
     private func open(_ url: URL?) {
         guard let url else {
-            actionUnavailable = true
+            toast = l10n.sosActionUnavailable
             return
         }
-        actionUnavailable = false
         openURL(url) { accepted in
             if !accepted {
-                Task { @MainActor in actionUnavailable = true }
+                Task { @MainActor in toast = l10n.sosActionUnavailable }
             }
         }
     }
