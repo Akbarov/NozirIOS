@@ -153,8 +153,11 @@ private func setup(
 
         let aliLoad = Task { await hub.load() }
         await gate.untilPaused()
+        let aliSession = hub.session
         hub.select(vali.id)
         await hub.load()
+        let valiSession = hub.session
+        let valiSnapshot = valiSession?.snapshot
         await gate.release()
         await aliLoad.value
 
@@ -162,6 +165,14 @@ private func setup(
         #expect(hub.session?.version == 9)
         #expect(hub.dailyLimit?.values?.schoolDayMinutes == 240)
         #expect(await fake.childIds == [ali.id, vali.id])
+        // The late answer went to the former child's own session, and only there.
+        #expect(aliSession !== valiSession)
+        #expect(aliSession?.childId == ali.id)
+        #expect(aliSession?.version == 4)
+        #expect(aliSession?.snapshot?.screenTime == aliLimit)
+        #expect(hub.session === valiSession)
+        #expect(valiSession?.snapshot == valiSnapshot)
+        #expect(valiSession?.snapshot?.screenTime == valiLimit)
     }
 }
 

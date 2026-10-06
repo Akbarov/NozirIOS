@@ -179,8 +179,9 @@ private func setup(
 
     @Test func theProfileHubOpensOnTheFirstChildAndCanSwitch() async {
         let ali = makeChild("Ali")
+        let vali = makeChild("Vali")
         var script = FakeFamily.Script()
-        script.children = [.success([ali, makeChild("Vali")])]
+        script.children = [.success([ali, vali])]
         let (model, _) = setup(script)
         try? await model.family.refresh()
 
@@ -188,6 +189,14 @@ private func setup(
 
         #expect(hub.selectedChildId == ali.id)
         #expect(hub.showsSwitcher)
+        #expect(hub.dailyLimit?.session === hub.session)
+        let aliSession = hub.session
+
+        hub.select(vali.id)
+
+        #expect(hub.selectedChildId == vali.id)
+        #expect(hub.session !== aliSession)
+        #expect(hub.session?.childId == vali.id)
         #expect(hub.dailyLimit?.session === hub.session)
     }
 
