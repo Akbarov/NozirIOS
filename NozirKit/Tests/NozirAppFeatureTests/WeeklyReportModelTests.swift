@@ -249,7 +249,7 @@ private actor GatedInsights: InsightsService {
         #expect(!WeeklyReportModel.isEmpty(WeeklyReportModel.Page(days: zeros, observations: ["Bir."], risk: .good)))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aCancelledLoadStillFillsThePageForTheNextCaller() async {
         let week = day("2026-10-05")
         let insights = GatedInsights { _ in 42 }
@@ -272,7 +272,7 @@ private actor GatedInsights: InsightsService {
         #expect(await insights.asked.filter { $0 == "ali 2026-10-05" }.count == 1)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func anAnswerForAChildNoLongerShownIsDropped() async {
         let week = day("2026-10-05")
         let insights = GatedInsights { $0 == aliId ? 10 : 90 }

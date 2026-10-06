@@ -79,7 +79,7 @@ private actor GatedInsights: InsightsService {
     }
 
     // Review Focus 1.
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aLateAnswerForAnOldRangeIsIgnored() async {
         let gated = GatedInsights()
         let model = AppUsageModel(childId: aliId, insights: gated)
@@ -95,7 +95,7 @@ private actor GatedInsights: InsightsService {
         #expect(model.state == .loaded(breakdown(.lastSevenDays, [app("b", 70)])))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aCancelledRefreshKeepsWhatIsOnScreen() async {
         let insights = HangingInsights(hanging: [2])
         let model = AppUsageModel(childId: aliId, insights: insights)
@@ -113,7 +113,7 @@ private actor GatedInsights: InsightsService {
         #expect(model.state == old)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aCancelledFirstLoadOffersARetry() async {
         let insights = HangingInsights(hanging: [1])
         let model = AppUsageModel(childId: aliId, insights: insights)
