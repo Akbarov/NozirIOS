@@ -79,6 +79,25 @@ final class BonusModel {
         defer { isSaving = false }
         let service = session.family.service
         let childId = session.childId
+        // The session moved past what was read (a refresh, or another phone):
+        // read the config again, and never write over a change made elsewhere.
+        if let held = saved, held.ruleVersion != version {
+            do {
+                let fresh = try await service.bonus(of: childId)
+                let changedElsewhere = Self.differs(fresh, from: held)
+                saved = fresh
+                if changedElsewhere {
+                    self.edited = nil
+                    notice = .conflict
+                    return
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                message = UserMessage(error)
+                return
+            }
+        }
         do {
             let answer = try await service.setBonus(edited, of: childId, version: version)
             session.acceptBonus(version: answer.ruleVersion, ceiling: answer.maxDailyBonusMinutes)
@@ -96,11 +115,25 @@ final class BonusModel {
             // The rules moved under this screen: drop the edit, read both again, never resend.
             self.edited = nil
             await session.reload()
-            if let fresh = try? await service.bonus(of: childId) {
-                saved = fresh
+            do {
+                saved = try await service.bonus(of: childId)
+                notice = .conflict
+            } catch is CancellationError {
+                saved = nil
+            } catch {
+                // No fresh base: show the load failure with Retry rather than keep a stale one.
+                saved = nil
+                loadFailure = UserMessage(error)
             }
-            notice = .conflict
         }
+    }
+
+    /// The ceiling or any task's switch (matched by id) differs.
+    private static func differs(_ fresh: BonusConfig, from held: BonusConfig) -> Bool {
+        if fresh.maxDailyBonusMinutes != held.maxDailyBonusMinutes { return true }
+        let heldEnabled = Dictionary(held.challenges.map { ($0.id, $0.enabled) }, uniquingKeysWith: { first, _ in first })
+        let freshEnabled = Dictionary(fresh.challenges.map { ($0.id, $0.enabled) }, uniquingKeysWith: { first, _ in first })
+        return heldEnabled != freshEnabled
     }
 
     private func edit(_ change: (inout BonusConfig) -> Void) {

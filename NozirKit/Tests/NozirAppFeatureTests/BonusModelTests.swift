@@ -136,6 +136,79 @@ private func setup(_ script: FakeFamily.Script) async -> (BonusModel, ChildRules
         #expect(session.version == 4)
     }
 
+    @Test func aBonusChangedElsewhereIsNeverSentOver() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4)), .success(snapshot(version: 5))]
+        script.bonus = [.success(bonusConfig(version: 4)), .success(bonusConfig(version: 5, ceiling: 90))]
+        let (model, session, fake) = await setup(script)
+        model.setCeiling(30)
+        await session.reload()
+        #expect(session.version == 5)
+
+        await model.save()
+
+        #expect(await fake.bonusWrites.isEmpty)
+        #expect(model.notice == .conflict)
+        #expect(model.edited == nil)
+        #expect(model.config?.maxDailyBonusMinutes == 90)
+        #expect(!model.canSave)
+    }
+
+    @Test func aVersionMovedByThisPhonesOwnSaveIsNoConflict() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4))]
+        script.bonus = [.success(bonusConfig(version: 4)), .success(bonusConfig(version: 5))]
+        script.bedtime = [.success(snapshot(version: 5))]
+        script.setBonus = [.success(bonusConfig(version: 6, ceiling: 30))]
+        let (model, session, fake) = await setup(script)
+        let bedtime = BedtimeModel(session: session)
+        bedtime.setStart(ClockTime(hour: 21, minute: 0))
+        await bedtime.save()
+        #expect(session.version == 5)
+        model.setCeiling(30)
+
+        await model.save()
+
+        #expect(await fake.bonusWrites.map(\.version) == [5])
+        #expect(model.notice == .saved)
+        #expect(session.version == 6)
+    }
+
+    @Test func aFailedReReadBeforeTheSaveSendsNothingAndKeepsTheEdit() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4)), .success(snapshot(version: 5))]
+        script.bonus = [.success(bonusConfig(version: 4))]
+        let (model, session, fake) = await setup(script)
+        model.setCeiling(30)
+        await session.reload()
+
+        await model.save()
+
+        #expect(await fake.bonusWrites.isEmpty)
+        #expect(model.message == .noConnection)
+        #expect(model.config?.maxDailyBonusMinutes == 30)
+        #expect(model.canSave)
+    }
+
+    @Test func aConflictWhoseReReadFailsLeavesNoStaleBase() async {
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4)), .success(snapshot(version: 7))]
+        script.bonus = [.success(bonusConfig(version: 4))]
+        script.setBonus = [.failure(conflict)]
+        let (model, session, fake) = await setup(script)
+        model.setCeiling(30)
+
+        await model.save()
+
+        #expect(session.version == 7)
+        #expect(model.saved == nil)
+        #expect(model.edited == nil)
+        #expect(model.loadFailure == .noConnection)
+        #expect(!model.canSave)
+        await model.save()
+        #expect(await fake.bonusWrites.count == 1)
+    }
+
     // Review Focus 4.
     @Test func loadingAgainKeepsTheEdit() async {
         var script = FakeFamily.Script()
