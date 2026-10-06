@@ -135,16 +135,25 @@ public struct RuleSnapshot: Decodable, Equatable, Sendable {
     public let screenTime: ScreenTimeLimit
     public let bedtime: BedtimeSchedule
     public let locationTracking: LocationTracking
+    /// The trust ladder's ceiling (P09). 0 is off, which is where every child starts.
+    public let maxTrustBonusMinutes: Int
 
-    public init(version: Int64, screenTime: ScreenTimeLimit, bedtime: BedtimeSchedule, locationTracking: LocationTracking = .standard) {
+    public init(
+        version: Int64,
+        screenTime: ScreenTimeLimit,
+        bedtime: BedtimeSchedule,
+        locationTracking: LocationTracking = .standard,
+        maxTrustBonusMinutes: Int = 0
+    ) {
         self.version = version
         self.screenTime = screenTime
         self.bedtime = bedtime
         self.locationTracking = locationTracking
+        self.maxTrustBonusMinutes = maxTrustBonusMinutes
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, screenTime, bedtime, locationTracking
+        case version, screenTime, bedtime, locationTracking, maxTrustBonusMinutes
     }
 
     public init(from decoder: any Decoder) throws {
@@ -153,5 +162,6 @@ public struct RuleSnapshot: Decodable, Equatable, Sendable {
         screenTime = try container.decode(ScreenTimeLimit.self, forKey: .screenTime)
         bedtime = try container.decode(BedtimeSchedule.self, forKey: .bedtime)
         locationTracking = try container.decodeIfPresent(LocationTracking.self, forKey: .locationTracking) ?? .standard
+        maxTrustBonusMinutes = try container.decodeIfPresent(Int.self, forKey: .maxTrustBonusMinutes) ?? 0
     }
 }

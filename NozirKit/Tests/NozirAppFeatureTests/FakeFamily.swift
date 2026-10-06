@@ -22,6 +22,9 @@ actor FakeFamily: FamilyService {
         var screenTime: [Result<RuleSnapshot, ApiFailure>] = []
         var bedtime: [Result<RuleSnapshot, ApiFailure>] = []
         var locationTracking: [Result<RuleSnapshot, ApiFailure>] = []
+        var trustLadder: [Result<RuleSnapshot, ApiFailure>] = []
+        var bonus: [Result<BonusConfig, ApiFailure>] = []
+        var setBonus: [Result<BonusConfig, ApiFailure>] = []
         var currentCode: [Result<PairingCode?, ApiFailure>] = []
         var issueCode: [Result<PairingCode, ApiFailure>] = []
         var devices: [Result<[ChildDevice], ApiFailure>] = []
@@ -31,6 +34,20 @@ actor FakeFamily: FamilyService {
         var locale: [Result<ParentProfile, ApiFailure>] = []
         /// When true the next `currentPairingCode` throws `CancellationError` once.
         var cancelNextCurrentCode = false
+        /// When true the next `rules` call throws `CancellationError` once.
+        var cancelNextRules = false
+        /// When true the next screen-time, bedtime, location-tracking, trust-ladder or bonus write throws `CancellationError` once.
+        var cancelNextWrite = false
+        /// When true the next `chooseActiveChild` throws `CancellationError` once.
+        var cancelNextActiveChild = false
+        /// Held once by the next `chooseActiveChild` call, after its answer is taken.
+        var activeChildGate: PauseGate?
+        /// Held once by the next `subscription` call, after its answer is taken.
+        var subscriptionGate: PauseGate?
+        /// Held once by the next `rules` call, after its answer is taken.
+        var rulesGate: PauseGate?
+        /// Held once by the next rule write of any kind, after its answer is taken.
+        var writeGate: PauseGate?
     }
 
     private var script: Script
@@ -40,6 +57,8 @@ actor FakeFamily: FamilyService {
     private(set) var screenTimeWrites: [RuleWrite<ScreenTimeLimit>] = []
     private(set) var bedtimeWrites: [RuleWrite<BedtimeSchedule>] = []
     private(set) var locationTrackingWrites: [RuleWrite<LocationTracking>] = []
+    private(set) var trustLadderWrites: [RuleWrite<Int>] = []
+    private(set) var bonusWrites: [RuleWrite<BonusConfig>] = []
     private(set) var locales: [String] = []
     /// The child each call was about, in call order.
     private(set) var childIds: [UUID] = []
@@ -56,6 +75,29 @@ actor FakeFamily: FamilyService {
         calls.append(name)
         guard !script[keyPath: queue].isEmpty else { throw offline }
         return try script[keyPath: queue].removeFirst().get()
+    }
+
+    /// `next`, then the gate if one is set: the answer is fixed before the pause,
+    /// so a later call gets the answer after it.
+    private func held<T>(
+        _ name: String,
+        _ queue: WritableKeyPath<Script, [Result<T, ApiFailure>]>,
+        _ gate: WritableKeyPath<Script, PauseGate?>
+    ) async throws -> T {
+        calls.append(name)
+        let answer: Result<T, ApiFailure> = script[keyPath: queue].isEmpty ? .failure(offline) : script[keyPath: queue].removeFirst()
+        if let pause = script[keyPath: gate] {
+            script[keyPath: gate] = nil
+            await pause.pause()
+        }
+        return try answer.get()
+    }
+
+    private func cancelIfAsked(_ name: String) throws {
+        guard script.cancelNextWrite else { return }
+        script.cancelNextWrite = false
+        calls.append(name)
+        throw CancellationError()
     }
 
     func children() async throws -> [Child] { try next("children", \.children) }
@@ -79,27 +121,55 @@ actor FakeFamily: FamilyService {
         childIds.append(id)
         try next("remove", \.remove)
     }
+
     func rules(of childId: UUID) async throws -> RuleSnapshot {
         childIds.append(childId)
-        return try next("rules", \.rules)
+        if script.cancelNextRules {
+            script.cancelNextRules = false
+            calls.append("rules")
+            throw CancellationError()
+        }
+        return try await held("rules", \.rules, \.rulesGate)
     }
 
     func setScreenTime(_ limit: ScreenTimeLimit, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
         childIds.append(childId)
         screenTimeWrites.append(RuleWrite(value: limit, version: version))
-        return try next("screenTime", \.screenTime)
+        try cancelIfAsked("screenTime")
+        return try await held("screenTime", \.screenTime, \.writeGate)
     }
 
     func setBedtime(_ bedtime: BedtimeSchedule, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
         childIds.append(childId)
         bedtimeWrites.append(RuleWrite(value: bedtime, version: version))
-        return try next("bedtime", \.bedtime)
+        try cancelIfAsked("bedtime")
+        return try await held("bedtime", \.bedtime, \.writeGate)
     }
 
     func setLocationTracking(_ tracking: LocationTracking, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
         childIds.append(childId)
         locationTrackingWrites.append(RuleWrite(value: tracking, version: version))
-        return try next("locationTracking", \.locationTracking)
+        try cancelIfAsked("locationTracking")
+        return try await held("locationTracking", \.locationTracking, \.writeGate)
+    }
+
+    func setTrustLadder(_ minutes: Int, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        childIds.append(childId)
+        trustLadderWrites.append(RuleWrite(value: minutes, version: version))
+        try cancelIfAsked("trustLadder")
+        return try await held("trustLadder", \.trustLadder, \.writeGate)
+    }
+
+    func bonus(of childId: UUID) async throws -> BonusConfig {
+        childIds.append(childId)
+        return try next("bonus", \.bonus)
+    }
+
+    func setBonus(_ config: BonusConfig, of childId: UUID, version: Int64) async throws -> BonusConfig {
+        childIds.append(childId)
+        bonusWrites.append(RuleWrite(value: config, version: version))
+        try cancelIfAsked("setBonus")
+        return try await held("setBonus", \.setBonus, \.writeGate)
     }
 
     func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
@@ -119,10 +189,17 @@ actor FakeFamily: FamilyService {
         childIds.append(childId)
         return try next("devices", \.devices)
     }
-    func subscription() async throws -> Subscription { try next("subscription", \.subscription) }
+    func subscription() async throws -> Subscription {
+        try await held("subscription", \.subscription, \.subscriptionGate)
+    }
     func chooseActiveChild(_ childId: UUID) async throws -> Subscription {
         childIds.append(childId)
-        return try next("activeChild", \.activeChild)
+        if script.cancelNextActiveChild {
+            script.cancelNextActiveChild = false
+            calls.append("activeChild")
+            throw CancellationError()
+        }
+        return try await held("activeChild", \.activeChild, \.activeChildGate)
     }
     func me() async throws -> ParentProfile { try next("me", \.me) }
 
@@ -155,9 +232,27 @@ func snapshot(
     version: Int64,
     limit: ScreenTimeLimit = defaultLimit,
     bedtime: BedtimeSchedule = defaultBedtime,
-    tracking: LocationTracking = .standard
+    tracking: LocationTracking = .standard,
+    trust: Int = 0
 ) -> RuleSnapshot {
-    RuleSnapshot(version: version, screenTime: limit, bedtime: bedtime, locationTracking: tracking)
+    RuleSnapshot(version: version, screenTime: limit, bedtime: bedtime, locationTracking: tracking, maxTrustBonusMinutes: trust)
+}
+
+let mathTask = BonusChallenge(
+    id: UUID(uuidString: "1A2B3C4D-0000-4000-8000-000000000001")!,
+    kind: .math, difficulty: .medium, bonusMinutes: 20, requiresParentApproval: false, enabled: true
+)
+let readingTask = BonusChallenge(
+    id: UUID(uuidString: "1A2B3C4D-0000-4000-8000-000000000002")!,
+    kind: .reading, difficulty: .easy, bonusMinutes: 15, requiresParentApproval: false, enabled: false
+)
+let exerciseTask = BonusChallenge(
+    id: UUID(uuidString: "1A2B3C4D-0000-4000-8000-000000000003")!,
+    kind: .exercise, difficulty: .hard, bonusMinutes: 30, requiresParentApproval: true, enabled: true
+)
+
+func bonusConfig(version: Int64, ceiling: Int = 60, challenges: [BonusChallenge] = [mathTask, readingTask, exerciseTask]) -> BonusConfig {
+    BonusConfig(ruleVersion: version, maxDailyBonusMinutes: ceiling, challenges: challenges)
 }
 
 func pairingCode(_ code: String = "472918", state: PairingState = .codeIssued) -> PairingCode {

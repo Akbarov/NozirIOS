@@ -111,6 +111,39 @@ public final class SignedInModel {
         LocationTrackingModel(childId: childId, childName: family.child(childId)?.displayName, family: family)
     }
 
+    /// One per hub: P09 and every screen opened from it write on its version.
+    func makeRulesSession(childId: UUID) -> ChildRulesSession {
+        ChildRulesSession(childId: childId, family: family)
+    }
+
+    func makeDailyLimitModel(session: ChildRulesSession) -> DailyLimitModel {
+        DailyLimitModel(session: session)
+    }
+
+    func makeBedtimeModel(session: ChildRulesSession) -> BedtimeModel {
+        BedtimeModel(session: session)
+    }
+
+    func makeBonusModel(session: ChildRulesSession) -> BonusModel {
+        BonusModel(session: session)
+    }
+
+    func makeLocationTrackingModel(session: ChildRulesSession) -> LocationTrackingModel {
+        LocationTrackingModel(childId: session.childId, childName: session.childName, family: family, session: session)
+    }
+
+    /// From Profile: `childId` nil (the first child) and the switcher. From P03: that child, no switcher.
+    func makeRulesHubModel(childId: UUID?, picksChild: Bool) -> RulesHubModel {
+        let store = family
+        return RulesHubModel(
+            childId: childId,
+            picksChild: picksChild,
+            family: store,
+            makeSession: { ChildRulesSession(childId: $0, family: store) },
+            makeDailyLimit: { DailyLimitModel(session: $0) }
+        )
+    }
+
     func makeSosDetailModel(seed: ActiveSos, emergencyNumber: String) -> SosDetailModel {
         SosDetailModel(seed: seed, child: family.child(seed.childId), emergencyNumber: emergencyNumber, location: locationService)
     }

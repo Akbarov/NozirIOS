@@ -62,12 +62,7 @@ public final class NewChildRulesModel {
 
     /// At least one night stays on.
     public func toggleDay(_ day: Int) {
-        if activeDays.contains(day) {
-            guard activeDays.count > 1 else { return }
-            activeDays.remove(day)
-        } else if (1...7).contains(day) {
-            activeDays.insert(day)
-        }
+        activeDays = RuleDays.toggled(activeDays, day)
     }
 
     public var limit: ScreenTimeLimit {
@@ -108,10 +103,6 @@ public final class NewChildRulesModel {
 
     /// "Har kuni", or "Faol tunlar: Dushanba, Chorshanba".
     static func daysSummary(_ days: Set<Int>, _ l10n: L10n) -> String {
-        if days.count == 7 { return l10n.bedtimeDaysEveryNight }
-        let names = days.sorted().compactMap { day in
-            l10n.weekdayNames.indices.contains(day - 1) ? l10n.weekdayNames[day - 1] : nil
-        }
-        return l10n.bedtimeDaysSummary(names.joined(separator: l10n.bedtimeDaysSeparator))
+        RuleDays.summary(days, l10n)
     }
 }

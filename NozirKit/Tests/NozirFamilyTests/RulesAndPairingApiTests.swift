@@ -21,6 +21,18 @@ private let codeJSON = """
 
 private var rulesPath: String { FamilyApi.childPath(aliId) + "/rules" }
 
+/// `BonusConfigDto` as the backend writes it: one task it knows, one it does not.
+private let bonusJSON = """
+    {"childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01","ruleVersion":9,"maxDailyBonusMinutes":60,"challenges":[\
+    {"id":"1a2b3c4d-0000-4000-8000-000000000001","kind":"MATH","difficulty":"MEDIUM","bonusMinutes":15,\
+    "requiresParentApproval":false,"enabled":true},\
+    {"id":"1a2b3c4d-0000-4000-8000-000000000002","kind":"CHESS","difficulty":"LEGENDARY","bonusMinutes":20,\
+    "requiresParentApproval":true,"enabled":false}]}
+    """
+
+private let mathId = UUID(uuidString: "1a2b3c4d-0000-4000-8000-000000000001")!
+private let chessId = UUID(uuidString: "1a2b3c4d-0000-4000-8000-000000000002")!
+
 @Suite struct RulesAndPairingApiTests {
     @Test func rulesReadTheVersionAndBothRuleSets() async throws {
         let (api, transport) = familyApi([.ok(snapshotJSON())])
@@ -218,5 +230,94 @@ private var rulesPath: String { FamilyApi.childPath(aliId) + "/rules" }
         #expect(body["isEnabled"] as? Bool == false)
         #expect(body["intervalMinutes"] as? Int == 30)
         #expect(body["moveMetres"] as? Int == 50)
+    }
+
+    @Test func theTrustLadderCeilingIsRead() async throws {
+        let (api, _) = familyApi([.ok(snapshotJSON())])
+
+        #expect(try await api.rules(of: aliId).maxTrustBonusMinutes == 30)
+    }
+
+    @Test func aServerWithoutTheTrustLadderReadsAsOff() async throws {
+        let body = """
+        {"version":3,"screenTime":{"schoolDayMinutes":120,"weekendMinutes":180,"maxDailyBonusMinutes":60},\
+        "bedtime":{"startTime":"22:00","endTime":"07:00","windDownMinutes":30,"activeDays":[1,2,3,4,5,6,7]}}
+        """
+        let (api, _) = familyApi([.ok(body)])
+
+        #expect(try await api.rules(of: aliId).maxTrustBonusMinutes == 0)
+    }
+
+    @Test func aTrustLadderWriteSendsOnlyTheCeilingAgainstTheVersion() async throws {
+        let (api, transport) = familyApi([.ok(snapshotJSON(version: 8))])
+
+        let after = try await api.setTrustLadder(45, of: aliId, version: 7)
+
+        #expect(after.version == 8)
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "PUT")
+        #expect(request.url?.path == rulesPath + "/trust-ladder")
+        #expect(request.value(forHTTPHeaderField: "If-Match") == "\"7\"")
+        let body = try #require(request.jsonObject)
+        #expect(Set(body.keys) == ["maxTrustBonusMinutes"])
+        #expect(body["maxTrustBonusMinutes"] as? Int == 45)
+    }
+
+    @Test func theBonusConfigIsReadAndAnUnknownTaskStillDecodes() async throws {
+        let (api, transport) = familyApi([.ok(bonusJSON)])
+
+        let config = try await api.bonus(of: aliId)
+
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "GET")
+        #expect(request.url?.path == rulesPath + "/bonus")
+        #expect(config.ruleVersion == 9)
+        #expect(config.maxDailyBonusMinutes == 60)
+        #expect(config.challenges.map(\.id) == [mathId, chessId])
+        #expect(config.challenges[0].kind == .math)
+        #expect(config.challenges[0].difficulty == .medium)
+        #expect(config.challenges[1].kind == .unknown("CHESS"))
+        #expect(config.challenges[1].difficulty == .unknown("LEGENDARY"))
+        #expect(config.challenges[1].requiresParentApproval)
+        #expect(config.earnableMinutes == 15)
+        #expect(!config.isCeilingBinding)
+    }
+
+    @Test func aBonusWriteSendsTheWholeConfigAndTheVersionInTheHeader() async throws {
+        let (api, transport) = familyApi([.ok(bonusJSON), .ok(bonusJSON)])
+        var config = try await api.bonus(of: aliId).withChallenge(chessId, enabled: true)
+        config.maxDailyBonusMinutes = 30
+
+        let after = try await api.setBonus(config, of: aliId, version: 11)
+
+        #expect(after.ruleVersion == 9)
+        let request = try #require(await transport.requests.last)
+        #expect(request.httpMethod == "PUT")
+        #expect(request.url?.path == rulesPath + "/bonus")
+        #expect(request.value(forHTTPHeaderField: "If-Match") == "\"11\"")
+        let body = try #require(request.jsonObject)
+        #expect(Set(body.keys) == ["childId", "ruleVersion", "maxDailyBonusMinutes", "challenges"])
+        #expect(body["childId"] as? String == aliId.uuidString.lowercased())
+        #expect(body["ruleVersion"] as? Int == 11)
+        #expect(body["maxDailyBonusMinutes"] as? Int == 30)
+        let challenges = try #require(body["challenges"] as? [[String: Any]])
+        #expect(challenges.count == 2)
+        #expect(challenges[1]["id"] as? String == chessId.uuidString.lowercased())
+        #expect(challenges[1]["kind"] as? String == "CHESS")
+        #expect(challenges[1]["difficulty"] as? String == "LEGENDARY")
+        #expect(challenges[1]["bonusMinutes"] as? Int == 20)
+        #expect(challenges[1]["requiresParentApproval"] as? Bool == true)
+        #expect(challenges[1]["enabled"] as? Bool == true)
+    }
+
+    @Test func theCeilingBindsWhenTheTasksPayMore() {
+        let task = BonusChallenge(id: mathId, kind: .math, difficulty: .easy, bonusMinutes: 40, requiresParentApproval: false, enabled: true)
+        let config = BonusConfig(ruleVersion: 1, maxDailyBonusMinutes: 30, challenges: [task])
+
+        #expect(config.earnableMinutes == 40)
+        #expect(config.isCeilingBinding)
+        #expect(!config.withChallenge(mathId, enabled: false).isCeilingBinding)
+        #expect(ChallengeKind(wireName: "EXERCISE") == .exercise)
+        #expect(ChallengeDifficulty(wireName: "HARD").wireName == "HARD")
     }
 }

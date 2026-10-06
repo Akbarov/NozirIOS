@@ -36,6 +36,11 @@ public final class ProfileModel {
         signOutAction = signOut
     }
 
+    /// The rules row is for a family with a child to set rules for.
+    var showsRules: Bool {
+        !family.children.isEmpty
+    }
+
     public func load() async {
         message = nil
         if let me = try? await family.service.me() {
