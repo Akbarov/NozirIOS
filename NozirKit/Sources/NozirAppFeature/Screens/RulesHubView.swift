@@ -6,6 +6,10 @@ import NozirL10n
 /// the one version all of the child's rules share.
 enum RuleScreen: Hashable {
     case bedtime(ChildRulesSession)
+    /// P11, the list of app rules.
+    case apps(ChildRulesSession)
+    /// One app's editor, opened from P11; `displayName` is the phone's name for it when known.
+    case appRule(ChildRulesSession, packageId: String, displayName: String?)
     case bonus(ChildRulesSession)
     case locationTracking(ChildRulesSession)
 }
