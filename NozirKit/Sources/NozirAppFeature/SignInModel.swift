@@ -58,10 +58,6 @@ public final class SignInModel {
         }
     }
 
-    public func telegramDidNotOpen() {
-        message = .telegramNotOpened
-    }
-
     /// Keeps ASCII digits only, up to the code's length: the backend accepts
     /// `[0-9]` and nothing else, and a pasted "123 456" is still the code.
     ///

@@ -21,6 +21,7 @@ actor FakeFamily: FamilyService {
         var rules: [Result<RuleSnapshot, ApiFailure>] = []
         var screenTime: [Result<RuleSnapshot, ApiFailure>] = []
         var bedtime: [Result<RuleSnapshot, ApiFailure>] = []
+        var locationTracking: [Result<RuleSnapshot, ApiFailure>] = []
         var currentCode: [Result<PairingCode?, ApiFailure>] = []
         var issueCode: [Result<PairingCode, ApiFailure>] = []
         var devices: [Result<[ChildDevice], ApiFailure>] = []
@@ -38,6 +39,7 @@ actor FakeFamily: FamilyService {
     private(set) var updates: [ChildUpdate] = []
     private(set) var screenTimeWrites: [RuleWrite<ScreenTimeLimit>] = []
     private(set) var bedtimeWrites: [RuleWrite<BedtimeSchedule>] = []
+    private(set) var locationTrackingWrites: [RuleWrite<LocationTracking>] = []
     private(set) var locales: [String] = []
     /// The child each call was about, in call order.
     private(set) var childIds: [UUID] = []
@@ -94,6 +96,12 @@ actor FakeFamily: FamilyService {
         return try next("bedtime", \.bedtime)
     }
 
+    func setLocationTracking(_ tracking: LocationTracking, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        childIds.append(childId)
+        locationTrackingWrites.append(RuleWrite(value: tracking, version: version))
+        return try next("locationTracking", \.locationTracking)
+    }
+
     func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
         childIds.append(childId)
         if script.cancelNextCurrentCode {
@@ -143,8 +151,13 @@ let defaultBedtime = BedtimeSchedule(
     activeDays: [1, 2, 3, 4, 5, 6, 7]
 )
 
-func snapshot(version: Int64, limit: ScreenTimeLimit = defaultLimit, bedtime: BedtimeSchedule = defaultBedtime) -> RuleSnapshot {
-    RuleSnapshot(version: version, screenTime: limit, bedtime: bedtime)
+func snapshot(
+    version: Int64,
+    limit: ScreenTimeLimit = defaultLimit,
+    bedtime: BedtimeSchedule = defaultBedtime,
+    tracking: LocationTracking = .standard
+) -> RuleSnapshot {
+    RuleSnapshot(version: version, screenTime: limit, bedtime: bedtime, locationTracking: tracking)
 }
 
 func pairingCode(_ code: String = "472918", state: PairingState = .codeIssued) -> PairingCode {

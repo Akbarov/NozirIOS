@@ -21,3 +21,9 @@ import SwiftUI
     }
     .background(NozirColor.background)
 }
+
+#Preview("Nozir toast") {
+    NozirColor.background
+        .ignoresSafeArea()
+        .nozirToast(.constant("The app that does this was not found"))
+}

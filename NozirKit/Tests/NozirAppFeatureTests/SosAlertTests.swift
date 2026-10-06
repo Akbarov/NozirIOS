@@ -21,6 +21,23 @@ private func sos(name: String?, minutesAgo: Double = 5) -> ActiveSos {
         #expect(alert.when(now: now, l10n) == l10n.homeSosBannerBodyWhen("5 daqiqa oldin"))
     }
 
+    @Test func theAlarmsOwnNumberWinsOverTheFamilyList() {
+        let child = makeChild("Ali", id: childId, phone: "+998901111111")
+
+        let alert = SosAlert(sos(name: "Ali"), child: child, emergencyNumber: nil, phone: "+998902222222")
+
+        #expect(alert.childCallURL == URL(string: "tel:+998902222222"))
+        #expect(SosAlert(sos(name: "Ali"), child: child, emergencyNumber: nil, phone: " ").childCallURL == URL(string: "tel:+998901111111"))
+    }
+
+    @Test func aFormattedNumberDialsWithOnlyPlusAndDigits() {
+        let child = makeChild("Ali", id: childId, phone: "+998 90 123-45-67")
+
+        let alert = SosAlert(sos(name: "Ali"), child: child, emergencyNumber: nil)
+
+        #expect(alert.childCallURL == URL(string: "tel:+998901234567"))
+    }
+
     // Review Focus 5.
     @Test func aNamelessSosTakesTheNameFromTheFamily() {
         let child = makeChild("Vali", id: childId, phone: "+998901234567")

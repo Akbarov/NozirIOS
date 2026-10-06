@@ -1,20 +1,28 @@
 import SwiftUI
 import NozirDesignSystem
 import NozirFamily
+import NozirInsights
 import NozirL10n
+import NozirLocation
 
-/// The signed-in app: Home, Statistics and Profile. Location arrives with its
-/// slice.
+/// The signed-in app: Home, Statistics, Location and Profile.
 struct SignedInView: View {
     enum HomeStep: Hashable {
         case summary(UUID, String)
         case weekly(UUID)
         case apps(UUID)
         case details(Child)
+        case sos(ActiveSos)
     }
 
     enum StatisticsStep: Hashable {
         case apps(UUID)
+    }
+
+    enum LocationStep: Hashable {
+        /// A child's zone to edit, or nil for a new one.
+        case zone(UUID, UUID?)
+        case tracking(UUID)
     }
 
     enum ProfileStep: Hashable {
@@ -25,6 +33,7 @@ struct SignedInView: View {
     @State private var model: SignedInModel
     @State private var homePath: [HomeStep] = []
     @State private var statisticsPath: [StatisticsStep] = []
+    @State private var locationPath: [LocationStep] = []
     @State private var profilePath: [ProfileStep] = []
     @Environment(\.l10n) private var l10n
     @Environment(\.locale) private var locale
@@ -42,6 +51,7 @@ struct SignedInView: View {
                     reloadToken: model.homeRefresh,
                     emergencyNumber: { model.currentEmergencyNumber },
                     onOpenSummary: { homePath.append(.summary($0, $1)) },
+                    onOpenSos: { homePath.append(.sos($0)) },
                     onAddChild: { model.presentAddChild() }
                 )
                 .navigationDestination(for: HomeStep.self) { step in
@@ -67,6 +77,28 @@ struct SignedInView: View {
             }
             .tabItem { Label(l10n.tabStatistics, systemImage: "chart.bar") }
             .tag(SignedInModel.Tab.statistics)
+
+            NavigationStack(path: $locationPath) {
+                LocationView(
+                    model: model.locationTab,
+                    onOpenZone: { childId, zone in locationPath.append(.zone(childId, zone?.id)) },
+                    onOpenTracking: { locationPath.append(.tracking($0)) },
+                    onAddChild: { model.presentAddChild() }
+                )
+                .navigationDestination(for: LocationStep.self) { step in
+                    switch step {
+                    case .zone(let childId, let zoneId):
+                        SafeZoneView(
+                            model: model.makeSafeZoneModel(childId: childId, zoneId: zoneId),
+                            onFinished: { locationPath.removeAll() }
+                        )
+                    case .tracking(let childId):
+                        LocationTrackingView(model: model.makeLocationTrackingModel(childId: childId))
+                    }
+                }
+            }
+            .tabItem { Label(l10n.tabLocation, systemImage: "location") }
+            .tag(SignedInModel.Tab.location)
 
             NavigationStack(path: $profilePath) {
                 ProfileView(
@@ -103,6 +135,7 @@ struct SignedInView: View {
     private func clearPaths() {
         homePath.removeAll()
         statisticsPath.removeAll()
+        locationPath.removeAll()
         profilePath.removeAll()
     }
 
@@ -129,6 +162,11 @@ struct SignedInView: View {
             AppUsageView(model: model.makeAppUsageModel(childId: childId))
         case .details(let child):
             ChildDetailsView(model: model.makeDetailsModel(child), onRemoved: { clearPaths() })
+        case .sos(let seed):
+            SosDetailView(model: model.makeSosDetailModel(
+                seed: seed,
+                emergencyNumber: SosDetailModel.dialNumber(configured: model.currentEmergencyNumber, fallback: l10n.sosEmergencyNumber)
+            ))
         }
     }
 }

@@ -3,19 +3,19 @@ import NozirFamily
 import NozirInsights
 import NozirL10n
 
-/// What the SOS banner and sheet say and dial. The name is the alarm's own,
-/// else the family list's (a removed child has neither); the child's number
-/// is only ever the family list's.
+/// What the SOS banner and P15 say and dial. The name is the alarm's own,
+/// else the family list's (a removed child has neither); the child's number is
+/// the alarm's own when P15 has it, else the family list's.
 struct SosAlert: Equatable {
     let sos: ActiveSos
     let childName: String?
     let childPhone: String?
     let emergencyNumber: String?
 
-    init(_ sos: ActiveSos, child: Child?, emergencyNumber: String?) {
+    init(_ sos: ActiveSos, child: Child?, emergencyNumber: String?, phone: String? = nil) {
         self.sos = sos
         childName = Self.present(sos.childName) ?? Self.present(child?.displayName)
-        childPhone = Self.present(child?.phoneE164)
+        childPhone = Self.present(phone) ?? Self.present(child?.phoneE164)
         self.emergencyNumber = Self.present(emergencyNumber)
     }
 
@@ -33,7 +33,7 @@ struct SosAlert: Equatable {
     }
 
     var childCallURL: URL? {
-        childPhone.flatMap { URL(string: "tel:\($0)") }
+        childPhone.flatMap { Self.dialURL($0) }
     }
 
     func emergencyTitle(_ l10n: L10n) -> String? {
@@ -41,7 +41,13 @@ struct SosAlert: Equatable {
     }
 
     var emergencyCallURL: URL? {
-        emergencyNumber.flatMap { URL(string: "tel:\($0)") }
+        emergencyNumber.flatMap { Self.dialURL($0) }
+    }
+
+    /// `tel:` with only `+` and digits: spaces and dashes break the URL.
+    private static func dialURL(_ number: String) -> URL? {
+        let dialable = number.filter { $0 == "+" || $0.isASCII && $0.isNumber }
+        return dialable.isEmpty ? nil : URL(string: "tel:\(dialable)")
     }
 
     private static func present(_ text: String?) -> String? {

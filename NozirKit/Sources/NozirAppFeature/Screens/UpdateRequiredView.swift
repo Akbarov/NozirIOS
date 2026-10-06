@@ -8,12 +8,7 @@ struct UpdateRequiredView: View {
     let appStoreURL: URL?
     @Environment(\.openURL) private var openURL
     @Environment(\.l10n) private var l10n
-    @State private var notice: Notice?
-
-    /// Kept as a meaning, so the sentence follows a language change.
-    private enum Notice {
-        case storeMissing, dialerMissing
-    }
+    @State private var toast: String?
 
     var body: some View {
         // Scrolls, so the emergency button stays reachable at large text sizes
@@ -26,6 +21,7 @@ struct UpdateRequiredView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
+        .nozirToast($toast)
     }
 
     private var content: some View {
@@ -41,9 +37,6 @@ struct UpdateRequiredView: View {
                 .padding(.top, NozirSpacing.small)
             NozirButton(l10n.updateRequiredAction, size: .callToAction) { openStore() }
                 .padding(.top, NozirSpacing.large)
-            if let notice {
-                NozirInlineMessage(text(for: notice)).padding(.top, NozirSpacing.compact)
-            }
             if let emergencyNumber {
                 NozirButton(l10n.updateRequiredCallEmergency(emergencyNumber), variant: .criticalOutline) {
                     call(emergencyNumber)
@@ -55,33 +48,26 @@ struct UpdateRequiredView: View {
         .padding(.vertical, NozirSpacing.extraLarge)
     }
 
-    private func text(for notice: Notice) -> String {
-        switch notice {
-        case .storeMissing: l10n.updateRequiredStoreMissing
-        case .dialerMissing: l10n.updateRequiredDiallerMissing
-        }
-    }
-
     private func openStore() {
         guard let appStoreURL else {
-            notice = .storeMissing
+            toast = l10n.updateRequiredStoreMissing
             return
         }
         openURL(appStoreURL) { accepted in
             if !accepted {
-                Task { @MainActor in notice = .storeMissing }
+                Task { @MainActor in toast = l10n.updateRequiredStoreMissing }
             }
         }
     }
 
     private func call(_ number: String) {
         guard let url = URL(string: "tel:\(number)") else {
-            notice = .dialerMissing
+            toast = l10n.updateRequiredDiallerMissing
             return
         }
         openURL(url) { accepted in
             if !accepted {
-                Task { @MainActor in notice = .dialerMissing }
+                Task { @MainActor in toast = l10n.updateRequiredDiallerMissing }
             }
         }
     }

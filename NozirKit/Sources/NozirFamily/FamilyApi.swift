@@ -49,6 +49,15 @@ public struct FamilyApi: FamilyService {
         return try await client.send(request, as: RuleSnapshot.self)
     }
 
+    public func setLocationTracking(_ tracking: LocationTracking, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        let request = try ApiRequest.put(
+            Self.childPath(childId) + "/rules/location-tracking",
+            json: tracking,
+            ifMatch: Self.entityTag(version)
+        )
+        return try await client.send(request, as: RuleSnapshot.self)
+    }
+
     public func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
         do {
             return try await client.send(ApiRequest(method: .get, path: Self.childPath(childId) + "/pairing-code"), as: PairingCode.self)

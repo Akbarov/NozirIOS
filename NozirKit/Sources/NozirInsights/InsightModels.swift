@@ -66,7 +66,7 @@ public struct ChildHomeCard: Decodable, Equatable, Sendable, Identifiable {
 }
 
 /// `ActiveSosDto`: the unanswered alarm. `childName` is nil when the child was removed.
-public struct ActiveSos: Decodable, Equatable, Sendable {
+public struct ActiveSos: Decodable, Hashable, Sendable {
     public let sosId: UUID
     public let childId: UUID
     public let childName: String?

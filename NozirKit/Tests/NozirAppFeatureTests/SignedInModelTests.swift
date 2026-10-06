@@ -3,6 +3,7 @@ import Testing
 import NozirDesignSystem
 import NozirFamily
 import NozirL10n
+import NozirLocation
 @testable import NozirAppFeature
 
 private actor SentLocales {
@@ -24,6 +25,7 @@ private func setup(
     let model = SignedInModel(
         family: FamilyStore(service: fake),
         insights: FakeInsights(),
+        location: FakeLocation(),
         language: language,
         appearance: AppearanceStore(defaults: defaults),
         localeSync: LocaleSync(store: language, defaults: defaults, send: { await sent.record($0) }),
@@ -120,5 +122,24 @@ private func setup(
         #expect(model.statistics.family === model.family)
         #expect(model.makeHomeModel().family === model.family)
         #expect(model.currentEmergencyNumber == "112")
+    }
+
+    @Test func theLocationTabSharesTheFamily() {
+        let (model, _) = setup(FakeFamily.Script())
+
+        #expect(model.locationTab.family === model.family)
+    }
+
+    @Test func zoneAndTrackingScreensAreForTheChildAsked() {
+        let (model, _) = setup(FakeFamily.Script())
+        let child = makeChild("Ali")
+        let zoneId = UUID()
+
+        let zone = model.makeSafeZoneModel(childId: child.id, zoneId: zoneId)
+        #expect(zone.childId == child.id)
+        #expect(zone.zoneId == zoneId)
+        #expect(zone.isEditing)
+        #expect(!model.makeSafeZoneModel(childId: child.id, zoneId: nil).isEditing)
+        #expect(model.makeLocationTrackingModel(childId: child.id).childId == child.id)
     }
 }

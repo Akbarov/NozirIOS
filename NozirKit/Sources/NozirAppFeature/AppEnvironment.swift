@@ -5,6 +5,7 @@ import NozirDesignSystem
 import NozirFamily
 import NozirInsights
 import NozirL10n
+import NozirLocation
 import NozirNetworking
 
 /// Every live object, built once at launch and wired here and nowhere else.
@@ -77,6 +78,7 @@ public final class AppEnvironment {
         return SignedInModel(
             family: FamilyStore(service: api),
             insights: InsightsApi(client: authorised),
+            location: LocationApi(client: authorised),
             language: language,
             appearance: appearance,
             localeSync: LocaleSync(store: language, send: { _ = try await api.updateLocale($0) }),

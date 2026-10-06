@@ -14,10 +14,11 @@ let package = Package(
         .target(name: "NozirConfig", dependencies: ["NozirNetworking"]),
         .target(name: "NozirFamily", dependencies: ["NozirNetworking"]),
         .target(name: "NozirInsights", dependencies: ["NozirNetworking"]),
+        .target(name: "NozirLocation", dependencies: ["NozirNetworking"]),
         .target(name: "NozirDesignSystem"),
         .target(
             name: "NozirAppFeature",
-            dependencies: ["NozirNetworking", "NozirAuth", "NozirConfig", "NozirDesignSystem", "NozirL10n", "NozirFamily", "NozirInsights"]
+            dependencies: ["NozirNetworking", "NozirAuth", "NozirConfig", "NozirDesignSystem", "NozirL10n", "NozirFamily", "NozirInsights", "NozirLocation"]
         ),
         .target(
             name: "NozirTestSupport",
@@ -29,11 +30,12 @@ let package = Package(
         .testTarget(name: "NozirConfigTests", dependencies: ["NozirConfig", "NozirNetworking", "NozirTestSupport"]),
         .testTarget(name: "NozirFamilyTests", dependencies: ["NozirFamily", "NozirNetworking", "NozirTestSupport"]),
         .testTarget(name: "NozirInsightsTests", dependencies: ["NozirInsights", "NozirNetworking", "NozirTestSupport"]),
+        .testTarget(name: "NozirLocationTests", dependencies: ["NozirLocation", "NozirNetworking", "NozirTestSupport"]),
         .testTarget(name: "NozirDesignSystemTests", dependencies: ["NozirDesignSystem"]),
         .testTarget(name: "NozirL10nTests", dependencies: ["NozirL10n"]),
         .testTarget(
             name: "NozirAppFeatureTests",
-            dependencies: ["NozirAppFeature", "NozirAuth", "NozirConfig", "NozirNetworking", "NozirL10n", "NozirFamily", "NozirDesignSystem", "NozirInsights"]
+            dependencies: ["NozirAppFeature", "NozirAuth", "NozirConfig", "NozirNetworking", "NozirL10n", "NozirFamily", "NozirDesignSystem", "NozirInsights", "NozirLocation"]
         ),
     ]
 )

@@ -13,4 +13,6 @@
     <string name="bedtime_days_separator">", "</string>
     <!-- Same reason: P07/P08 chart descriptions read "Du 2s 10d,Se 1s" without it. -->
     <string name="weekly_chart_day_separator">", "</string>
+    <!-- iOS shows that a zone is kept but no longer alerts (the plan lapsed); Android does not. -->
+    <string name="ios_safe_zone_inactive">Faol emas</string>
 </resources>
