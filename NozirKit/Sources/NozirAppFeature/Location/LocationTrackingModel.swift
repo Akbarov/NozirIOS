@@ -6,6 +6,10 @@ import NozirNetworking
 /// P12b: how often the child's phone reports unasked. Written with the
 /// version it was read at; a version that moved meanwhile is re-read and the
 /// parent is told — the change is never resent on their behalf.
+///
+/// Opened from the rules hub it works on the hub's session: the rule is read
+/// from it, written against its version, and the answer goes back to it.
+/// From the Location tab (no session) it reads and writes on its own.
 @MainActor
 @Observable
 final class LocationTrackingModel {
@@ -25,13 +29,15 @@ final class LocationTrackingModel {
     private(set) var isSaving = false
 
     private let family: FamilyStore
+    private let session: ChildRulesSession?
     @ObservationIgnored private var saved: LocationTracking?
     @ObservationIgnored private var version: Int64?
 
-    init(childId: UUID, childName: String?, family: FamilyStore) {
+    init(childId: UUID, childName: String?, family: FamilyStore, session: ChildRulesSession? = nil) {
         self.childId = childId
         self.childName = childName
         self.family = family
+        self.session = session
     }
 
     /// A repeated `.task` (a tab switch) must not overwrite edits in progress:
@@ -40,6 +46,16 @@ final class LocationTrackingModel {
         guard tracking == nil else { return }
         isLoading = true
         defer { isLoading = false }
+        if let session {
+            await session.load()
+            if let snapshot = session.snapshot {
+                accept(snapshot)
+                loadFailure = nil
+            } else {
+                loadFailure = session.loadFailure
+            }
+            return
+        }
         do {
             let snapshot = try await family.service.rules(of: childId)
             accept(snapshot)
@@ -68,7 +84,7 @@ final class LocationTrackingModel {
     }
 
     var canSave: Bool {
-        guard !isSaving, let tracking, version != nil else { return false }
+        guard !isSaving, !(session?.isFrozen ?? false), let tracking, version != nil else { return false }
         return tracking != saved
     }
 
@@ -78,6 +94,10 @@ final class LocationTrackingModel {
         message = nil
         notice = nil
         defer { isSaving = false }
+        if let session {
+            await save(tracking, through: session)
+            return
+        }
         do {
             let snapshot = try await family.service.setLocationTracking(tracking, of: childId, version: version)
             accept(snapshot)
@@ -92,6 +112,33 @@ final class LocationTrackingModel {
             } else {
                 message = failure
             }
+        }
+    }
+
+    /// The session's version, which another screen of the hub may have moved.
+    /// A tracking rule changed under the edit is shown, not written over.
+    private func save(_ tracking: LocationTracking, through session: ChildRulesSession) async {
+        guard let held = session.snapshot else { return }
+        guard held.locationTracking == saved else {
+            accept(held)
+            notice = .conflict
+            return
+        }
+        let service = family.service
+        let childId = self.childId
+        let version = held.version
+        let outcome = await session.write { try await service.setLocationTracking(tracking, of: childId, version: version) }
+        switch outcome {
+        case .saved:
+            if let snapshot = session.snapshot { accept(snapshot) }
+            notice = .saved
+        case .conflict:
+            if let snapshot = session.snapshot { accept(snapshot) }
+            notice = .conflict
+        case .failed(let failure):
+            message = failure
+        case .cancelled:
+            break
         }
     }
 
