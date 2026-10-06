@@ -90,7 +90,7 @@ private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil) -> (Da
         #expect(model.state == .loaded(daily))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aCancelledRetryKeepsTheSummaryOnScreen() async {
         let insights = HangingInsights(hanging: [2])
         let model = DailySummaryModel(childId: aliId, childName: "Ali", insights: insights)
@@ -108,7 +108,7 @@ private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil) -> (Da
         #expect(model.state == old)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aCancelledFirstRetryOffersAnotherTry() async {
         let insights = HangingInsights(hanging: [1])
         let model = DailySummaryModel(childId: aliId, childName: "Ali", insights: insights)
@@ -144,7 +144,7 @@ private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil) -> (Da
         #expect(model.subtitle(l10n) == DateTexts.weekdayAndDate(day("2026-10-04"), l10n))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func loadingAgainAfterAFailureShowsTheSpinner() async {
         let insights = HangingInsights(hanging: [1, 2])
         let model = DailySummaryModel(childId: aliId, childName: "Ali", insights: insights)

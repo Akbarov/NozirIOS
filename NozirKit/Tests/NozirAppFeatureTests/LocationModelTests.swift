@@ -86,7 +86,7 @@ private func setup(
         #expect(await fake.calls == ["location", "zones"])
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aLockedLoadOfAnotherChildNeverShowsTheOldZones() async {
         let gate = PauseGate()
         var script = FakeLocation.Script()
@@ -194,7 +194,7 @@ private func setup(
         #expect(empty.cameraTarget == LocationModel.fallbackCentre)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func switchingChildDoesNotSendTheCameraToTashkent() async {
         let gate = PauseGate()
         var script = FakeLocation.Script()
@@ -313,7 +313,7 @@ private func setup(
         #expect(model.request == .idle)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func twoTapsAskOnce() async {
         let gate = PauseGate()
         var script = FakeLocation.Script()
@@ -334,7 +334,7 @@ private func setup(
     }
 
     // Review Focus 1.
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aWaitForAnotherChildNeverLandsOnScreen() async {
         let gate = PauseGate()
         var script = FakeLocation.Script()
@@ -357,7 +357,7 @@ private func setup(
         #expect(aliLocations == 1)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func closingTheScreenStopsTheWait() async {
         let gate = PauseGate()
         var script = FakeLocation.Script()

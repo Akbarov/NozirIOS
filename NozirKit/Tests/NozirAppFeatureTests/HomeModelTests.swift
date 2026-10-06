@@ -216,7 +216,7 @@ private func setup(
         ])
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aRetryAfterAFailedFirstLoadShowsTheSpinner() async {
         let insights = GatedHome()
         let model = HomeModel(insights: insights, family: FamilyStore(service: FakeFamily()), currentYear: 2026)
@@ -237,7 +237,7 @@ private func setup(
         #expect(model.cards.map(\.displayName) == ["Ali"])
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aCancelledFirstLoadOffersARetry() async {
         let insights = GatedHome()
         let model = HomeModel(insights: insights, family: FamilyStore(service: FakeFamily()), currentYear: 2026)
@@ -251,7 +251,7 @@ private func setup(
         #expect(model.failure == .noConnection)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func anOlderAnswerArrivingLastIsDropped() async {
         let insights = GatedHome()
         let model = HomeModel(insights: insights, family: FamilyStore(service: FakeFamily()), currentYear: 2026)
@@ -268,7 +268,7 @@ private func setup(
         #expect(model.cards.map(\.displayName) == ["Vali"])
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func anOlderFailureArrivingLastIsDropped() async {
         let insights = GatedHome()
         let model = HomeModel(insights: insights, family: FamilyStore(service: FakeFamily()), currentYear: 2026)

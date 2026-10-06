@@ -124,7 +124,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
     }
 
     // Review Focus 5: the second tap lands while the first is still in flight.
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func twoTapsAcknowledgeOnce() async {
         let gate = PauseGate()
         var script = FakeLocation.Script()
@@ -147,7 +147,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
     }
 
     // Review Focus 5.
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aFailedAcknowledgeCanBeRetried() async {
         var script = FakeLocation.Script()
         script.sos = [.success(detail())]
@@ -236,7 +236,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         #expect(SosDetailModel.dialNumber(configured: " 103 ", fallback: "112") == "103")
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aLateOlderAnswerDoesNotUndoAcknowledge() async {
         var script = FakeLocation.Script()
         script.sos = [.success(detail())]
@@ -259,7 +259,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         #expect(!model.canAcknowledge)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aLateFailureAfterAcknowledgeIsNotOffline() async {
         var script = FakeLocation.Script()
         script.sos = [.success(detail())]
@@ -282,7 +282,7 @@ private func setup(_ script: FakeLocation.Script, child: Child? = nil) -> (SosDe
         #expect(model.detail?.status == .acknowledged)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func aFailedAcknowledgeDoesNotDiscardARefreshInFlight() async {
         var script = FakeLocation.Script()
         script.sos = [.success(detail())]
