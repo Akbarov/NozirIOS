@@ -36,7 +36,7 @@ actor FakeFamily: FamilyService {
         var cancelNextCurrentCode = false
         /// When true the next `rules` call throws `CancellationError` once.
         var cancelNextRules = false
-        /// When true the next screen-time or trust-ladder write throws `CancellationError` once.
+        /// When true the next screen-time, bedtime, trust-ladder or bonus write throws `CancellationError` once.
         var cancelNextWrite = false
         /// When true the next `chooseActiveChild` throws `CancellationError` once.
         var cancelNextActiveChild = false
@@ -167,6 +167,7 @@ actor FakeFamily: FamilyService {
     func setBonus(_ config: BonusConfig, of childId: UUID, version: Int64) async throws -> BonusConfig {
         childIds.append(childId)
         bonusWrites.append(RuleWrite(value: config, version: version))
+        try cancelIfAsked("setBonus")
         return try await held("setBonus", \.setBonus, \.writeGate)
     }
 
