@@ -18,11 +18,15 @@ actor FakeInsights: InsightsService {
         var weekly: @Sendable (UUID, LocalDate) throws -> InsightSummary = { _, _ in throw notFound }
         var usage: @Sendable (UUID, LocalDate, LocalDate) throws -> [DailyUsage] = { _, _, _ in throw offline }
         var apps: @Sendable (UUID, UsageRange) throws -> AppBreakdown = { _, _ in throw offline }
+        /// `summary(id:)` answers, in order; an empty queue is no connection.
+        var byId: [Result<InsightSummary, ApiFailure>] = []
+        /// Held once by the next `summary(id:)` call, after its answer is taken.
+        var byIdGate: PauseGate?
     }
 
     private var script: Script
     /// "home", "daily latest", "daily 2026-10-04", "weekly 2026-09-28",
-    /// "usage 2026-09-28…2026-10-04", "apps TODAY".
+    /// "usage 2026-09-28…2026-10-04", "apps TODAY", "summary <id lower-case>".
     private(set) var calls: [String] = []
     /// The child each child call was about, in call order.
     private(set) var childIds: [UUID] = []
@@ -52,6 +56,15 @@ actor FakeInsights: InsightsService {
         calls.append("weekly \(weekStart.text)")
         childIds.append(childId)
         return try script.weekly(childId, weekStart)
+    }
+
+    func summary(id: UUID) async throws -> InsightSummary {
+        calls.append("summary \(id.uuidString.lowercased())")
+        let answer: Result<InsightSummary, ApiFailure> = script.byId.isEmpty ? .failure(offline) : script.byId.removeFirst()
+        let gate = script.byIdGate
+        script.byIdGate = nil
+        if let gate { await gate.pause() }
+        return try answer.get()
     }
 
     func dailyUsage(of childId: UUID, from: LocalDate, to: LocalDate) async throws -> [DailyUsage] {
@@ -119,11 +132,13 @@ func insight(
     end: String,
     paragraphs: [String] = ["Tinch kun."],
     question: String? = nil,
-    risk: StatusLevel = .good
+    risk: StatusLevel = .good,
+    period: SummaryPeriod? = nil
 ) -> InsightSummary {
     InsightSummary(
         id: UUID(),
         childId: childId,
+        period: period,
         periodStart: day(start),
         periodEnd: day(end),
         paragraphs: paragraphs,

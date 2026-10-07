@@ -1,8 +1,8 @@
 import Foundation
 import NozirNetworking
 
-/// `/v1/parent/home`, `/summaries/{daily,weekly}` and `/usage/{daily,apps}`
-/// (backend `InsightsController`, `UsageController`).
+/// `/v1/parent/home`, `/summaries/{daily,weekly}`, `/v1/parent/summaries/{id}`
+/// and `/usage/{daily,apps}` (backend `InsightsController`, `UsageController`).
 public struct InsightsApi: InsightsService {
     private let client: ApiClient
 
@@ -33,6 +33,11 @@ public struct InsightsApi: InsightsService {
             path: Self.childPath(childId) + "/summaries/weekly",
             query: ["weekStart": weekStart.text]
         )
+        return try await client.send(request, as: InsightSummary.self)
+    }
+
+    public func summary(id: UUID) async throws -> InsightSummary {
+        let request = ApiRequest(method: .get, path: "/v1/parent/summaries/\(id.uuidString.lowercased())")
         return try await client.send(request, as: InsightSummary.self)
     }
 

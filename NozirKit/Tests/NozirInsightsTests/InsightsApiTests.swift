@@ -59,6 +59,7 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
         #expect(summary == InsightSummary(
             id: summaryId,
             childId: aliId,
+            period: .daily,
             periodStart: LocalDate("2026-10-04")!,
             periodEnd: LocalDate("2026-10-04")!,
             paragraphs: ["Ali kuni tinch otdi.", "Kechqurun video koproq."],
@@ -103,6 +104,52 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
         let request = try #require(await transport.requests.first)
         #expect(request.url?.path == childPath + "/summaries/weekly")
         #expect(request.queryParameters == ["weekStart": "2026-09-28"])
+    }
+
+    // P16a (spec §3): a notification's summary, asked for by its id alone.
+    @Test func aSummaryIsAskedForByItsId() async throws {
+        let (api, transport) = insightsApi([.ok(summaryJSON(period: "WEEKLY", start: "2026-09-28", end: "2026-10-04"))])
+
+        let summary = try await api.summary(id: summaryId)
+
+        #expect(summary.id == summaryId)
+        #expect(summary.childId == aliId)
+        #expect(summary.period == .weekly)
+        #expect(summary.periodStart == LocalDate("2026-09-28"))
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "GET")
+        #expect(request.url?.path == "/v1/parent/summaries/9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d")
+        #expect(request.queryParameters.isEmpty)
+    }
+
+    // Not found, or another family's: the same 404.
+    @Test func aSummaryByIdThatIsGoneIsNotFound() async {
+        let (api, _) = insightsApi([.error(404, code: "NOT_FOUND")])
+
+        do {
+            _ = try await api.summary(id: summaryId)
+            Issue.record("expected not found")
+        } catch let failure as ApiFailure {
+            #expect(failure.isNotFound)
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    // Spec §4.1: an unknown or missing period is nil, and never breaks the summary.
+    @Test func thePeriodIsReadAndAnUnknownOrMissingOneIsNil() async throws {
+        let daily = summaryJSON()
+        let monthly = summaryJSON(period: "MONTHLY")
+        let missing = summaryJSON().replacingOccurrences(of: #""period":"DAILY","#, with: "")
+        let null = summaryJSON().replacingOccurrences(of: #""period":"DAILY""#, with: #""period":null"#)
+        let (api, _) = insightsApi([.ok(daily), .ok(monthly), .ok(missing), .ok(null)])
+
+        #expect(try await api.summary(id: summaryId).period == .daily)
+        let unknown = try await api.summary(id: summaryId)
+        #expect(unknown.period == nil)
+        #expect(unknown.paragraphs.count == 2)
+        #expect(try await api.summary(id: summaryId).period == nil)
+        #expect(try await api.summary(id: summaryId).period == nil)
     }
 
     @Test func dailyUsageSendsBothEnds() async throws {

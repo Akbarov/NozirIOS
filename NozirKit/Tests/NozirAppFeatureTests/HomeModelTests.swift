@@ -407,6 +407,7 @@ private actor GatedHome: InsightsService {
 
     func dailySummary(of childId: UUID, on date: LocalDate?) async throws -> InsightSummary { throw offline }
     func weeklySummary(of childId: UUID, weekStart: LocalDate) async throws -> InsightSummary { throw offline }
+    func summary(id: UUID) async throws -> InsightSummary { throw offline }
     func dailyUsage(of childId: UUID, from: LocalDate, to: LocalDate) async throws -> [DailyUsage] { throw offline }
     func appUsage(of childId: UUID, range: UsageRange) async throws -> AppBreakdown { throw offline }
 }

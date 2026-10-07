@@ -148,10 +148,20 @@ public struct HomeProtection: Decodable, Equatable, Sendable {
     }
 }
 
+/// `SummaryPeriod` on the wire. Only P16a reads it, to know which screen a
+/// link opens.
+public enum SummaryPeriod: String, Sendable {
+    case daily = "DAILY"
+    case weekly = "WEEKLY"
+}
+
 /// `InsightSummaryResponse`, daily or weekly.
 public struct InsightSummary: Decodable, Equatable, Sendable, Identifiable {
     public let id: UUID
     public let childId: UUID
+    /// nil when absent or a value this app does not know (a monthly report
+    /// one day): the summary still reads, a link to it is "gone".
+    public let period: SummaryPeriod?
     public let periodStart: LocalDate
     public let periodEnd: LocalDate
     public let paragraphs: [String]
@@ -162,6 +172,7 @@ public struct InsightSummary: Decodable, Equatable, Sendable, Identifiable {
     public init(
         id: UUID,
         childId: UUID,
+        period: SummaryPeriod? = nil,
         periodStart: LocalDate,
         periodEnd: LocalDate,
         paragraphs: [String],
@@ -171,6 +182,7 @@ public struct InsightSummary: Decodable, Equatable, Sendable, Identifiable {
     ) {
         self.id = id
         self.childId = childId
+        self.period = period
         self.periodStart = periodStart
         self.periodEnd = periodEnd
         self.paragraphs = paragraphs
@@ -181,13 +193,15 @@ public struct InsightSummary: Decodable, Equatable, Sendable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id = "summaryId"
-        case childId, periodStart, periodEnd, paragraphs, recommendation, conversationQuestion, riskLevel
+        case childId, period, periodStart, periodEnd, paragraphs, recommendation, conversationQuestion, riskLevel
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         childId = try container.decode(UUID.self, forKey: .childId)
+        // Read as text: a period this app does not know never fails the summary.
+        period = (try? container.decodeIfPresent(String.self, forKey: .period)).flatMap(SummaryPeriod.init(rawValue:))
         periodStart = try container.decode(LocalDate.self, forKey: .periodStart)
         periodEnd = try container.decode(LocalDate.self, forKey: .periodEnd)
         paragraphs = try container.decodeIfPresent([String].self, forKey: .paragraphs) ?? []
