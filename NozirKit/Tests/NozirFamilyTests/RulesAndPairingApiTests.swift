@@ -5,13 +5,18 @@ import NozirTestSupport
 @testable import NozirFamily
 
 /// `RuleSnapshotResponse` with the parts 2a does not read left in, as the server sends them.
-private func snapshotJSON(version: Int = 7, start: String = "22:00", tracking: String = #"{"isEnabled":false}"#) -> String {
+private func snapshotJSON(
+    version: Int = 7,
+    start: String = "22:00",
+    tracking: String = #"{"isEnabled":false}"#,
+    apps: String = "[]"
+) -> String {
     """
     {"childId":"\(aliId.uuidString.lowercased())","version":\(version),\
     "screenTime":{"schoolDayMinutes":120,"weekendMinutes":180,"maxDailyBonusMinutes":60},\
     "maxTrustBonusMinutes":30,"locationTracking":\(tracking),\
     "bedtime":{"startTime":"\(start)","endTime":"07:00","windDownMinutes":30,"activeDays":[1,2,3,4,5,6,7]},\
-    "appPolicies":[],"familyRules":[],"neverBlockedPackages":["com.android.dialer"]}
+    "appPolicies":\(apps),"familyRules":[],"neverBlockedPackages":["com.android.dialer"]}
     """
 }
 
@@ -337,5 +342,110 @@ private let chessId = UUID(uuidString: "1a2b3c4d-0000-4000-8000-000000000002")!
         #expect(!config.withChallenge(mathId, enabled: false).isCeilingBinding)
         #expect(ChallengeKind(wireName: "EXERCISE") == .exercise)
         #expect(ChallengeDifficulty(wireName: "HARD").wireName == "HARD")
+    }
+
+    @Test func theAppRulesAndTheNeverBlockedListAreRead() async throws {
+        let apps = """
+            [{"packageId":"com.roblox.client","displayName":"Roblox","mode":"SCHEDULE_BLOCK","dailyLimitMinutes":null,\
+            "blockWindows":[{"startTime":"08:00","endTime":"13:00","days":[1,2,3,4,5]},\
+            {"startTime":"15:00","endTime":"16:30","days":[6]}]},\
+            {"packageId":"com.whatsapp","displayName":null,"mode":"DAILY_LIMIT","dailyLimitMinutes":45,"blockWindows":[]},\
+            {"packageId":"com.example.new","mode":"FOCUS_ONLY"}]
+            """
+        let (api, _) = familyApi([.ok(snapshotJSON(apps: apps))])
+
+        let snapshot = try await api.rules(of: aliId)
+
+        #expect(snapshot.neverBlockedPackages == ["com.android.dialer"])
+        #expect(snapshot.appPolicies.map(\.packageId) == ["com.roblox.client", "com.whatsapp", "com.example.new"])
+        let roblox = snapshot.appPolicies[0]
+        #expect(roblox.displayName == "Roblox")
+        #expect(roblox.mode == .scheduleBlock)
+        #expect(roblox.dailyLimitMinutes == nil)
+        #expect(roblox.blockWindows == [
+            BlockWindow(start: ClockTime(hour: 8, minute: 0), end: ClockTime(hour: 13, minute: 0), days: [1, 2, 3, 4, 5]),
+            BlockWindow(start: ClockTime(hour: 15, minute: 0), end: ClockTime(hour: 16, minute: 30), days: [6]),
+        ])
+        #expect(snapshot.appPolicies[1].mode == .dailyLimit)
+        #expect(snapshot.appPolicies[1].dailyLimitMinutes == 45)
+        #expect(snapshot.appPolicies[1].displayName == nil)
+        #expect(snapshot.appPolicies[2].mode == .unknown("FOCUS_ONLY"))
+        #expect(snapshot.appPolicies[2].blockWindows.isEmpty)
+    }
+
+    @Test func aServerWithoutAppRulesReadsAsNone() async throws {
+        let body = """
+        {"version":3,"screenTime":{"schoolDayMinutes":120,"weekendMinutes":180,"maxDailyBonusMinutes":60},\
+        "bedtime":{"startTime":"22:00","endTime":"07:00","windDownMinutes":30,"activeDays":[1,2,3,4,5,6,7]}}
+        """
+        let (api, _) = familyApi([.ok(body)])
+
+        let snapshot = try await api.rules(of: aliId)
+
+        #expect(snapshot.appPolicies.isEmpty)
+        #expect(snapshot.neverBlockedPackages.isEmpty)
+    }
+
+    @Test func anAppRuleWriteGoesToItsPackageAgainstTheVersion() async throws {
+        let (api, transport) = familyApi([.ok(snapshotJSON(version: 8))])
+        let policy = AppPolicy(
+            packageId: "com.roblox.client",
+            displayName: "Roblox",
+            mode: .scheduleBlock,
+            blockWindows: [BlockWindow(start: ClockTime(hour: 8, minute: 0), end: ClockTime(hour: 13, minute: 5), days: [1, 2, 3, 4, 5])]
+        )
+
+        let after = try await api.setAppPolicy(policy, of: aliId, version: 7)
+
+        #expect(after.version == 8)
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "PUT")
+        #expect(request.url?.path == rulesPath + "/apps/com.roblox.client")
+        #expect(request.value(forHTTPHeaderField: "If-Match") == "\"7\"")
+        let body = try #require(request.jsonObject)
+        #expect(body["packageId"] as? String == "com.roblox.client")
+        #expect(body["displayName"] as? String == "Roblox")
+        #expect(body["mode"] as? String == "SCHEDULE_BLOCK")
+        #expect(body["dailyLimitMinutes"] == nil)
+        let windows = try #require(body["blockWindows"] as? [[String: Any]])
+        #expect(windows.count == 1)
+        #expect(windows[0]["startTime"] as? String == "08:00")
+        #expect(windows[0]["endTime"] as? String == "13:05")
+        #expect(windows[0]["days"] as? [Int] == [1, 2, 3, 4, 5])
+    }
+
+    @Test func aDailyLimitWriteCarriesTheMinutesAndAnUnknownModeKeepsItsName() async throws {
+        let (api, transport) = familyApi([.ok(snapshotJSON(version: 8)), .ok(snapshotJSON(version: 9))])
+
+        _ = try await api.setAppPolicy(AppPolicy(packageId: "com.whatsapp", mode: .dailyLimit, dailyLimitMinutes: 45), of: aliId, version: 7)
+        _ = try await api.setAppPolicy(AppPolicy(packageId: "com.example.new", mode: .unknown("FOCUS_ONLY")), of: aliId, version: 8)
+
+        let requests = await transport.requests
+        let daily = try #require(requests.first?.jsonObject)
+        #expect(daily["mode"] as? String == "DAILY_LIMIT")
+        #expect(daily["dailyLimitMinutes"] as? Int == 45)
+        #expect(daily["displayName"] is NSNull)
+        #expect((daily["blockWindows"] as? [Any])?.isEmpty == true)
+        #expect(requests.last?.jsonObject?["mode"] as? String == "FOCUS_ONLY")
+        #expect(AppPolicyMode(wireName: "ALWAYS_BLOCKED") == .alwaysBlocked)
+        #expect(AppPolicyMode(wireName: "UNRESTRICTED").wireName == "UNRESTRICTED")
+    }
+
+    @Test func thePhonesAppsAreListedAndABlankPackageIsDropped() async throws {
+        let (api, transport) = familyApi([.ok("""
+            [{"packageId":"com.roblox.client","displayName":"Roblox"},{"packageId":"  ","displayName":"Ghost"},\
+            {"packageId":"org.telegram.messenger","displayName":null},{"packageId":"com.duolingo"}]
+            """)])
+
+        let apps = try await api.installedApps(of: aliId)
+
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "GET")
+        #expect(request.url?.path == FamilyApi.childPath(aliId) + "/apps")
+        #expect(apps == [
+            InstalledApp(packageId: "com.roblox.client", displayName: "Roblox"),
+            InstalledApp(packageId: "org.telegram.messenger", displayName: nil),
+            InstalledApp(packageId: "com.duolingo", displayName: nil),
+        ])
     }
 }

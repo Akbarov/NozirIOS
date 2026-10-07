@@ -25,6 +25,8 @@ actor FakeFamily: FamilyService {
         var trustLadder: [Result<RuleSnapshot, ApiFailure>] = []
         var bonus: [Result<BonusConfig, ApiFailure>] = []
         var setBonus: [Result<BonusConfig, ApiFailure>] = []
+        var appPolicy: [Result<RuleSnapshot, ApiFailure>] = []
+        var installedApps: [Result<[InstalledApp], ApiFailure>] = []
         var currentCode: [Result<PairingCode?, ApiFailure>] = []
         var issueCode: [Result<PairingCode, ApiFailure>] = []
         var devices: [Result<[ChildDevice], ApiFailure>] = []
@@ -36,7 +38,7 @@ actor FakeFamily: FamilyService {
         var cancelNextCurrentCode = false
         /// When true the next `rules` call throws `CancellationError` once.
         var cancelNextRules = false
-        /// When true the next screen-time, bedtime, location-tracking, trust-ladder or bonus write throws `CancellationError` once.
+        /// When true the next screen-time, bedtime, location-tracking, trust-ladder, bonus or app-rule write throws `CancellationError` once.
         var cancelNextWrite = false
         /// When true the next `chooseActiveChild` throws `CancellationError` once.
         var cancelNextActiveChild = false
@@ -48,6 +50,10 @@ actor FakeFamily: FamilyService {
         var rulesGate: PauseGate?
         /// Held once by the next rule write of any kind, after its answer is taken.
         var writeGate: PauseGate?
+        /// When true the next `installedApps` call throws `CancellationError` once.
+        var cancelNextInstalledApps = false
+        /// Held once by the next `installedApps` call, after its answer is taken.
+        var installedAppsGate: PauseGate?
     }
 
     private var script: Script
@@ -59,6 +65,7 @@ actor FakeFamily: FamilyService {
     private(set) var locationTrackingWrites: [RuleWrite<LocationTracking>] = []
     private(set) var trustLadderWrites: [RuleWrite<Int>] = []
     private(set) var bonusWrites: [RuleWrite<BonusConfig>] = []
+    private(set) var appPolicyWrites: [RuleWrite<AppPolicy>] = []
     private(set) var locales: [String] = []
     /// The child each call was about, in call order.
     private(set) var childIds: [UUID] = []
@@ -172,6 +179,23 @@ actor FakeFamily: FamilyService {
         return try await held("setBonus", \.setBonus, \.writeGate)
     }
 
+    func setAppPolicy(_ policy: AppPolicy, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        childIds.append(childId)
+        appPolicyWrites.append(RuleWrite(value: policy, version: version))
+        try cancelIfAsked("appPolicy")
+        return try await held("appPolicy", \.appPolicy, \.writeGate)
+    }
+
+    func installedApps(of childId: UUID) async throws -> [InstalledApp] {
+        childIds.append(childId)
+        if script.cancelNextInstalledApps {
+            script.cancelNextInstalledApps = false
+            calls.append("installedApps")
+            throw CancellationError()
+        }
+        return try await held("installedApps", \.installedApps, \.installedAppsGate)
+    }
+
     func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
         childIds.append(childId)
         if script.cancelNextCurrentCode {
@@ -233,9 +257,19 @@ func snapshot(
     limit: ScreenTimeLimit = defaultLimit,
     bedtime: BedtimeSchedule = defaultBedtime,
     tracking: LocationTracking = .standard,
-    trust: Int = 0
+    trust: Int = 0,
+    apps: [AppPolicy] = [],
+    neverBlocked: [String] = []
 ) -> RuleSnapshot {
-    RuleSnapshot(version: version, screenTime: limit, bedtime: bedtime, locationTracking: tracking, maxTrustBonusMinutes: trust)
+    RuleSnapshot(
+        version: version,
+        screenTime: limit,
+        bedtime: bedtime,
+        locationTracking: tracking,
+        maxTrustBonusMinutes: trust,
+        appPolicies: apps,
+        neverBlockedPackages: neverBlocked
+    )
 }
 
 let mathTask = BonusChallenge(
@@ -254,6 +288,23 @@ let exerciseTask = BonusChallenge(
 func bonusConfig(version: Int64, ceiling: Int = 60, challenges: [BonusChallenge] = [mathTask, readingTask, exerciseTask]) -> BonusConfig {
     BonusConfig(ruleVersion: version, maxDailyBonusMinutes: ceiling, challenges: challenges)
 }
+
+/// 08:00–13:00 on school days: the default schedule, and a common saved one.
+let schoolHours = BlockWindow(start: ClockTime(hour: 8, minute: 0), end: ClockTime(hour: 13, minute: 0), days: [1, 2, 3, 4, 5])
+
+func appPolicy(
+    _ packageId: String,
+    name: String? = nil,
+    mode: AppPolicyMode,
+    minutes: Int? = nil,
+    windows: [BlockWindow] = []
+) -> AppPolicy {
+    AppPolicy(packageId: packageId, displayName: name, mode: mode, dailyLimitMinutes: minutes, blockWindows: windows)
+}
+
+let robloxApp = InstalledApp(packageId: "com.roblox.client", displayName: "Roblox")
+let telegramApp = InstalledApp(packageId: "org.telegram.messenger", displayName: "Telegram")
+let dialerApp = InstalledApp(packageId: "com.android.dialer", displayName: "Phone")
 
 func pairingCode(_ code: String = "472918", state: PairingState = .codeIssued) -> PairingCode {
     PairingCode(code: code, expiresAt: Date(timeIntervalSince1970: 1_791_200_000), qrPayload: "nozir://pair?code=\(code)", state: state)

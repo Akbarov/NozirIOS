@@ -184,7 +184,7 @@ struct SignedInView: View {
                 onOpen: { homePath.append(.ruleScreen($0)) }
             )
         case .ruleScreen(let screen):
-            ruleDestination(screen)
+            ruleDestination(screen) { homePath.append(.ruleScreen($0)) }
         }
     }
 
@@ -210,19 +210,27 @@ struct SignedInView: View {
                 onOpen: { profilePath.append(.ruleScreen($0)) }
             )
         case .ruleScreen(let screen):
-            ruleDestination(screen)
+            ruleDestination(screen) { profilePath.append(.ruleScreen($0)) }
         case .privacy:
             PrivacyView(model: model.makePrivacyModel())
         }
     }
 
-    /// P10, P12 and P12b on the session of the hub that opened them. Each view
-    /// keeps the first model it is given (`@State(initialValue:)`), like SafeZoneView.
+    /// P10, P11, P12 and P12b on the session of the hub that opened them, and
+    /// P11's editor on the same one. Each view keeps the first model it is
+    /// given (`@State(initialValue:)`), like SafeZoneView. `onOpen` pushes onto
+    /// the tab this screen is in.
     @ViewBuilder
-    private func ruleDestination(_ screen: RuleScreen) -> some View {
+    private func ruleDestination(_ screen: RuleScreen, onOpen: @escaping (RuleScreen) -> Void) -> some View {
         switch screen {
         case .bedtime(let session):
             BedtimeView(model: model.makeBedtimeModel(session: session))
+        case .apps(let session):
+            AppRulesView(model: model.makeAppRulesModel(session: session)) { target in
+                onOpen(.appRule(session, packageId: target.packageId, displayName: target.displayName))
+            }
+        case .appRule(let session, let packageId, let displayName):
+            AppRuleView(model: model.makeAppRuleModel(session: session, packageId: packageId, displayName: displayName))
         case .bonus(let session):
             BonusView(model: model.makeBonusModel(session: session))
         case .locationTracking(let session):
