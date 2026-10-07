@@ -36,6 +36,8 @@ struct SignedInView: View {
         /// P09 from P03 opened in this tab: that child, no switcher.
         case childRules(UUID)
         case ruleScreen(RuleScreen)
+        /// P20 from the Profile settings card.
+        case privacy
     }
 
     @State private var model: SignedInModel
@@ -114,7 +116,8 @@ struct SignedInView: View {
                     onAddChild: { model.presentAddChild() },
                     onOpenChild: { profilePath.append(.child($0)) },
                     onPair: { profilePath.append(.pairing($0)) },
-                    onOpenRules: { profilePath.append(.rules(nil)) }
+                    onOpenRules: { profilePath.append(.rules(nil)) },
+                    onOpenPrivacy: { profilePath.append(.privacy) }
                 )
                 .navigationDestination(for: ProfileStep.self) { step in
                     profileDestination(step)
@@ -208,6 +211,8 @@ struct SignedInView: View {
             )
         case .ruleScreen(let screen):
             ruleDestination(screen)
+        case .privacy:
+            PrivacyView(model: model.makePrivacyModel())
         }
     }
 

@@ -7,6 +7,7 @@ import NozirInsights
 import NozirL10n
 import NozirLocation
 import NozirNetworking
+import NozirPrivacy
 
 /// Every live object, built once at launch and wired here and nowhere else.
 @MainActor
@@ -83,6 +84,12 @@ public final class AppEnvironment {
             appearance: appearance,
             localeSync: LocaleSync(store: language, send: { _ = try await api.updateLocale($0) }),
             emergencyNumber: { [appModel] in appModel.emergencyNumber },
+            privacy: PrivacyApi(client: authorised),
+            privacyConfig: { [appModel] in appModel.privacyConfig },
+            signOutLocally: { [appModel] in
+                UserDefaults.standard.removeObject(forKey: LocaleSync.unsentKey)
+                appModel.signOutLocally()
+            },
             signOut: { [appModel] in
                 UserDefaults.standard.removeObject(forKey: LocaleSync.unsentKey)
                 await appModel.signOut()
