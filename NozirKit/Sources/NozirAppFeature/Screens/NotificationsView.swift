@@ -13,6 +13,7 @@ struct NotificationsView: View {
     private let onOpen: (SignedInView.HomeStep) -> Void
     @Environment(\.l10n) private var l10n
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(model: NotificationsModel, onOpen: @escaping (SignedInView.HomeStep) -> Void) {
         _model = State(initialValue: model)
@@ -113,7 +114,7 @@ struct NotificationsView: View {
                 .accessibilityAddTraits(.isHeader)
             Text(l10n.notificationsOfflineBody)
                 .nozirText(.bodySmall, color: NozirColor.textSecondary)
-            Picker(l10n.notificationsOfflineTitle, selection: Binding(
+            let presets = Picker(l10n.notificationsOfflineTitle, selection: Binding(
                 get: { minutes },
                 set: { chosen in Task { await model.setOfflineAfter(minutes: chosen) } }
             )) {
@@ -123,8 +124,12 @@ struct NotificationsView: View {
                         .tag(preset)
                 }
             }
-            .pickerStyle(.segmented)
-            .disabled(model.pendingOfflineMinutes != nil)
+            // Six segments cannot hold large text: a menu there.
+            if dynamicTypeSize.isAccessibilitySize {
+                presets.pickerStyle(.menu).disabled(model.pendingOfflineMinutes != nil)
+            } else {
+                presets.pickerStyle(.segmented).disabled(model.pendingOfflineMinutes != nil)
+            }
             Text(NotificationTexts.offlineCurrent(minutes, l10n))
                 .nozirText(.bodySmall, color: NozirColor.textSecondary)
         }
