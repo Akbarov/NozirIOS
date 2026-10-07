@@ -99,7 +99,7 @@ struct DailyLimitSection: View {
         }
     }
 
-    /// The way to P10, P12 and P12b. The apps row waits for 2c-2.
+    /// The way to P10, P11, P12 and P12b, in Android's order.
     private func otherRules(_ snapshot: RuleSnapshot, isEnabled: Bool) -> some View {
         let session = model.session
         return VStack(alignment: .leading, spacing: NozirSpacing.small) {
@@ -113,6 +113,10 @@ struct DailyLimitSection: View {
                     ],
                     isEnabled: isEnabled
                 ) { onOpen(.bedtime(session)) }
+                Divider()
+                RuleLinkRow(title: l10n.rulesLinkApps, lines: [AppRuleTexts.hubRow(snapshot.appPolicies, l10n)], isEnabled: isEnabled) {
+                    onOpen(.apps(session))
+                }
                 Divider()
                 RuleLinkRow(title: l10n.rulesLinkBonus, lines: [RuleTexts.bonusRow(snapshot, l10n)], isEnabled: isEnabled) {
                     onOpen(.bonus(session))

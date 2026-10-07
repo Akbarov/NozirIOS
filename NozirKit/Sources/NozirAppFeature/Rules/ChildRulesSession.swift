@@ -96,7 +96,9 @@ final class ChildRulesSession {
             ),
             bedtime: snapshot.bedtime,
             locationTracking: snapshot.locationTracking,
-            maxTrustBonusMinutes: snapshot.maxTrustBonusMinutes
+            maxTrustBonusMinutes: snapshot.maxTrustBonusMinutes,
+            appPolicies: snapshot.appPolicies,
+            neverBlockedPackages: snapshot.neverBlockedPackages
         ))
     }
 

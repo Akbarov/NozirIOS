@@ -128,6 +128,14 @@ public final class SignedInModel {
         BonusModel(session: session)
     }
 
+    func makeAppRulesModel(session: ChildRulesSession) -> AppRulesModel {
+        AppRulesModel(session: session)
+    }
+
+    func makeAppRuleModel(session: ChildRulesSession, packageId: String, displayName: String?) -> AppRuleModel {
+        AppRuleModel(session: session, packageId: packageId, displayName: displayName)
+    }
+
     func makeLocationTrackingModel(session: ChildRulesSession) -> LocationTrackingModel {
         LocationTrackingModel(childId: session.childId, childName: session.childName, family: family, session: session)
     }

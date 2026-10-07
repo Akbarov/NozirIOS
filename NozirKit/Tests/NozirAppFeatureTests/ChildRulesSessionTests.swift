@@ -178,6 +178,20 @@ private func setup(_ script: FakeFamily.Script) -> (ChildRulesSession, FakeFamil
         #expect(session.snapshot?.maxTrustBonusMinutes == 45)
     }
 
+    @Test func aBonusAnswerKeepsTheAppRules() async {
+        var script = FakeFamily.Script()
+        let roblox = appPolicy("com.roblox.client", mode: .dailyLimit, minutes: 45)
+        script.rules = [.success(snapshot(version: 4, apps: [roblox], neverBlocked: ["com.android.dialer"]))]
+        let (session, _) = setup(script)
+        await session.load()
+
+        session.acceptBonus(version: 5, ceiling: 30)
+
+        #expect(session.version == 5)
+        #expect(session.snapshot?.appPolicies == [roblox])
+        #expect(session.snapshot?.neverBlockedPackages == ["com.android.dialer"])
+    }
+
     @Test(.timeLimit(.minutes(5)))
     func aReadAskedBeforeAWriteLandedIsDropped() async {
         let gate = PauseGate()

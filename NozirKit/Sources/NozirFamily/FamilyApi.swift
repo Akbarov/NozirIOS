@@ -94,6 +94,23 @@ public struct FamilyApi: FamilyService {
         return try await client.send(request, as: BonusConfig.self)
     }
 
+    /// The path names the package and wins over the body's (the server says so).
+    /// Package ids are `[A-Za-z0-9._]`, so the path needs no escaping.
+    public func setAppPolicy(_ policy: AppPolicy, of childId: UUID, version: Int64) async throws -> RuleSnapshot {
+        let request = try ApiRequest.put(
+            Self.childPath(childId) + "/rules/apps/" + policy.packageId,
+            json: policy,
+            ifMatch: Self.entityTag(version)
+        )
+        return try await client.send(request, as: RuleSnapshot.self)
+    }
+
+    /// Not limited by the plan. Empty means the phone has not sent its list yet.
+    public func installedApps(of childId: UUID) async throws -> [InstalledApp] {
+        let apps = try await client.send(ApiRequest(method: .get, path: Self.childPath(childId) + "/apps"), as: [InstalledApp].self)
+        return apps.filter { !$0.packageId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
     public func currentPairingCode(for childId: UUID) async throws -> PairingCode? {
         do {
             return try await client.send(ApiRequest(method: .get, path: Self.childPath(childId) + "/pairing-code"), as: PairingCode.self)

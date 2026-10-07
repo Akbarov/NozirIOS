@@ -177,6 +177,37 @@ private func setup(
         #expect(bedtime.bedtime != nil)
     }
 
+    @Test func theAppRuleScreensShareTheHubsSession() async {
+        let ali = makeChild("Ali")
+        var script = FakeFamily.Script()
+        script.children = [.success([ali])]
+        script.rules = [.success(snapshot(version: 4, apps: [appPolicy("com.roblox.client", name: "Roblox", mode: .dailyLimit, minutes: 30)]))]
+        script.installedApps = [.success([robloxApp, telegramApp])]
+        let (model, fake) = setup(script)
+        try? await model.family.refresh()
+        let session = model.makeRulesSession(childId: ali.id)
+
+        let list = model.makeAppRulesModel(session: session)
+        let editor = model.makeAppRuleModel(session: session, packageId: "org.telegram.messenger", displayName: "Telegram")
+
+        #expect(list.session === session)
+        #expect(editor.session === session)
+        #expect(editor.packageId == "org.telegram.messenger")
+        #expect(editor.displayName == "Telegram")
+
+        // Behaviour, not identity: once the session has loaded, neither reads "rules" again,
+        // and the phone's apps are read once however often P11 appears.
+        await session.load()
+        await list.load()
+        await editor.load()
+        await list.load()
+        #expect(await fake.calls.filter { $0 == "rules" }.count == 1)
+        #expect(await fake.calls.filter { $0 == "installedApps" }.count == 1)
+        #expect(list.addableApps == [telegramApp])
+        #expect(editor.name == "Telegram")
+        #expect(editor.canSave)
+    }
+
     @Test func theProfileHubOpensOnTheFirstChildAndCanSwitch() async {
         let ali = makeChild("Ali")
         let vali = makeChild("Vali")

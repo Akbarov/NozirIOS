@@ -28,5 +28,6 @@ import NozirL10n
         #expect(RuleMinuteRange.trustLadder == 0...120)
         #expect(RuleMinuteRange.bonusCeiling == 0...120)
         #expect(RuleMinuteRange.windDown == 15...60)
+        #expect(RuleMinuteRange.appDailyLimit == 15...240)
     }
 }
