@@ -40,7 +40,7 @@ final class NotificationsModel {
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var isLoadingPreferences = false
     /// The newest first-page request is in flight; a "Yana" waits for it.
-    @ObservationIgnored private var isRefreshing = false
+    private(set) var isRefreshing = false
 
     init(service: any NotificationsService) {
         self.service = service
