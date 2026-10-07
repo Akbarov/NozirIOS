@@ -1,8 +1,10 @@
 import Foundation
 
 /// `ProtectionLevel`: how much of the protection still works. A level this app
-/// does not know reads as healthy (Android `UnknownLevelFallback`): an invented
-/// fault would send a parent into the child's settings for nothing.
+/// does not know reads as healthy (Android `UnknownLevelFallback`) — but only as
+/// a floor: `resolving(unknown:hasFault:)` lifts it to degraded when the same
+/// payload carries a fault. An invented fault would send a parent into the
+/// child's settings for nothing; a hidden one would leave the phone unprotected.
 public enum ProtectionLevel: String, Sendable, Decodable {
     case healthy = "HEALTHY"
     case degraded = "DEGRADED"
@@ -11,6 +13,12 @@ public enum ProtectionLevel: String, Sendable, Decodable {
     public init(from decoder: any Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         self = ProtectionLevel(rawValue: raw) ?? .healthy
+    }
+
+    /// The level for a raw server string: a known one as written; an unknown
+    /// one healthy, unless `hasFault` says the same payload shows a problem.
+    static func resolving(_ raw: String, hasFault: Bool) -> ProtectionLevel {
+        ProtectionLevel(rawValue: raw) ?? (hasFault ? .degraded : .healthy)
     }
 }
 
@@ -92,11 +100,12 @@ public struct ProtectionStatus: Decodable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         childId = try container.decode(UUID.self, forKey: .childId)
-        level = try container.decode(ProtectionLevel.self, forKey: .level)
+        let rawLevel = try container.decode(String.self, forKey: .level)
         let raw = (try? container.decodeIfPresent([LossyPermission].self, forKey: .permissions)) ?? []
         permissions = raw.compactMap { $0.raw?.permission }
         lastReportAt = (try? container.decodeIfPresent(Date.self, forKey: .lastReportAt))
         isStale = (try? container.decodeIfPresent(Bool.self, forKey: .isStale)) ?? false
+        level = ProtectionLevel.resolving(rawLevel, hasFault: isStale || permissions.contains(where: \.needsFixing))
         manufacturer = (try? container.decodeIfPresent(String.self, forKey: .manufacturer)) ?? ""
         instructionKey = (try? container.decodeIfPresent(String.self, forKey: .instructionKey))
     }

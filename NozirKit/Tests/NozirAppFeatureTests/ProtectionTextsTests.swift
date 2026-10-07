@@ -125,6 +125,18 @@ import NozirL10n
         #expect(ProtectionTexts.instruction(noOwnKey, childName: nil, l10n) == l10n.protectionInstructionLineUnnamed("Samsung", l10n.oemGenericOverlay))
         #expect(ProtectionTexts.instruction(noOwnKey, childName: "  ", l10n) == l10n.protectionInstructionLineUnnamed("Samsung", l10n.oemGenericOverlay))
         #expect(ProtectionTexts.instruction(protectionStatus(permissions: [protectionPermission(.overlay, .granted)]), childName: "Ali", l10n) == nil)
+
+        // A phone that never reported, as the backend writes it: the first broken one is usage access.
+        let never = protectionStatus(
+            level: .broken,
+            permissions: [
+                protectionPermission(.usageAccess, key: "oem.generic.usage"),
+                protectionPermission(.overlay, key: "oem.generic.overlay"),
+                protectionPermission(.oemAutostart, key: "oem.generic.autostart"),
+            ],
+            lastReportAt: nil, isStale: true, manufacturer: "*", instructionKey: "oem.generic.autostart"
+        )
+        #expect(ProtectionTexts.instruction(never, childName: "Ali", l10n) == l10n.protectionInstructionLine("Ali", "*", l10n.oemGenericUsage))
     }
 
     @Test func thePhoneIsTheMakeWithACapital() {

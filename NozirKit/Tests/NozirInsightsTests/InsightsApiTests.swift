@@ -232,4 +232,30 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
 
         #expect(try await api.home().protection?.level == .healthy)
     }
+
+    // Final fix 1: an unknown family level names children in trouble, so it is not "all fine".
+    @Test func anUnknownHomeLevelIsDegradedOnlyWhenChildrenNeedAttention() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #""protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: #""protection":{"level":"SOMETHING_NEW","childrenNeedingAttention":["0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01"]}"#
+        )
+        let (api, _) = insightsApi([.ok(body)])
+
+        #expect(try await api.home().protection == HomeProtection(level: .degraded, childrenNeedingAttention: [aliId]))
+    }
+
+    // Final fix 2: no level, no block, no row.
+    @Test func protectionWithoutALevelHasNoRow() async throws {
+        let absent = bareHomeJSON.replacingOccurrences(
+            of: #""protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: #""protection":{"childrenNeedingAttention":[]}"#
+        )
+        let null = bareHomeJSON.replacingOccurrences(of: #""level":"HEALTHY""#, with: #""level":null"#)
+        let (api, _) = insightsApi([.ok(absent), .ok(null)])
+
+        let first = try await api.home()
+        #expect(first.protection == nil)
+        #expect(first.children.count == 1)
+        #expect(try await api.home().protection == nil)
+    }
 }

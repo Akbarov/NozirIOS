@@ -141,8 +141,10 @@ public struct HomeProtection: Decodable, Equatable, Sendable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        level = try container.decodeIfPresent(ProtectionLevel.self, forKey: .level) ?? .healthy
+        // No level, no block: the row is dropped by the caller's `try?`.
+        let rawLevel = try container.decode(String.self, forKey: .level)
         childrenNeedingAttention = try container.decodeIfPresent([UUID].self, forKey: .childrenNeedingAttention) ?? []
+        level = ProtectionLevel.resolving(rawLevel, hasFault: !childrenNeedingAttention.isEmpty)
     }
 }
 

@@ -40,22 +40,33 @@ private let protectionPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a
 
     // Review Focus 1 (spec §3): nothing ever heard from the phone.
     @Test func aPhoneThatNeverReportedIsBrokenAndStale() async throws {
-        let all = PermissionKind.allCases.map { permissionJSON($0.rawValue, "DENIED") }
-        let (api, _) = protectionApi([.ok(protectionJSON(level: "BROKEN", permissions: all, isStale: true, manufacturer: "*"))])
+        // As the backend writes it: generic keys, none for NOTIFICATIONS / LOCATION.
+        let keys: [PermissionKind: String] = [
+            .usageAccess: "oem.generic.usage", .overlay: "oem.generic.overlay",
+            .battery: "oem.generic.battery", .oemAutostart: "oem.generic.autostart",
+        ]
+        let all = PermissionKind.allCases.map { permissionJSON($0.rawValue, "DENIED", key: keys[$0]) }
+        let (api, _) = protectionApi([.ok(protectionJSON(
+            level: "BROKEN", permissions: all, isStale: true, manufacturer: "*",
+            extra: #","instructionKey":"oem.generic.autostart""#
+        ))])
 
         let status = try await api.status(childId: aliId)
 
         #expect(status.level == .broken)
         #expect(status.isStale)
         #expect(status.lastReportAt == nil)
-        #expect(status.instructionKey == nil)
+        #expect(status.instructionKey == "oem.generic.autostart")
         #expect(status.manufacturer == "*")
         #expect(status.kindsToFix == PermissionKind.allCases)
-        #expect(status.permissions.allSatisfy { !$0.wasRevoked && $0.instructionKey == nil })
+        #expect(status.permissions.allSatisfy { !$0.wasRevoked })
+        #expect(status.permissions.map(\.instructionKey) == [
+            "oem.generic.usage", "oem.generic.overlay", nil, nil, "oem.generic.battery", "oem.generic.autostart",
+        ])
     }
 
     // Review Focus 2: a newer child app or server never invents a fault here.
-    @Test func anUnknownLevelIsHealthyAndAnUnknownKindOrStatusIsLeftOut() async throws {
+    @Test func anUnknownKindOrStatusIsLeftOut() async throws {
         let permissions = [
             permissionJSON("CAMERA", "DENIED"),
             permissionJSON("USAGE_ACCESS", "PAUSED"),
@@ -65,8 +76,29 @@ private let protectionPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a
 
         let status = try await api.status(childId: aliId)
 
-        #expect(status.level == .healthy)
         #expect(status.permissions == [ProtectionPermission(kind: .overlay, status: .skipped)])
+    }
+
+    // Final fix 1: "unknown = healthy" is only a floor; a fault in the same payload shows.
+    @Test func anUnknownLevelWithNothingWrongIsHealthy() async throws {
+        let granted = [permissionJSON("OVERLAY", "GRANTED")]
+        let (api, _) = protectionApi([.ok(protectionJSON(level: "SOMETHING_NEW", permissions: granted))])
+
+        #expect(try await api.status(childId: aliId).level == .healthy)
+    }
+
+    @Test func anUnknownLevelWithAFaultOrAStalePhoneIsDegraded() async throws {
+        let denied = [permissionJSON("OVERLAY", "DENIED")]
+        let granted = [permissionJSON("OVERLAY", "GRANTED")]
+        let (api, _) = protectionApi([
+            .ok(protectionJSON(level: "SOMETHING_NEW", permissions: denied)),
+            .ok(protectionJSON(level: "SOMETHING_NEW", permissions: granted, isStale: true)),
+            .ok(protectionJSON(level: "BROKEN", permissions: granted)),
+        ])
+
+        #expect(try await api.status(childId: aliId).level == .degraded)
+        #expect(try await api.status(childId: aliId).level == .degraded)
+        #expect(try await api.status(childId: aliId).level == .broken)
     }
 
     // Spec §4.1: optional fields are read defensively.

@@ -30,6 +30,12 @@ struct ProtectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .refreshable { await model.load() }
+        // The tick under the button is silent for VoiceOver without this.
+        .onChange(of: model.wereInstructionsSent) { _, sent in
+            if sent {
+                AccessibilityNotification.Announcement(l10n.protectionSendSent).post()
+            }
+        }
         // Back from another app (spec D5): the child may have fixed it meanwhile.
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
