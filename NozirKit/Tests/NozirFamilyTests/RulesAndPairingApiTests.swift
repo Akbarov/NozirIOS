@@ -184,6 +184,24 @@ private let chessId = UUID(uuidString: "1a2b3c4d-0000-4000-8000-000000000002")!
         #expect(request.jsonBody == ["locale": "ru"])
     }
 
+    // P20: only an owner may ask for the family's data to be deleted.
+    @Test func theParentsRoleIsRead() async throws {
+        let parent = #"{"parentId":"\#(UUID().uuidString)","familyId":"\#(UUID().uuidString)","phoneE164":null,"displayName":"Zohid","locale":"uz","timeZone":"Asia/Tashkent","role":"GUARDIAN","createdAt":"2026-10-01T08:00:00Z"}"#
+        let (api, _) = familyApi([.ok(parent)])
+
+        #expect(try await api.me().role == "GUARDIAN")
+    }
+
+    @Test func aParentRecordWithoutARoleStillReads() async throws {
+        let parent = #"{"displayName":"Zohid","phoneE164":null,"locale":"uz"}"#
+        let (api, _) = familyApi([.ok(parent)])
+
+        let me = try await api.me()
+
+        #expect(me.displayName == "Zohid")
+        #expect(me.role == nil)
+    }
+
     @Test func theTrackingRuleIsReadWhole() async throws {
         let tracking = #"{"isEnabled":true,"intervalMinutes":15,"zoneIntervalMinutes":1,"moveMetres":200}"#
         let (api, _) = familyApi([.ok(snapshotJSON(tracking: tracking))])

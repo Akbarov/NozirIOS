@@ -240,4 +240,52 @@ private struct Echo: Decodable, Equatable {
             Issue.record("expected ApiFailure, got \(error)")
         }
     }
+
+    // P20: GET …/data-deletion-requests/current answers 204 when nothing is pending.
+    @Test func aNoContentAnswerReadsAsNothing() async throws {
+        let transport = FakeTransport([.init(status: 204)])
+        let client = ApiClient(baseURL: base, transport: transport, identity: identity, tokens: FakeTokens(current: "acc-1"))
+
+        let echo = try await client.sendUnlessNoContent(ApiRequest(method: .get, path: "/v1/parent/x"), as: Echo.self)
+
+        #expect(echo == nil)
+    }
+
+    @Test func aBodyIsDecodedWhenThereIsOne() async throws {
+        let transport = FakeTransport([.ok(#"{"value":"x"}"#)])
+        let client = ApiClient(baseURL: base, transport: transport, identity: identity, tokens: FakeTokens(current: "acc-1"))
+
+        let echo = try await client.sendUnlessNoContent(ApiRequest(method: .get, path: "/v1/parent/x"), as: Echo.self)
+
+        #expect(echo == Echo(value: "x"))
+    }
+
+    // Review Focus 1: only the status says "nothing"; an empty 200 is a fault.
+    @Test func onlyTheNoContentStatusMeansNothing() async {
+        let client = ApiClient(baseURL: base, transport: FakeTransport([.init(status: 200)]), identity: identity)
+
+        do {
+            _ = try await client.sendUnlessNoContent(ApiRequest(method: .get, path: "/v1/x", requiresAuth: false), as: Echo.self)
+            Issue.record("expected a decoding failure")
+        } catch let failure as ApiFailure {
+            guard case .decoding = failure else {
+                Issue.record("expected .decoding, got \(failure)")
+                return
+            }
+        } catch {
+            Issue.record("expected ApiFailure, got \(error)")
+        }
+    }
+
+    @Test func aRefusalIsStillThrownWhenNothingIsAllowed() async {
+        let transport = FakeTransport([.error(403, code: "FORBIDDEN")])
+        let client = ApiClient(baseURL: base, transport: transport, identity: identity)
+
+        await #expect(throws: ApiFailure.server(
+            status: 403,
+            error: ApiError(code: .forbidden, message: "server text")
+        )) {
+            try await client.sendUnlessNoContent(ApiRequest(method: .get, path: "/v1/x", requiresAuth: false), as: Echo.self)
+        }
+    }
 }

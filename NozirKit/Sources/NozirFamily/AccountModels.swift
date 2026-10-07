@@ -73,15 +73,19 @@ public struct Subscription: Decodable, Equatable, Sendable {
     }
 }
 
-/// `ParentAccountResponse`, the parts P21 shows.
+/// `ParentAccountResponse`, the parts P21 and P20 use.
 public struct ParentProfile: Decodable, Equatable, Sendable {
     public let displayName: String?
     public let phoneE164: String?
     public let locale: String
+    /// `ParentRole`: "OWNER" or "GUARDIAN". Kept a string, like `ParentAccount.role`;
+    /// nil when the server did not say, which P20 reads as "not the owner".
+    public let role: String?
 
-    public init(displayName: String?, phoneE164: String?, locale: String) {
+    public init(displayName: String?, phoneE164: String?, locale: String, role: String? = nil) {
         self.displayName = displayName
         self.phoneE164 = phoneE164
         self.locale = locale
+        self.role = role
     }
 }
