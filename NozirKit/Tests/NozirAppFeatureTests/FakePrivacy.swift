@@ -24,6 +24,11 @@ actor FakePrivacy: PrivacyService {
         self.script = script
     }
 
+    /// Holds the next `disclosure` call, for a test that arms it after a first load.
+    func holdNextDisclosure(_ gate: PauseGate) {
+        script.disclosureGate = gate
+    }
+
     func disclosure() async throws -> PrivacyDisclosure {
         calls.append("disclosure")
         let answer: Result<PrivacyDisclosure, ApiFailure> = script.disclosure.isEmpty ? .failure(offline) : script.disclosure.removeFirst()

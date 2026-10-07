@@ -102,6 +102,8 @@ final class PrivacyModel {
     func confirmDelete() async {
         guard deletion == .confirming else { return }
         deletion = .submitting
+        // A load already in flight predates this request: its answer is dropped.
+        generation += 1
         do {
             let recorded = try await privacy.requestDeletion()
             deletion = .requested(executableAt: recorded.executableAt)

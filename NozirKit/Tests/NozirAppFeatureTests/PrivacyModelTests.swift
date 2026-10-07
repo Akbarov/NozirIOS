@@ -307,6 +307,30 @@ private func setup(
     }
 
     // Review Focus 3.
+    // Fix round 1: a load in flight when the request succeeds must not undo it.
+    @Test(.timeLimit(.minutes(5)))
+    func aLoadInFlightWhenTheRequestSucceedsDoesNotBringTheButtonBack() async {
+        let gate = PauseGate()
+        var script = loaded(times: 2)
+        script.request = [.success(recordedRequest)]
+        let (model, fake, spy) = await setup(script, parents: [.success(owner), .success(owner)])
+        await model.load()
+        await fake.holdNextDisclosure(gate)
+
+        let slow = Task { await model.load() }
+        await gate.untilPaused()
+        model.startDelete()
+        await model.confirmDelete()
+        #expect(model.deletion == .requested(executableAt: deletionDate))
+
+        await gate.release()
+        await slow.value
+        #expect(model.deletion == .requested(executableAt: deletionDate))
+        #expect(!model.canRequestDeletion)
+        #expect(spy.count == 1)
+        #expect(await fake.calls.filter { $0 == "request" }.count == 1)
+    }
+
     @Test(.timeLimit(.minutes(5)))
     func anOlderLoadNeverOverwritesANewerOne() async {
         let gate = PauseGate()
