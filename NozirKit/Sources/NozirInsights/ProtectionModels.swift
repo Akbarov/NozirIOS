@@ -92,13 +92,13 @@ public struct ProtectionStatus: Decodable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         childId = try container.decode(UUID.self, forKey: .childId)
-        level = try container.decodeIfPresent(ProtectionLevel.self, forKey: .level) ?? .healthy
-        let raw = (try? container.decodeIfPresent([RawPermission].self, forKey: .permissions)) ?? []
-        permissions = raw.compactMap(\.permission)
-        lastReportAt = (try? container.decodeIfPresent(Date.self, forKey: .lastReportAt)) ?? nil
+        level = try container.decode(ProtectionLevel.self, forKey: .level)
+        let raw = (try? container.decodeIfPresent([LossyPermission].self, forKey: .permissions)) ?? []
+        permissions = raw.compactMap { $0.raw?.permission }
+        lastReportAt = (try? container.decodeIfPresent(Date.self, forKey: .lastReportAt))
         isStale = (try? container.decodeIfPresent(Bool.self, forKey: .isStale)) ?? false
         manufacturer = (try? container.decodeIfPresent(String.self, forKey: .manufacturer)) ?? ""
-        instructionKey = (try? container.decodeIfPresent(String.self, forKey: .instructionKey)) ?? nil
+        instructionKey = (try? container.decodeIfPresent(String.self, forKey: .instructionKey))
     }
 
     /// What "Yuborish" sends: every permission not granted, in the server's order.
@@ -107,12 +107,34 @@ public struct ProtectionStatus: Decodable, Equatable, Sendable {
     }
 }
 
-/// One `PermissionStateDto` before the app decides whether it can read it.
+/// One element of `permissions`; one the app cannot read drops only itself.
+private struct LossyPermission: Decodable {
+    let raw: RawPermission?
+
+    init(from decoder: any Decoder) throws {
+        raw = try? RawPermission(from: decoder)
+    }
+}
+
+/// One `PermissionStateDto` before the app decides whether it can use it. A
+/// wrong-typed field reads as absent.
 private struct RawPermission: Decodable {
     let kind: String?
     let status: String?
     let wasRevoked: Bool?
     let instructionKey: String?
+
+    enum CodingKeys: String, CodingKey {
+        case kind, status, wasRevoked, instructionKey
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try? container.decodeIfPresent(String.self, forKey: .kind)
+        status = try? container.decodeIfPresent(String.self, forKey: .status)
+        wasRevoked = try? container.decodeIfPresent(Bool.self, forKey: .wasRevoked)
+        instructionKey = try? container.decodeIfPresent(String.self, forKey: .instructionKey)
+    }
 
     var permission: ProtectionPermission? {
         guard let kind = kind.flatMap(PermissionKind.init(rawValue:)),

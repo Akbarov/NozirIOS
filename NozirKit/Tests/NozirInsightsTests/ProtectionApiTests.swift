@@ -71,7 +71,7 @@ private let protectionPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a
 
     // Spec §4.1: optional fields are read defensively.
     @Test func absentOrUnreadableFieldsHaveSafeDefaults() async throws {
-        let body = #"{"childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01","lastReportAt":"yesterday","permissions":[{"kind":"BATTERY","status":"GRANTED"}]}"#
+        let body = #"{"childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01","level":"HEALTHY","lastReportAt":"yesterday","permissions":[{"kind":"BATTERY","status":"GRANTED"}]}"#
         let (api, _) = protectionApi([.ok(body)])
 
         let status = try await api.status(childId: aliId)
@@ -83,6 +83,48 @@ private let protectionPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a
         #expect(status.manufacturer == "")
         #expect(status.instructionKey == nil)
         #expect(status.kindsToFix.isEmpty)
+    }
+
+    @Test func oneGarbledPermissionDropsOnlyItself() async throws {
+        let body = protectionJSON(permissions: [
+            #"{"kind":5,"status":"DENIED"}"#,
+            "7",
+            permissionJSON("OVERLAY", "DENIED"),
+            #"{"kind":"LOCATION","status":"DENIED","wasRevoked":"yes"}"#,
+        ])
+        let (api, _) = protectionApi([.ok(body)])
+
+        let status = try await api.status(childId: aliId)
+
+        #expect(status.permissions == [
+            ProtectionPermission(kind: .overlay, status: .denied),
+            ProtectionPermission(kind: .location, status: .denied),
+        ])
+    }
+
+    @Test func aStatusWithoutALevelIsADecodingFailure() async {
+        for body in [
+            #"{"childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01"}"#,
+            #"{"childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01","level":null}"#,
+        ] {
+            await expectDecodingFailure(body)
+        }
+    }
+
+    @Test func aStatusWithoutAReadableChildIdIsADecodingFailure() async {
+        await expectDecodingFailure(#"{"level":"HEALTHY"}"#)
+        await expectDecodingFailure(#"{"childId":"not-a-uuid","level":"HEALTHY"}"#)
+    }
+
+    private func expectDecodingFailure(_ body: String) async {
+        let (api, _) = protectionApi([.ok(body)])
+        do {
+            _ = try await api.status(childId: aliId)
+            Issue.record("expected a decoding failure for \(body)")
+        } catch ApiFailure.decoding {
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
     }
 
     @Test func aChildThatIsGoneIsNotFound() async {
