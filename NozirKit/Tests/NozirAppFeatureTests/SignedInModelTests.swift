@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import NozirDesignSystem
 import NozirFamily
+import NozirInsights
 import NozirL10n
 import NozirLocation
 import NozirPrivacy
@@ -20,6 +21,7 @@ private func setup(
     _ script: FakeFamily.Script,
     defaults: UserDefaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!,
     sent: SentLocales = SentLocales(),
+    extraTime: FakeExtraTime = FakeExtraTime(),
     privacy: FakePrivacy = FakePrivacy(),
     privacyConfig: PrivacyConfig = .absent,
     signOutLocally: @escaping @MainActor () -> Void = {}
@@ -29,6 +31,7 @@ private func setup(
     let model = SignedInModel(
         family: FamilyStore(service: fake),
         insights: FakeInsights(),
+        extraTime: extraTime,
         location: FakeLocation(),
         language: language,
         appearance: AppearanceStore(defaults: defaults),
@@ -288,5 +291,20 @@ private func setup(
 
         #expect(privacy.deleteBody(L10n(.uz)) == L10n(.uz).privacyDeleteBodyWithDays(7))
         #expect(endedLocally == 1)
+    }
+
+    // P17 (T1): the screen is for the ask tapped, with that child's minutes from Home.
+    @Test func theTimeRequestScreenIsForTheAskTapped() async {
+        let id = UUID()
+        var script = FakeExtraTime.Script()
+        script.pending = [.success([extraTimeAsk(id: id)])]
+        let (model, _) = setup(FakeFamily.Script(), extraTime: FakeExtraTime(script))
+
+        let screen = model.makeTimeRequestModel(id: id, usedMinutesToday: 95)
+        await screen.load()
+
+        #expect(screen.requestId == id)
+        #expect(screen.usedMinutesToday == 95)
+        #expect(screen.phase == .ready)
     }
 }

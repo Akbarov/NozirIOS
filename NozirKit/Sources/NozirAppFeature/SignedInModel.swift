@@ -27,6 +27,7 @@ public final class SignedInModel {
     private(set) var homeRefresh = 0
 
     private let insights: any InsightsService
+    private let extraTime: any ExtraTimeService
     let locationService: any LocationService
     private let language: LanguageStore
     private let appearance: AppearanceStore
@@ -41,6 +42,7 @@ public final class SignedInModel {
     init(
         family: FamilyStore,
         insights: any InsightsService,
+        extraTime: any ExtraTimeService,
         location: any LocationService,
         language: LanguageStore,
         appearance: AppearanceStore,
@@ -53,6 +55,7 @@ public final class SignedInModel {
     ) {
         self.family = family
         self.insights = insights
+        self.extraTime = extraTime
         locationService = location
         self.language = language
         self.appearance = appearance
@@ -170,6 +173,12 @@ public final class SignedInModel {
 
     func makeSosDetailModel(seed: ActiveSos, emergencyNumber: String) -> SosDetailModel {
         SosDetailModel(seed: seed, child: family.child(seed.childId), emergencyNumber: emergencyNumber, location: locationService)
+    }
+
+    /// P17 for one ask; today's minutes come from the Home card that opened it
+    /// (plan deviation T1).
+    func makeTimeRequestModel(id: UUID, usedMinutesToday: Int?) -> TimeRequestModel {
+        TimeRequestModel(requestId: id, usedMinutesToday: usedMinutesToday, service: extraTime)
     }
 
     var currentEmergencyNumber: String? {
