@@ -102,3 +102,13 @@ Swift Testing, soxta servis: holat o'tishlari; ikki marta bosish; current xatosi
 2. Cascade'ning haqiqiy Postgres'dagi to'liqligi faqat to'liqlik testi va qo'lda sinov bilan tekshiriladi.
 3. `outbox_message.payload` da `familyId` kalitisiz shaxsiy ma'lumot bo'lishi mumkin (masalan faqat `parentId`) — plan topic'larni ko'rib chiqadi.
 4. Ko'p instance: executor `SKIP LOCKED` bilan xavfsiz, ShedLock kerak emas.
+
+## 6. Plan bosqichidagi aniqliklar (kod bilan tekshirilgan, ushbu bo'limlar yuqoridagidan ustun)
+- `family`/`child` jadvallari `family` moduliga tegishli: executor ularga `FamilyRegistry` porti (`childIdsOf`, `deleteFamily`) orqali murojaat qiladi.
+- Takror so'rov: unique buzilishini ushlash Postgres tranzaksiyasini buzadi — `INSERT … ON CONFLICT … DO NOTHING`, keyin mavjud PENDING qator o'qiladi.
+- `revokeAllFor` sababni `LOGOUT` deb qattiq yozadi — POST `ACCOUNT_DELETED` sababi bilan alohida chaqiruv + `token_version` oshirish ishlatadi. OWNER tekshiruvi saqlangan `parent_account.role` bo'yicha.
+- Executor: yugurish boshida N ta muddati o'tgan id o'qiladi, har biri o'z tranzaksiyasida qulflanadi (xato beradigan oila qolganlarini to'sib qo'ymaydi). So'rovlar `subject_child_id IS NULL` shartini ham talab qiladi; V42 eski bola-ko'lamli PENDING ota-ona so'rovlarini `CANCELLED` qiladi.
+- Reviewer himoyasi: `f0f0f0f0-0000-4000-8000-000000000001` oilasi YOKI telefoni `DevProperties.isFixedOtpPhone` ga mos ota-onasi bor oila (V41 mavjud oilani qayta ishlatishi mumkin).
+- Outbox: qatorlar `familyId` bo'yicha va har bir bolaning `childId` si bo'yicha o'chiriladi (`PROCESSING` dan tashqari).
+- To'liqlik testi beshinchi ro'yxatga ega: `EXPIRES_ON_ITS_OWN` (`idempotency_record`).
+- iOS: `ParentAccount` saqlanmaydi — rol `GET /v1/parent/me` dan olinadi (`load()` uchta parallel so'rov); 204 uchun `ApiClient.sendUnlessNoContent` qo'shiladi; yangi `NozirPrivacy` moduli.
