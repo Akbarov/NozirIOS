@@ -90,23 +90,27 @@ public struct ParentHome: Decodable, Equatable, Sendable {
     /// P17 rows, newest first. A list that cannot be read is no list: Home
     /// still loads (plan deviation T6).
     public let pendingExtraTimeRequests: [ExtraTimeRequest]
+    /// P18 row. Absent or unreadable is nil: no row, and Home still loads.
+    public let protection: HomeProtection?
 
     public init(
         date: LocalDate,
         children: [ChildHomeCard],
         familySummary: String? = nil,
         activeSos: ActiveSos? = nil,
-        pendingExtraTimeRequests: [ExtraTimeRequest] = []
+        pendingExtraTimeRequests: [ExtraTimeRequest] = [],
+        protection: HomeProtection? = nil
     ) {
         self.date = date
         self.children = children
         self.familySummary = familySummary
         self.activeSos = activeSos
         self.pendingExtraTimeRequests = pendingExtraTimeRequests
+        self.protection = protection
     }
 
     enum CodingKeys: String, CodingKey {
-        case date, children, familySummary, activeSos, pendingExtraTimeRequests
+        case date, children, familySummary, activeSos, pendingExtraTimeRequests, protection
     }
 
     public init(from decoder: any Decoder) throws {
@@ -116,6 +120,29 @@ public struct ParentHome: Decodable, Equatable, Sendable {
         familySummary = try container.decodeIfPresent(String.self, forKey: .familySummary)
         activeSos = try container.decodeIfPresent(ActiveSos.self, forKey: .activeSos)
         pendingExtraTimeRequests = (try? container.decodeIfPresent([ExtraTimeRequest].self, forKey: .pendingExtraTimeRequests)) ?? []
+        protection = try? container.decodeIfPresent(HomeProtection.self, forKey: .protection)
+    }
+}
+
+/// `HomeProtectionDto`: the family's worst level and the children that are not
+/// healthy. Only these two fields come with Home.
+public struct HomeProtection: Decodable, Equatable, Sendable {
+    public let level: ProtectionLevel
+    public let childrenNeedingAttention: [UUID]
+
+    public init(level: ProtectionLevel, childrenNeedingAttention: [UUID] = []) {
+        self.level = level
+        self.childrenNeedingAttention = childrenNeedingAttention
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case level, childrenNeedingAttention
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        level = try container.decodeIfPresent(ProtectionLevel.self, forKey: .level) ?? .healthy
+        childrenNeedingAttention = try container.decodeIfPresent([UUID].self, forKey: .childrenNeedingAttention) ?? []
     }
 }
 

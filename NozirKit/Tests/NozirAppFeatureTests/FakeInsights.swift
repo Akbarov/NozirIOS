@@ -100,9 +100,17 @@ func parentHome(
     date: LocalDate = day("2026-10-05"),
     familySummary: String? = nil,
     sos: ActiveSos? = nil,
-    requests: [ExtraTimeRequest] = []
+    requests: [ExtraTimeRequest] = [],
+    protection: HomeProtection? = nil
 ) -> ParentHome {
-    ParentHome(date: date, children: children, familySummary: familySummary, activeSos: sos, pendingExtraTimeRequests: requests)
+    ParentHome(
+        date: date,
+        children: children,
+        familySummary: familySummary,
+        activeSos: sos,
+        pendingExtraTimeRequests: requests,
+        protection: protection
+    )
 }
 
 func insight(

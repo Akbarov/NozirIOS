@@ -191,4 +191,45 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
         #expect(home.pendingExtraTimeRequests.isEmpty)
         #expect(home.children.count == 1)
     }
+
+    // P18: the family's worst level and who is behind it come with home.
+    @Test func homeCarriesTheFamilysProtection() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #""protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: #""protection":{"level":"BROKEN","childrenNeedingAttention":["0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01"]}"#
+        )
+        let (api, _) = insightsApi([.ok(body), .ok(fullHomeJSON)])
+
+        #expect(try await api.home().protection == HomeProtection(level: .broken, childrenNeedingAttention: [aliId]))
+        #expect(try await api.home().protection == HomeProtection(level: .healthy, childrenNeedingAttention: []))
+    }
+
+    @Test func aHomeWithoutProtectionHasNoRow() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #","protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: ""
+        )
+        let (api, _) = insightsApi([.ok(body)])
+
+        let home = try await api.home()
+
+        #expect(home.protection == nil)
+        #expect(home.children.count == 1)
+    }
+
+    // Review Focus 5: an unreadable block is no block; a new level is healthy.
+    @Test func protectionThatCannotBeReadLeavesHomeStanding() async throws {
+        let unreadable = bareHomeJSON.replacingOccurrences(
+            of: #""childrenNeedingAttention":[]"#,
+            with: #""childrenNeedingAttention":["not-a-uuid"]"#
+        )
+        let newLevel = bareHomeJSON.replacingOccurrences(of: #""level":"HEALTHY""#, with: #""level":"SOMETHING_NEW""#)
+        let (api, _) = insightsApi([.ok(unreadable), .ok(newLevel)])
+
+        let home = try await api.home()
+        #expect(home.protection == nil)
+        #expect(home.children.count == 1)
+
+        #expect(try await api.home().protection?.level == .healthy)
+    }
 }
