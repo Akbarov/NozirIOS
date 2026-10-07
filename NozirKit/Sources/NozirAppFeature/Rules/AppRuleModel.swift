@@ -59,13 +59,13 @@ final class AppRuleModel {
         AppRuleTexts.name(packageId: packageId, displayName: sentName)
     }
 
-    /// "Doim yopiq" is offered only to a rule saved that way (spec D2): kept,
-    /// never one tap away for a rule that is not.
+    /// Every app gets all four modes, "Doim yopiq" included (spec D2: the
+    /// parent may close any app for good, no confirmation). Only a package
+    /// the server never blocks is held to "Cheklov yo'q".
     var modes: [AppPolicyMode] {
         // The server answers 400 to a rule on a package it never blocks.
         if session.snapshot?.neverBlockedPackages.contains(packageId) == true { return [.unrestricted] }
-        let offered: [AppPolicyMode] = [.unrestricted, .dailyLimit, .scheduleBlock]
-        return saved?.mode == .alwaysBlocked ? offered + [.alwaysBlocked] : offered
+        return [.unrestricted, .dailyLimit, .scheduleBlock, .alwaysBlocked]
     }
 
     /// nil for a mode this app has no segment for: none is lit.

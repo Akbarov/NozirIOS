@@ -78,7 +78,8 @@ struct AppRuleView: View {
         .task { await model.load() }
     }
 
-    /// Three segments, a fourth only for a rule saved as "Doim yopiq". A mode
+    /// Four segments for every app, "Cheklov yo'q" alone for a never-blocked
+    /// one (`model.modes`). A mode
     /// this app does not know lights none until the parent picks one (the
     /// selection is nil, and no label is ever made for `.unknown`). Tapping
     /// the lit segment again is no event: `setMode` runs only for a change.

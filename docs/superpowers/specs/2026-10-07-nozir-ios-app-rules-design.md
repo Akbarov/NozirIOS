@@ -50,7 +50,7 @@ Tartib: sarlavha (`app_rules_title`, `app_rules_subtitle`); oflayn belgisi (`sta
 
 ### 4.3 Tahrirlovchi
 - Sarlavha — ilovaning chiroyli nomi.
-- Rejim (segmentli): `app_rule_mode_none`, `app_rule_mode_daily_limit`, `app_rule_mode_schedule`; **`app_rule_always`** to'rtinchi segment faqat saqlangan rejim `ALWAYS_BLOCKED` bo'lsa (tanlangan holda); boshqa rejim tanlansa va saqlansa yo'qoladi. Noma'lum rejim — "Cheklov yo'q" ko'rsatilmaydi; qoralama boshqa rejim tanlanmaguncha o'zgarmaydi (saqlash o'chiq).
+- Rejim (segmentli): `app_rule_mode_none`, `app_rule_mode_daily_limit`, `app_rule_mode_schedule`; **`app_rule_always`** to'rtinchi segment; hech qachon bloklanmaydigan paketdan tashqari har bir ilovada to'rttala segment ko'rinadi (bunday paketda faqat "Cheklov yo'q"). "Doim yopiq" tasdiq oynasisiz tanlanadi va saqlanadi; daqiqa va oynalar tozalanadi. Noma'lum rejim — "Cheklov yo'q" ko'rsatilmaydi; qoralama boshqa rejim tanlanmaguncha o'zgarmaydi (saqlash o'chiq).
 - Kunlik vaqt: slayder `app_rule_daily_limit_slider`, 15–240 qadam 15, sukut 30.
 - Jadval: `app_rule_window_start` ("Yopilishi"), `app_rule_window_end` ("Ochilishi"), sukut 08:00–13:00; kunlar sukut 1–5, oxirgi kun o'chmaydi. Faqat birinchi oyna tahrirlanadi; qolganlari o'zgarmasdan yuboriladi.
 - Rejim almashganda (`withMode`): cheklovsiz/doim yopiq — daqiqa va oynalar tozalanadi; kunlik — mavjud daqiqa yoki 30, oyna yo'q; jadval — mavjud oynalar yoki sukut oyna, daqiqa yo'q.
@@ -82,7 +82,7 @@ Hub "Ilovalar" qatori va soni; ilova qo'shish, qidiruv; uch rejimni saqlab bola 
 | # | Android | iOS 2c-2 | Sabab |
 |---|---|---|---|
 | D1 | Tahrirlovchi qator ostida | Alohida ekran | Foydalanuvchi tanlovi, iOS odati |
-| D2 | `ALWAYS_BLOCKED` "Cheklov yo'q" ko'rinadi, saqlansa yo'qoladi | 4-segment sifatida saqlanadi | Foydalanuvchi tanlovi; Android xatosi |
+| D2 | `ALWAYS_BLOCKED` umuman taklif qilinmaydi ("oxirgi chora" deb hisoblanadi) va saqlashda jim tashlab yuboriladi | Har bir ilova uchun 4-segment sifatida taklif qilinadi, tasdiqsiz (hech qachon bloklanmaydigan paket bundan mustasno) | Foydalanuvchi so'rovi (2026-10-07) |
 | D3 | Ilovalar yuklanmasa jim | Xato + qayta urinish | Ota-ona sababini bilsin |
 | D4 | Saqlangach xabar yo'q | `rules_saved*` xabari | iOS P09/P10/P12 bilan bir xil |
 | D5 | O'zgarishsiz qoralamani ham saqlaydi | Faqat o'zgarish bo'lsa (yangi ilova bundan mustasno) | Keraksiz yozuv va versiya oshishi yo'q |

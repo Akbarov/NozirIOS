@@ -47,7 +47,7 @@ private func setup(
         #expect(model.policy == saved)
         #expect(model.name == "Roblox")
         #expect(model.selectedMode == .unrestricted)
-        #expect(model.modes == [.unrestricted, .dailyLimit, .scheduleBlock])
+        #expect(model.modes == [.unrestricted, .dailyLimit, .scheduleBlock, .alwaysBlocked])
         #expect(model.canSave)
 
         await model.save()
@@ -119,7 +119,8 @@ private func setup(
         model.toggleDay(6)
         #expect(model.edited == nil)
 
-        model.setMode(.alwaysBlocked)
+        // A mode this app has no segment for is ignored.
+        model.setMode(.unknown("FOCUS_ONLY"))
         #expect(model.policy == mine)
         #expect(!model.canSave)
     }
@@ -148,7 +149,7 @@ private func setup(
         await model.save()
 
         #expect(await fake.appPolicyWrites == [RuleWrite(value: daily, version: 4)])
-        #expect(model.modes == [.unrestricted, .dailyLimit, .scheduleBlock])
+        #expect(model.modes == [.unrestricted, .dailyLimit, .scheduleBlock, .alwaysBlocked])
         #expect(model.selectedMode == .dailyLimit)
     }
 
@@ -159,7 +160,7 @@ private func setup(
         let (model, _, fake) = await setup(script)
 
         #expect(model.selectedMode == nil)
-        #expect(model.modes == [.unrestricted, .dailyLimit, .scheduleBlock])
+        #expect(model.modes == [.unrestricted, .dailyLimit, .scheduleBlock, .alwaysBlocked])
         #expect(!model.canSave)
 
         model.setDailyLimitMinutes(60)
@@ -382,6 +383,41 @@ private func setup(
         await idleSession.reload()
         #expect(!idle.hasChange)
         #expect(!idle.canSave)
+    }
+
+    @Test func aNewAppCanBeClosedForGood() async {
+        let closed = appPolicy(roblox, name: "Roblox", mode: .alwaysBlocked)
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4))]
+        script.appPolicy = [.success(snapshot(version: 5, apps: [closed]))]
+        let (model, _, fake) = await setup(script)
+
+        #expect(model.modes.contains(.alwaysBlocked))
+        model.setMode(.alwaysBlocked)
+        #expect(model.selectedMode == .alwaysBlocked)
+        await model.save()
+
+        let writes = await fake.appPolicyWrites
+        #expect(writes.count == 1)
+        #expect(writes.first?.value.mode == .alwaysBlocked)
+        #expect(writes.first?.value.dailyLimitMinutes == nil)
+        #expect(writes.first?.value.blockWindows.isEmpty == true)
+        #expect(model.notice == .saved)
+    }
+
+    @Test func aDailyLimitRuleCanBeSwitchedToAlwaysClosed() async {
+        let closed = appPolicy(roblox, name: "Roblox", mode: .alwaysBlocked)
+        var script = FakeFamily.Script()
+        script.rules = [.success(snapshot(version: 4, apps: [mine]))]
+        script.appPolicy = [.success(snapshot(version: 5, apps: [closed]))]
+        let (model, _, fake) = await setup(script)
+
+        model.setMode(.alwaysBlocked)
+        #expect(model.canSave)
+        await model.save()
+
+        #expect(await fake.appPolicyWrites == [RuleWrite(value: closed, version: 4)])
+        #expect(model.notice == .saved)
     }
 
     @Test func aNeverBlockedAppOffersOnlyNoLimit() async {
