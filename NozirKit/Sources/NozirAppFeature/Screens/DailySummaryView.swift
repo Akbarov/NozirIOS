@@ -2,6 +2,7 @@ import SwiftUI
 import NozirDesignSystem
 import NozirInsights
 import NozirL10n
+import StoreKit
 
 /// P06 as Android `DailySummaryScreen`: paragraphs, a recommendation, a
 /// question for the week, the "no messages were read" promise, and the way on
@@ -11,6 +12,7 @@ struct DailySummaryView: View {
     private let onEditChild: () -> Void
     private let onOpenWeekly: () -> Void
     @Environment(\.l10n) private var l10n
+    @Environment(\.requestReview) private var requestReview
 
     init(model: DailySummaryModel, onEditChild: @escaping () -> Void, onOpenWeekly: @escaping () -> Void) {
         _model = State(initialValue: model)
@@ -37,6 +39,13 @@ struct DailySummaryView: View {
         }
         .task { await model.load() }
         .refreshable { await model.retry() }
+        // Spec D3: the parent has just been given what they opened the app
+        // for. The gate allows this once per install; Apple decides the rest.
+        .onChange(of: model.hasSummary, initial: true) { _, hasSummary in
+            if hasSummary, model.reviewIsDue() {
+                requestReview()
+            }
+        }
     }
 
     private var header: some View {

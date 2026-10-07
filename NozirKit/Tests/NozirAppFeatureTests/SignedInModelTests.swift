@@ -22,6 +22,7 @@ private func setup(
     defaults: UserDefaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!,
     sent: SentLocales = SentLocales(),
     insights: FakeInsights = FakeInsights(),
+    reviewGate: ReviewGate? = nil,
     extraTime: FakeExtraTime = FakeExtraTime(),
     protection: FakeProtection = FakeProtection(),
     notifications: FakeNotifications = FakeNotifications(),
@@ -44,6 +45,7 @@ private func setup(
         emergencyNumber: { "112" },
         privacy: privacy,
         privacyConfig: { privacyConfig },
+        reviewGate: reviewGate ?? ReviewGate(defaults: defaults),
         signOutLocally: signOutLocally,
         signOut: {}
     )
@@ -390,5 +392,33 @@ private func setup(
 
         #expect(screen.summaryId == id)
         #expect(screen.phase == .resolved(.summary(ali.id, "Ali", date: day("2026-10-04"))))
+    }
+
+    // Spec D3: every P06 of the session asks the one gate, so the second
+    // summary cannot ask again.
+    @Test func theDailySummariesShareTheSessionsReviewGate() async {
+        let defaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!
+        let clock = MovableClock()
+        let daily = insight(childId: UUID(), start: "2026-10-04", end: "2026-10-04")
+        var script = FakeInsights.Script()
+        script.daily = [.success(daily), .success(daily), .success(daily)]
+        let (model, _) = setup(
+            FakeFamily.Script(),
+            defaults: defaults,
+            insights: FakeInsights(script),
+            reviewGate: ReviewGate(defaults: defaults, now: { clock.now })
+        )
+
+        let first = model.makeDailySummaryModel(childId: daily.childId, childName: "Ali")
+        await first.load()
+        #expect(!first.reviewIsDue())
+        clock.advance(days: 3)
+        let second = model.makeDailySummaryModel(childId: daily.childId, childName: "Ali")
+        await second.load()
+        let third = model.makeDailySummaryModel(childId: daily.childId, childName: "Ali", date: day("2026-10-04"))
+        await third.load()
+
+        #expect(second.reviewIsDue())
+        #expect(!third.reviewIsDue())
     }
 }

@@ -89,6 +89,7 @@ public final class AppEnvironment {
             emergencyNumber: { [appModel] in appModel.emergencyNumber },
             privacy: PrivacyApi(client: authorised),
             privacyConfig: { [appModel] in appModel.privacyConfig },
+            reviewGate: ReviewGate(),
             signOutLocally: { [appModel] in
                 UserDefaults.standard.removeObject(forKey: LocaleSync.unsentKey)
                 appModel.signOutLocally()

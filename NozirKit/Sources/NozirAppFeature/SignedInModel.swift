@@ -37,6 +37,7 @@ public final class SignedInModel {
     private let emergencyNumber: @MainActor () -> String?
     private let privacy: any PrivacyService
     private let privacyConfig: @MainActor () -> PrivacyConfig
+    private let reviewGate: ReviewGate
     private let signOutLocallyAction: @MainActor () -> Void
     private let signOutAction: @MainActor () async -> Void
     @ObservationIgnored private var hasStarted = false
@@ -54,6 +55,7 @@ public final class SignedInModel {
         emergencyNumber: @escaping @MainActor () -> String?,
         privacy: any PrivacyService,
         privacyConfig: @escaping @MainActor () -> PrivacyConfig,
+        reviewGate: ReviewGate,
         signOutLocally: @escaping @MainActor () -> Void,
         signOut: @escaping @MainActor () async -> Void
     ) {
@@ -69,6 +71,7 @@ public final class SignedInModel {
         self.emergencyNumber = emergencyNumber
         self.privacy = privacy
         self.privacyConfig = privacyConfig
+        self.reviewGate = reviewGate
         signOutLocallyAction = signOutLocally
         signOutAction = signOut
         statistics = StatisticsModel(family: family)
@@ -206,8 +209,9 @@ public final class SignedInModel {
     }
 
     /// P06: `date` nil is the latest finished day (Home); a link gives its day.
+    /// Every P06 asks the session's one review gate.
     func makeDailySummaryModel(childId: UUID, childName: String, date: LocalDate? = nil) -> DailySummaryModel {
-        DailySummaryModel(childId: childId, childName: childName, date: date, insights: insights)
+        DailySummaryModel(childId: childId, childName: childName, date: date, insights: insights, reviewGate: reviewGate)
     }
 
     /// P07: `weekStart` nil is this week (Home, Statistics); a link gives its week.

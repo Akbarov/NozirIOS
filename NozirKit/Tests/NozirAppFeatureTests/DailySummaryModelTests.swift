@@ -8,9 +8,9 @@ import NozirNetworking
 private let aliId = UUID()
 
 @MainActor
-private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil) -> (DailySummaryModel, FakeInsights) {
+private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil, reviewGate: ReviewGate? = nil) -> (DailySummaryModel, FakeInsights) {
     let insights = FakeInsights(script)
-    return (DailySummaryModel(childId: aliId, childName: "Ali", date: date, insights: insights), insights)
+    return (DailySummaryModel(childId: aliId, childName: "Ali", date: date, insights: insights, reviewGate: reviewGate), insights)
 }
 
 @MainActor
@@ -161,5 +161,45 @@ private func setup(_ script: FakeInsights.Script, date: LocalDate? = nil) -> (Da
         second.cancel()
         await second.value
         #expect(model.state == .failed(.noConnection))
+    }
+
+    // Spec D3 (Android `ReviewPrompt(isGoodMoment = summary != null)`): asked
+    // only over a loaded summary; "not ready" and errors never touch the gate.
+    @Test func theReviewIsAskedOnlyOverALoadedSummary() async {
+        let defaults = UserDefaults(suiteName: "DailySummaryModelTests.\(UUID().uuidString)")!
+        let clock = MovableClock()
+        let gate = ReviewGate(defaults: defaults, now: { clock.now })
+        let daily = insight(childId: aliId, start: "2026-10-04", end: "2026-10-04")
+        var script = FakeInsights.Script()
+
+        script.daily = [.failure(notFound)]
+        let (notReady, _) = setup(script, reviewGate: gate)
+        await notReady.load()
+        script.daily = [.failure(offline)]
+        let (failed, _) = setup(script, reviewGate: gate)
+        await failed.load()
+        clock.advance(days: 5)
+
+        #expect(!notReady.hasSummary)
+        #expect(!notReady.reviewIsDue())
+        #expect(!failed.reviewIsDue())
+        #expect(defaults.object(forKey: ReviewGate.firstSeenKey) == nil)
+
+        script.daily = [.success(daily)]
+        let (first, _) = setup(script, reviewGate: gate)
+        await first.load()
+        #expect(first.hasSummary)
+        #expect(!first.reviewIsDue())
+
+        clock.advance(days: 3)
+        let (later, _) = setup(script, reviewGate: gate)
+        await later.load()
+        #expect(later.reviewIsDue())
+        #expect(!later.reviewIsDue())
+        #expect(!first.reviewIsDue())
+
+        let (withoutGate, _) = setup(script)
+        await withoutGate.load()
+        #expect(!withoutGate.reviewIsDue())
     }
 }
