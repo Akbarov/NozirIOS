@@ -266,6 +266,34 @@ private func setup(_ script: FakeNotifications.Script) -> (NotificationsModel, F
         #expect(!model.isLoadingMore)
     }
 
+    // Fix round 1: a "Yana" during a refresh would use the old cursor on the new list.
+    @Test(.timeLimit(.minutes(5)))
+    func moreIsNotAskedWhileTheFirstPageIsLoading() async {
+        var script = FakeNotifications.Script()
+        script.pages = [
+            .success(notificationPage([first], cursor: cursor)),
+            .success(notificationPage([third, first], cursor: "newer")),
+            .success(notificationPage([second])),
+        ]
+        let (model, fake) = setup(script)
+        await model.load()
+        let gate = PauseGate()
+        await fake.add { $0.pageGate = gate }
+
+        let refresh = Task { await model.load() }
+        await gate.untilPaused()
+        await model.loadMore()
+        #expect(await fake.pageAsks.count == 2)
+        #expect(!model.isLoadingMore)
+        await gate.release()
+        await refresh.value
+
+        #expect(model.items == [third, first])
+        await model.loadMore()
+        #expect(await fake.pageAsks.last == .init(filter: .all, cursor: "newer"))
+        #expect(model.items == [third, first, second])
+    }
+
     @Test func openingARowMarksItReadAtOnceAndTellsTheServer() async {
         var script = FakeNotifications.Script()
         script.pages = [.success(notificationPage([first, second]))]

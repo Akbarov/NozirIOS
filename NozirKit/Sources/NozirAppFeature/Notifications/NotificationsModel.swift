@@ -39,6 +39,8 @@ final class NotificationsModel {
     private let service: any NotificationsService
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var isLoadingPreferences = false
+    /// The newest first-page request is in flight; a "Yana" waits for it.
+    @ObservationIgnored private var isRefreshing = false
 
     init(service: any NotificationsService) {
         self.service = service
@@ -69,19 +71,22 @@ final class NotificationsModel {
         generation += 1
         let mine = generation
         if phase != .ready { phase = .loading }
-        isLoadingMore = false
+        isRefreshing = true
         do {
             let page = try await service.page(filter: filter, cursor: nil)
             guard mine == generation else { return }
+            isRefreshing = false
             items = page.items
             nextCursor = page.nextCursor
             phase = .ready
             isOffline = false
             inlineMessage = nil
         } catch is CancellationError {
+            if mine == generation { isRefreshing = false }
             return
         } catch {
             guard mine == generation else { return }
+            isRefreshing = false
             let message = UserMessage(error)
             if phase != .ready {
                 phase = .failed(message)
@@ -107,21 +112,27 @@ final class NotificationsModel {
 
     /// One "Yana" at a time; a row already shown is not added twice.
     func loadMore() async {
-        guard let cursor = nextCursor, phase == .ready, !isLoadingMore else { return }
+        guard let cursor = nextCursor, phase == .ready, !isLoadingMore, !isRefreshing else { return }
         isLoadingMore = true
         inlineMessage = nil
         let mine = generation
         do {
             let page = try await service.page(filter: filter, cursor: cursor)
-            guard mine == generation else { return }
+            guard mine == generation, nextCursor == cursor else {
+                isLoadingMore = false
+                return
+            }
             let shown = Set(items.map(\.id))
             items += page.items.filter { !shown.contains($0.id) }
             nextCursor = page.nextCursor
             isOffline = false
         } catch is CancellationError {
-            guard mine == generation else { return }
+            // Falls through: the single in-flight guard is released below.
         } catch {
-            guard mine == generation else { return }
+            guard mine == generation, nextCursor == cursor else {
+                isLoadingMore = false
+                return
+            }
             inlineMessage = UserMessage(error)
         }
         isLoadingMore = false
