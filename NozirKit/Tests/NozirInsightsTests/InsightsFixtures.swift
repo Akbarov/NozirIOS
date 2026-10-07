@@ -68,3 +68,34 @@ func summaryJSON(period: String = "DAILY", start: String = "2026-10-04", end: St
     "generatedAt":"2026-10-05T01:00:00Z","contentNotice":"insight.notice.no_messages_read"}
     """
 }
+
+let requestId = UUID(uuidString: "7C3E1A20-1B2C-4D3E-8F4A-5B6C7D8E9F01")!
+
+func extraTimeApi(_ replies: [FakeTransport.Reply]) -> (ExtraTimeApi, FakeTransport) {
+    let transport = FakeTransport(replies)
+    let client = ApiClient(
+        baseURL: URL(string: "https://nozir.example")!,
+        transport: transport,
+        identity: ClientIdentity(appVersion: "1.0.0", osVersion: "17.5"),
+        tokens: FixedToken()
+    )
+    return (ExtraTimeApi(client: client), transport)
+}
+
+/// `ExtraTimeRequestDto` as the backend writes it (`non_null`: absent, not
+/// null). `kind: nil` leaves the field out; `extra` is spliced in before the
+/// closing brace and must start with a comma. `childName: nil` leaves it out, as Home does.
+func extraTimeJSON(kind: String? = "EXTRA_MINUTES", status: String = "PENDING", requested: Int = 30, childName: String? = "Ali", extra: String = "") -> String {
+    let nameField = childName.map { #""childName":"\#($0)","# } ?? ""
+    let kindField = kind.map { #""kind":"\#($0)","# } ?? ""
+    return """
+    {"id":"7c3e1a20-1b2c-4d3e-8f4a-5b6c7d8e9f01","childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01",\
+    \(nameField)\(kindField)"requestedMinutes":\(requested),"reason":"Uy vazifasi tugadi",\
+    "status":"\(status)","createdAt":"2026-10-07T14:05:00Z","requestsInLastSevenDays":2\(extra)}
+    """
+}
+
+/// `ExtraTimeRequestPage` around the given items.
+func page(_ items: String...) -> String {
+    "{\"items\":[" + items.joined(separator: ",") + "]}"
+}

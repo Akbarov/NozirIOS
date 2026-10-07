@@ -37,4 +37,7 @@ public struct ApiErrorCode: RawRepresentable, Hashable, Sendable, Codable {
     public static let childNotActive = ApiErrorCode(rawValue: "CHILD_NOT_ACTIVE")
     public static let subscriptionRequired = ApiErrorCode(rawValue: "SUBSCRIPTION_REQUIRED")
     public static let safeZoneLimitReached = ApiErrorCode(rawValue: "SAFE_ZONE_LIMIT_REACHED")
+    /// A decision on something already decided: an extra-time ask the other
+    /// parent answered, or one that expired (P17).
+    public static let alreadyDecided = ApiErrorCode(rawValue: "ALREADY_DECIDED")
 }

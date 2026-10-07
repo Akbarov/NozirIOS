@@ -286,6 +286,44 @@ private func setup(
         #expect(model.failure == nil)
         #expect(model.cards.map(\.displayName) == ["Vali"])
     }
+
+    // P17 rows (D1, T9) and Review Focus 5: one row per answerable ask, for the
+    // children the filter shows; an ask of an unknown kind has no row.
+    @Test func timeRequestRowsFollowTheFilterAndSkipWhatCannotBeAnswered() async {
+        let ali = homeCard("Ali", used: 95)
+        let vali = homeCard("Vali", used: 40)
+        let forAli = extraTimeAsk(childId: ali.id)
+        let unknown = extraTimeAsk(childId: ali.id, kind: .unknown("SCHOOL_TRIP"))
+        let forVali = extraTimeAsk(childId: vali.id, name: "Vali", kind: .bedtimeDelay)
+        let (model, _, _) = setup([.success(parentHome([ali, vali], requests: [forAli, unknown, forVali]))])
+
+        await model.appear()
+        #expect(model.timeRequests == [forAli, forVali])
+        #expect(model.usedMinutesToday(of: forAli) == 95)
+
+        model.filter = vali.id
+        #expect(model.timeRequests == [forVali])
+        #expect(model.usedMinutesToday(of: forVali) == 40)
+        #expect(model.usedMinutesToday(of: extraTimeAsk()) == nil)
+    }
+
+    // The Home answer carries no childName: the row names the child from Home's own card.
+    @Test func aHomeAskIsNamedFromTheChildsCard() async {
+        let ali = homeCard("Ali")
+        let known = extraTimeAsk(childId: ali.id, name: nil)
+        let stranger = extraTimeAsk(childId: UUID(), name: nil)
+        let (model, _, _) = setup([.success(parentHome([ali], requests: [known, stranger]))])
+
+        await model.appear()
+
+        #expect(model.timeRequests.map(\.childName) == ["Ali", nil])
+    }
+
+    @Test func noHomeNoRows() {
+        let (model, _, _) = setup([])
+
+        #expect(model.timeRequests.isEmpty)
+    }
 }
 
 /// Holds each home request until the test answers it by number (1-based).

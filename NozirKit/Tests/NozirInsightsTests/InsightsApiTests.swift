@@ -152,4 +152,43 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
         #expect(!breakdown.entries[0].isOtherApps)
         #expect(breakdown.entries[1].isOtherApps)
     }
+
+    // P17: the waiting asks come with home.
+    @Test func homeCarriesTheWaitingAsks() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #""pendingExtraTimeRequests":[]"#,
+            with: #""pendingExtraTimeRequests":["# + extraTimeJSON(childName: nil) + "]"
+        )
+        let (api, _) = insightsApi([.ok(body)])
+
+        let home = try await api.home()
+
+        #expect(home.pendingExtraTimeRequests.map(\.id) == [requestId])
+        #expect(home.pendingExtraTimeRequests.first?.requestedMinutes == 30)
+        #expect(home.pendingExtraTimeRequests.first?.childName == nil)
+    }
+
+    @Test func aHomeWithoutTheListHasNoAsks() async throws {
+        let body = bareHomeJSON.replacingOccurrences(of: #""pendingExtraTimeRequests":[],"#, with: "")
+        let (api, _) = insightsApi([.ok(body)])
+
+        let home = try await api.home()
+
+        #expect(home.pendingExtraTimeRequests.isEmpty)
+        #expect(home.children.count == 1)
+    }
+
+    // Review Focus 3: one unreadable ask must not blank the front door.
+    @Test func aListThatCannotBeReadLeavesHomeStanding() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #""pendingExtraTimeRequests":[]"#,
+            with: #""pendingExtraTimeRequests":[{"id":"not-a-uuid"}]"#
+        )
+        let (api, _) = insightsApi([.ok(body)])
+
+        let home = try await api.home()
+
+        #expect(home.pendingExtraTimeRequests.isEmpty)
+        #expect(home.children.count == 1)
+    }
 }

@@ -16,6 +16,8 @@ struct SignedInView: View {
         /// P09 from P03: that child, no switcher.
         case rules(UUID)
         case ruleScreen(RuleScreen)
+        /// P17 from a Home row, with that child's minutes today (plan deviation T1).
+        case timeRequest(UUID, usedMinutesToday: Int?)
     }
 
     enum StatisticsStep: Hashable {
@@ -62,6 +64,7 @@ struct SignedInView: View {
                     emergencyNumber: { model.currentEmergencyNumber },
                     onOpenSummary: { homePath.append(.summary($0, $1)) },
                     onOpenSos: { homePath.append(.sos($0)) },
+                    onOpenTimeRequest: { homePath.append(.timeRequest($0, usedMinutesToday: $1)) },
                     onAddChild: { model.presentAddChild() }
                 )
                 .navigationDestination(for: HomeStep.self) { step in
@@ -185,6 +188,8 @@ struct SignedInView: View {
             )
         case .ruleScreen(let screen):
             ruleDestination(screen) { homePath.append(.ruleScreen($0)) }
+        case .timeRequest(let id, let usedMinutesToday):
+            TimeRequestView(model: model.makeTimeRequestModel(id: id, usedMinutesToday: usedMinutesToday))
         }
     }
 

@@ -11,6 +11,7 @@ struct HomeView: View {
     private let emergencyNumber: () -> String?
     private let onOpenSummary: (UUID, String) -> Void
     private let onOpenSos: (ActiveSos) -> Void
+    private let onOpenTimeRequest: (UUID, Int?) -> Void
     private let onAddChild: () -> Void
     @Environment(\.l10n) private var l10n
     @Environment(\.scenePhase) private var scenePhase
@@ -21,6 +22,7 @@ struct HomeView: View {
         emergencyNumber: @escaping () -> String?,
         onOpenSummary: @escaping (UUID, String) -> Void,
         onOpenSos: @escaping (ActiveSos) -> Void,
+        onOpenTimeRequest: @escaping (UUID, Int?) -> Void,
         onAddChild: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
@@ -28,6 +30,7 @@ struct HomeView: View {
         self.emergencyNumber = emergencyNumber
         self.onOpenSummary = onOpenSummary
         self.onOpenSos = onOpenSos
+        self.onOpenTimeRequest = onOpenTimeRequest
         self.onAddChild = onAddChild
     }
 
@@ -113,6 +116,7 @@ struct HomeView: View {
                     .tint(NozirColor.primaryAccent)
             }
         }
+        timeRequestRows
         HStack(alignment: .top, spacing: NozirSpacing.small) {
             statTile(
                 label: l10n.homeStatScreenTime,
@@ -168,6 +172,7 @@ struct HomeView: View {
             onAdd: onAddChild,
             fallbackInitial: l10n.previewAvatarInitial
         )
+        timeRequestRows
         ForEach(model.visible) { card in
             Button {
                 onOpenSummary(card.id, card.displayName)
@@ -186,6 +191,16 @@ struct HomeView: View {
             NozirCard {
                 Text(l10n.homeFamilySummaryLabel).nozirText(.label, color: NozirColor.textSecondary)
                 Text(sentence).nozirText(.body)
+            }
+        }
+    }
+
+    /// P17 rows, one per waiting ask, above the stat cards (plan deviation T10).
+    @ViewBuilder
+    private var timeRequestRows: some View {
+        ForEach(model.timeRequests) { request in
+            TimeRequestRow(request: request) {
+                onOpenTimeRequest(request.id, model.usedMinutesToday(of: request))
             }
         }
     }

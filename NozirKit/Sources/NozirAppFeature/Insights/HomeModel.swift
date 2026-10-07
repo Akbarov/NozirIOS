@@ -140,6 +140,25 @@ final class HomeModel {
         return SosAlert(sos, child: family.child(sos.childId), emergencyNumber: emergencyNumber)
     }
 
+    /// P17 rows: the asks the app can answer, in the server's order, for the
+    /// child the filter shows (everyone when it names no child on screen).
+    /// Home's asks carry no child name, so a blank one is read off the child's
+    /// card; with no card it stays nil (the unnamed sentence).
+    var timeRequests: [ExtraTimeRequest] {
+        let waiting = (home?.pendingExtraTimeRequests ?? []).filter(\.isAnswerable).map { request in
+            guard LocationTexts.present(request.childName) == nil else { return request }
+            return request.named(cards.first { $0.id == request.childId }?.displayName)
+        }
+        guard let filter, cards.contains(where: { $0.id == filter }) else { return waiting }
+        return waiting.filter { $0.childId == filter }
+    }
+
+    /// Today's minutes from the child's own card, for P17's context line; nil
+    /// when that child has no card.
+    func usedMinutesToday(of request: ExtraTimeRequest) -> Int? {
+        cards.first { $0.id == request.childId }?.usedMinutes
+    }
+
     /// "1s 35d · Maktab". A phone that stopped reporting says so in place of the
     /// place: a stale place is never shown as the current one.
     nonisolated static func usageAndPlace(_ card: ChildHomeCard, _ l10n: L10n) -> String {

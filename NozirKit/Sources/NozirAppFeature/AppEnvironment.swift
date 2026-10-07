@@ -79,6 +79,7 @@ public final class AppEnvironment {
         return SignedInModel(
             family: FamilyStore(service: api),
             insights: InsightsApi(client: authorised),
+            extraTime: ExtraTimeApi(client: authorised),
             location: LocationApi(client: authorised),
             language: language,
             appearance: appearance,

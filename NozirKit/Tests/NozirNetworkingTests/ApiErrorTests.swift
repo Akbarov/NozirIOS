@@ -48,4 +48,11 @@ import Testing
         #expect(!ApiFailure.network(code: URLError.Code.notConnectedToInternet.rawValue).endsSession)
         #expect(!ApiFailure.unexpectedStatus(401).endsSession)
     }
+
+    // P17: a decision on an ask the other parent answered, or one that expired.
+    @Test func anAnsweredRequestIsAlreadyDecided() {
+        let body = Data(#"{"error":{"code":"ALREADY_DECIDED","message":"x"}}"#.utf8)
+
+        #expect(ResponseMapping.failure(status: 409, body: body).code == ApiErrorCode.alreadyDecided)
+    }
 }
