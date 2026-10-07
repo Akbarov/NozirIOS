@@ -24,6 +24,9 @@ struct SignedInView: View {
         case protection(UUID)
         /// P16, from Home's bell or Profile's row (spec D1: its links push onto Home's stack).
         case notifications
+        /// P16a: a summary notification, until the server says which day or
+        /// week it is; then replaced by that step (the id is the summary's).
+        case summaryLink(UUID)
     }
 
     enum StatisticsStep: Hashable {
@@ -217,6 +220,10 @@ struct SignedInView: View {
         case .notifications:
             NotificationsView(model: model.makeNotificationsModel()) { step in
                 homePath.append(step)
+            }
+        case .summaryLink(let summaryId):
+            SummaryLinkView(model: model.makeSummaryLinkModel(summaryId: summaryId)) { step in
+                homePath = SummaryLinkModel.path(homePath, replacing: summaryId, with: step)
             }
         }
     }

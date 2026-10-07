@@ -224,6 +224,11 @@ public final class SignedInModel {
         )
     }
 
+    /// P16a for one notification; the session's family list names the child.
+    func makeSummaryLinkModel(summaryId: UUID) -> SummaryLinkModel {
+        SummaryLinkModel(summaryId: summaryId, insights: insights, family: family)
+    }
+
     func makeAppUsageModel(childId: UUID) -> AppUsageModel {
         AppUsageModel(childId: childId, insights: insights)
     }

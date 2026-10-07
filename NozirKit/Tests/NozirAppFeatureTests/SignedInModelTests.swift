@@ -372,4 +372,23 @@ private func setup(
         #expect(SignedInView.HomeStep.weekly(id) == .weekly(id, weekStart: nil))
         #expect(SignedInView.HomeStep.summary(id, "Ali") != .summary(id, "Ali", date: day("2026-10-01")))
     }
+
+    // P16a: the link screen asks the session's insights and names the child
+    // from the session's family.
+    @Test func theSummaryLinkScreenUsesTheSessionsServices() async {
+        let ali = makeChild("Ali")
+        var family = FakeFamily.Script()
+        family.children = [.success([ali])]
+        var script = FakeInsights.Script()
+        script.byId = [.success(insight(childId: ali.id, start: "2026-10-04", end: "2026-10-04", period: .daily))]
+        let id = UUID()
+        let (model, _) = setup(family, insights: FakeInsights(script))
+        try? await model.family.refresh()
+
+        let screen = model.makeSummaryLinkModel(summaryId: id)
+        await screen.load()
+
+        #expect(screen.summaryId == id)
+        #expect(screen.phase == .resolved(.summary(ali.id, "Ali", date: day("2026-10-04"))))
+    }
 }

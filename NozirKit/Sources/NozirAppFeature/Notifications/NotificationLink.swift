@@ -9,7 +9,7 @@ enum NotificationLink: Equatable {
     case extraTime(UUID)
     /// The id is the child's.
     case protection(UUID)
-    /// The id is the summary's; iOS opens by the row's child and type (plan deviation N11).
+    /// The id is the summary's; P16a asks the server which day or week it is.
     case summary(UUID)
     /// The id is the child's.
     case appRules(UUID)
@@ -52,17 +52,8 @@ enum NotificationLink: Equatable {
             return .timeRequest(requestId, usedMinutesToday: nil)
         case .protection(let childId):
             return .protection(childId)
-        case .summary:
-            guard let childId = notification.childId else { return nil }
-            switch notification.type {
-            case .dailySummaryReady:
-                guard let name = LocationTexts.present(notification.childName) else { return nil }
-                return .summary(childId, name)
-            case .weeklyReportReady:
-                return .weekly(childId)
-            default:
-                return nil
-            }
+        case .summary(let summaryId):
+            return .summaryLink(summaryId)
         case .appRules(let childId):
             return .rules(childId)
         case .other:

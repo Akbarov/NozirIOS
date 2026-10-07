@@ -43,21 +43,20 @@ private func row(_ type: NotificationType, link: String?, childId: UUID? = aliCh
         #expect(NotificationLink.step(for: row(.limitReached, link: "nozir://app-rules/\(linkText)")) == .rules(linkId))
     }
 
-    // D2: DAILY → the child's latest daily summary, WEEKLY → the weekly report.
-    @Test func aSummaryLinkOpensByItsType() {
+    // P16a (spec D2, §4.2): a summary link opens that exact summary, whatever
+    // the row's type, child or name; the server says which day or week it is.
+    @Test func aSummaryLinkOpensThatSummary() {
         let link = "nozir://summary/\(linkText)"
-        #expect(NotificationLink.step(for: row(.dailySummaryReady, link: link)) == .summary(aliChildId, "Ali"))
-        #expect(NotificationLink.step(for: row(.weeklyReportReady, link: link)) == .weekly(aliChildId))
-        #expect(NotificationLink.step(for: row(.usageAnomaly, link: link)) == nil)
-        // Plan deviation N4: P06 needs the child's name.
-        #expect(NotificationLink.step(for: row(.dailySummaryReady, link: link, childName: nil)) == nil)
+        #expect(NotificationLink.step(for: row(.dailySummaryReady, link: link)) == .summaryLink(linkId))
+        #expect(NotificationLink.step(for: row(.weeklyReportReady, link: link)) == .summaryLink(linkId))
+        #expect(NotificationLink.step(for: row(.usageAnomaly, link: link)) == .summaryLink(linkId))
+        #expect(NotificationLink.step(for: row(.dailySummaryReady, link: link, childName: nil)) == .summaryLink(linkId))
+        #expect(NotificationLink.step(for: row(.weeklyReportReady, link: link, childId: nil)) == .summaryLink(linkId))
     }
 
     // Review Focus 7: a removed child or a family-wide row goes nowhere, and never crashes.
     @Test func aLinkThatNeedsAChildGoesNowhereWithoutOne() {
         #expect(NotificationLink.step(for: row(.sosTriggered, link: "nozir://sos/\(linkText)", childId: nil)) == nil)
-        #expect(NotificationLink.step(for: row(.dailySummaryReady, link: "nozir://summary/\(linkText)", childId: nil)) == nil)
-        #expect(NotificationLink.step(for: row(.weeklyReportReady, link: "nozir://summary/\(linkText)", childId: nil)) == nil)
         // The ask's own id is enough for P17.
         #expect(NotificationLink.step(for: row(.extraTimeRequested, link: "nozir://extra-time/\(linkText)", childId: nil)) == .timeRequest(linkId, usedMinutesToday: nil))
     }
