@@ -22,6 +22,7 @@ private func setup(
     defaults: UserDefaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!,
     sent: SentLocales = SentLocales(),
     extraTime: FakeExtraTime = FakeExtraTime(),
+    protection: FakeProtection = FakeProtection(),
     privacy: FakePrivacy = FakePrivacy(),
     privacyConfig: PrivacyConfig = .absent,
     signOutLocally: @escaping @MainActor () -> Void = {}
@@ -32,6 +33,7 @@ private func setup(
         family: FamilyStore(service: fake),
         insights: FakeInsights(),
         extraTime: extraTime,
+        protection: protection,
         location: FakeLocation(),
         language: language,
         appearance: AppearanceStore(defaults: defaults),
@@ -306,5 +308,24 @@ private func setup(
         #expect(screen.requestId == id)
         #expect(screen.usedMinutesToday == 95)
         #expect(screen.phase == .ready)
+    }
+
+    // P18 (P4): the screen is for the child tapped, named from the family list.
+    @Test func theProtectionScreenIsForTheChildTapped() async {
+        let ali = makeChild("Ali")
+        var family = FakeFamily.Script()
+        family.children = [.success([ali])]
+        var script = FakeProtection.Script()
+        script.status = [.success(protectionStatus(childId: ali.id))]
+        let (model, _) = setup(family, protection: FakeProtection(script))
+        try? await model.family.refresh()
+
+        let screen = model.makeProtectionModel(childId: ali.id)
+        await screen.load()
+
+        #expect(screen.childId == ali.id)
+        #expect(screen.childName == "Ali")
+        #expect(screen.phase == .ready)
+        #expect(model.makeProtectionModel(childId: UUID()).childName == nil)
     }
 }

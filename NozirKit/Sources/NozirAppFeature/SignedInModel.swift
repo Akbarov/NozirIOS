@@ -28,6 +28,7 @@ public final class SignedInModel {
 
     private let insights: any InsightsService
     private let extraTime: any ExtraTimeService
+    private let protection: any ProtectionService
     let locationService: any LocationService
     private let language: LanguageStore
     private let appearance: AppearanceStore
@@ -43,6 +44,7 @@ public final class SignedInModel {
         family: FamilyStore,
         insights: any InsightsService,
         extraTime: any ExtraTimeService,
+        protection: any ProtectionService,
         location: any LocationService,
         language: LanguageStore,
         appearance: AppearanceStore,
@@ -56,6 +58,7 @@ public final class SignedInModel {
         self.family = family
         self.insights = insights
         self.extraTime = extraTime
+        self.protection = protection
         locationService = location
         self.language = language
         self.appearance = appearance
@@ -179,6 +182,11 @@ public final class SignedInModel {
     /// (plan deviation T1).
     func makeTimeRequestModel(id: UUID, usedMinutesToday: Int?) -> TimeRequestModel {
         TimeRequestModel(requestId: id, usedMinutesToday: usedMinutesToday, service: extraTime)
+    }
+
+    /// P18 for one child, named from the family list (nil: "the child").
+    func makeProtectionModel(childId: UUID) -> ProtectionModel {
+        ProtectionModel(childId: childId, childName: family.child(childId)?.displayName, service: protection)
     }
 
     var currentEmergencyNumber: String? {

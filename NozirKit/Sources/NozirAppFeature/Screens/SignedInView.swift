@@ -18,6 +18,8 @@ struct SignedInView: View {
         case ruleScreen(RuleScreen)
         /// P17 from a Home row, with that child's minutes today (plan deviation T1).
         case timeRequest(UUID, usedMinutesToday: Int?)
+        /// P18 for that child, from the Home row or the child's page.
+        case protection(UUID)
     }
 
     enum StatisticsStep: Hashable {
@@ -40,6 +42,8 @@ struct SignedInView: View {
         case ruleScreen(RuleScreen)
         /// P20 from the Profile settings card.
         case privacy
+        /// P18 from the child's page opened in this tab.
+        case protection(UUID)
     }
 
     @State private var model: SignedInModel
@@ -65,6 +69,7 @@ struct SignedInView: View {
                     onOpenSummary: { homePath.append(.summary($0, $1)) },
                     onOpenSos: { homePath.append(.sos($0)) },
                     onOpenTimeRequest: { homePath.append(.timeRequest($0, usedMinutesToday: $1)) },
+                    onOpenProtection: { homePath.append(.protection($0)) },
                     onAddChild: { model.presentAddChild() }
                 )
                 .navigationDestination(for: HomeStep.self) { step in
@@ -174,7 +179,8 @@ struct SignedInView: View {
             ChildDetailsView(
                 model: model.makeDetailsModel(child),
                 onRemoved: { clearPaths() },
-                onOpenRules: { homePath.append(.rules(child.id)) }
+                onOpenRules: { homePath.append(.rules(child.id)) },
+                onOpenProtection: { homePath.append(.protection(child.id)) }
             )
         case .sos(let seed):
             SosDetailView(model: model.makeSosDetailModel(
@@ -190,6 +196,8 @@ struct SignedInView: View {
             ruleDestination(screen) { homePath.append(.ruleScreen($0)) }
         case .timeRequest(let id, let usedMinutesToday):
             TimeRequestView(model: model.makeTimeRequestModel(id: id, usedMinutesToday: usedMinutesToday))
+        case .protection(let childId):
+            ProtectionView(model: model.makeProtectionModel(childId: childId))
         }
     }
 
@@ -200,7 +208,8 @@ struct SignedInView: View {
             ChildDetailsView(
                 model: model.makeDetailsModel(child),
                 onRemoved: { clearPaths() },
-                onOpenRules: { profilePath.append(.childRules(child.id)) }
+                onOpenRules: { profilePath.append(.childRules(child.id)) },
+                onOpenProtection: { profilePath.append(.protection(child.id)) }
             )
         case .pairing(let child):
             PairingView(model: model.makePairingModel(child), onFinished: { profilePath.removeAll() })
@@ -218,6 +227,8 @@ struct SignedInView: View {
             ruleDestination(screen) { profilePath.append(.ruleScreen($0)) }
         case .privacy:
             PrivacyView(model: model.makePrivacyModel())
+        case .protection(let childId):
+            ProtectionView(model: model.makeProtectionModel(childId: childId))
         }
     }
 
