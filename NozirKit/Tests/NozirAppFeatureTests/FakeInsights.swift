@@ -99,9 +99,10 @@ func parentHome(
     _ children: [ChildHomeCard],
     date: LocalDate = day("2026-10-05"),
     familySummary: String? = nil,
-    sos: ActiveSos? = nil
+    sos: ActiveSos? = nil,
+    requests: [ExtraTimeRequest] = []
 ) -> ParentHome {
-    ParentHome(date: date, children: children, familySummary: familySummary, activeSos: sos)
+    ParentHome(date: date, children: children, familySummary: familySummary, activeSos: sos, pendingExtraTimeRequests: requests)
 }
 
 func insight(
@@ -121,5 +122,37 @@ func insight(
         recommendation: "Birga sayr qiling.",
         conversationQuestion: question,
         riskLevel: risk
+    )
+}
+
+/// 2026-10-07T14:05:00Z.
+let askedAt = Date(timeIntervalSince1970: 1_791_381_900)
+
+/// A child's ask as the pending list carries it.
+func extraTimeAsk(
+    id: UUID = UUID(),
+    childId: UUID = UUID(),
+    name: String? = "Ali",
+    kind: ExtraTimeKind = .extraMinutes,
+    requested: Int = 30,
+    reason: String = "Uy vazifasi tugadi",
+    status: ExtraTimeStatus = .pending,
+    granted: Int? = nil,
+    note: String? = nil,
+    week: Int? = 2
+) -> ExtraTimeRequest {
+    ExtraTimeRequest(
+        id: id,
+        childId: childId,
+        childName: name,
+        kind: kind,
+        nightOf: kind == .bedtimeDelay ? day("2026-10-07") : nil,
+        requestedMinutes: requested,
+        reason: reason,
+        status: status,
+        grantedMinutes: granted,
+        decisionNote: note,
+        createdAt: askedAt,
+        requestsInLastSevenDays: week
     )
 }

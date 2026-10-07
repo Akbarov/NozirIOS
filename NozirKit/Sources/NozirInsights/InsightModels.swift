@@ -87,16 +87,26 @@ public struct ParentHome: Decodable, Equatable, Sendable {
     public let children: [ChildHomeCard]
     public let familySummary: String?
     public let activeSos: ActiveSos?
+    /// P17 rows, newest first. A list that cannot be read is no list: Home
+    /// still loads (plan deviation T6).
+    public let pendingExtraTimeRequests: [ExtraTimeRequest]
 
-    public init(date: LocalDate, children: [ChildHomeCard], familySummary: String? = nil, activeSos: ActiveSos? = nil) {
+    public init(
+        date: LocalDate,
+        children: [ChildHomeCard],
+        familySummary: String? = nil,
+        activeSos: ActiveSos? = nil,
+        pendingExtraTimeRequests: [ExtraTimeRequest] = []
+    ) {
         self.date = date
         self.children = children
         self.familySummary = familySummary
         self.activeSos = activeSos
+        self.pendingExtraTimeRequests = pendingExtraTimeRequests
     }
 
     enum CodingKeys: String, CodingKey {
-        case date, children, familySummary, activeSos
+        case date, children, familySummary, activeSos, pendingExtraTimeRequests
     }
 
     public init(from decoder: any Decoder) throws {
@@ -105,6 +115,7 @@ public struct ParentHome: Decodable, Equatable, Sendable {
         children = try container.decodeIfPresent([ChildHomeCard].self, forKey: .children) ?? []
         familySummary = try container.decodeIfPresent(String.self, forKey: .familySummary)
         activeSos = try container.decodeIfPresent(ActiveSos.self, forKey: .activeSos)
+        pendingExtraTimeRequests = (try? container.decodeIfPresent([ExtraTimeRequest].self, forKey: .pendingExtraTimeRequests)) ?? []
     }
 }
 
