@@ -5,6 +5,7 @@ import NozirFamily
 import NozirInsights
 import NozirL10n
 import NozirLocation
+import NozirPrivacy
 
 /// Everything the signed-in app shares for one session: the family, the tab,
 /// and whether the add-a-child flow is up. A new sign-in gets a new one, so a
@@ -31,6 +32,9 @@ public final class SignedInModel {
     private let appearance: AppearanceStore
     private let localeSync: LocaleSync
     private let emergencyNumber: @MainActor () -> String?
+    private let privacy: any PrivacyService
+    private let privacyConfig: @MainActor () -> PrivacyConfig
+    private let signOutLocallyAction: @MainActor () -> Void
     private let signOutAction: @MainActor () async -> Void
     @ObservationIgnored private var hasStarted = false
 
@@ -42,6 +46,9 @@ public final class SignedInModel {
         appearance: AppearanceStore,
         localeSync: LocaleSync,
         emergencyNumber: @escaping @MainActor () -> String?,
+        privacy: any PrivacyService,
+        privacyConfig: @escaping @MainActor () -> PrivacyConfig,
+        signOutLocally: @escaping @MainActor () -> Void,
         signOut: @escaping @MainActor () async -> Void
     ) {
         self.family = family
@@ -51,6 +58,9 @@ public final class SignedInModel {
         self.appearance = appearance
         self.localeSync = localeSync
         self.emergencyNumber = emergencyNumber
+        self.privacy = privacy
+        self.privacyConfig = privacyConfig
+        signOutLocallyAction = signOutLocally
         signOutAction = signOut
         statistics = StatisticsModel(family: family)
         locationTab = LocationModel(family: family, location: location)
@@ -85,6 +95,12 @@ public final class SignedInModel {
 
     func makeProfileModel() -> ProfileModel {
         ProfileModel(family: family, language: language, appearance: appearance, localeSync: localeSync, signOut: signOutAction)
+    }
+
+    /// P20 with the config of the moment it opens. A recorded request ends the
+    /// session here only: the server has already revoked it.
+    func makePrivacyModel() -> PrivacyModel {
+        PrivacyModel(privacy: privacy, family: family, config: privacyConfig(), onSignedOut: signOutLocallyAction)
     }
 
     func makeAddChildModel() -> AddChildModel {

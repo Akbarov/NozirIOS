@@ -30,7 +30,23 @@ public struct ApiClient: Sendable {
     }
 
     public func send<Response: Decodable>(_ request: ApiRequest, as type: Response.Type) async throws -> Response {
-        let data = try await perform(request)
+        try Self.decode(Response.self, from: try await perform(request).data)
+    }
+
+    /// For a read whose "nothing" is a 204 (no pending deletion request): nil
+    /// then, the decoded body on any other success. Only the status says
+    /// "nothing" — an empty 200 is still a decoding failure.
+    public func sendUnlessNoContent<Response: Decodable>(_ request: ApiRequest, as type: Response.Type) async throws -> Response? {
+        let answer = try await perform(request)
+        guard answer.status != 204 else { return nil }
+        return try Self.decode(Response.self, from: answer.data)
+    }
+
+    public func send(_ request: ApiRequest) async throws {
+        _ = try await perform(request)
+    }
+
+    private static func decode<Response: Decodable>(_ type: Response.Type, from data: Data) throws -> Response {
         do {
             return try NozirJSON.decoder().decode(Response.self, from: data)
         } catch {
@@ -38,11 +54,7 @@ public struct ApiClient: Sendable {
         }
     }
 
-    public func send(_ request: ApiRequest) async throws {
-        _ = try await perform(request)
-    }
-
-    private func perform(_ request: ApiRequest) async throws -> Data {
+    private func perform(_ request: ApiRequest) async throws -> (data: Data, status: Int) {
         guard request.requiresAuth else {
             let answer = try await transmit(request, bearer: nil)
             return try checked(answer)
@@ -67,7 +79,7 @@ public struct ApiClient: Sendable {
         return error.code == .tokenExpired
     }
 
-    private func endSession(_ tokens: any AccessTokenProvider, rejecting token: String) async throws -> Data {
+    private func endSession(_ tokens: any AccessTokenProvider, rejecting token: String) async throws -> (data: Data, status: Int) {
         await tokens.endSession(rejecting: token)
         throw ApiFailure.sessionEnded
     }
@@ -91,12 +103,12 @@ public struct ApiClient: Sendable {
         }
     }
 
-    private func checked(_ answer: (data: Data, response: HTTPURLResponse)) throws -> Data {
+    private func checked(_ answer: (data: Data, response: HTTPURLResponse)) throws -> (data: Data, status: Int) {
         let status = answer.response.statusCode
         guard (200..<300).contains(status) else {
             throw ResponseMapping.failure(status: status, body: answer.data)
         }
-        return answer.data
+        return (answer.data, status)
     }
 
     func makeURLRequest(_ request: ApiRequest, bearer: String?) -> URLRequest {

@@ -109,4 +109,9 @@ private func ymd(_ text: String) -> LocalDate {
         #expect(L10n(.ru).weeklyChartDaySeparator == ", ")
         #expect(L10n(.en).weeklyChartDaySeparator == ", ")
     }
+
+    @Test func aDayWithItsYear() {
+        #expect(DateTexts.dayMonthAndYear(ymd("2026-10-14"), l10n) == "14-oktabr 2026")
+        #expect(DateTexts.dayMonthAndYear(ymd("2026-10-14"), L10n(.en)) == "October 14, 2026")
+    }
 }

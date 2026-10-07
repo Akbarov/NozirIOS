@@ -4,6 +4,7 @@ import NozirDesignSystem
 import NozirFamily
 import NozirL10n
 import NozirLocation
+import NozirPrivacy
 @testable import NozirAppFeature
 
 private actor SentLocales {
@@ -18,7 +19,10 @@ private actor SentLocales {
 private func setup(
     _ script: FakeFamily.Script,
     defaults: UserDefaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!,
-    sent: SentLocales = SentLocales()
+    sent: SentLocales = SentLocales(),
+    privacy: FakePrivacy = FakePrivacy(),
+    privacyConfig: PrivacyConfig = .absent,
+    signOutLocally: @escaping @MainActor () -> Void = {}
 ) -> (SignedInModel, FakeFamily) {
     let fake = FakeFamily(script)
     let language = LanguageStore(defaults: defaults, preferredLanguages: ["uz"])
@@ -30,6 +34,9 @@ private func setup(
         appearance: AppearanceStore(defaults: defaults),
         localeSync: LocaleSync(store: language, defaults: defaults, send: { await sent.record($0) }),
         emergencyNumber: { "112" },
+        privacy: privacy,
+        privacyConfig: { privacyConfig },
+        signOutLocally: signOutLocally,
         signOut: {}
     )
     return (model, fake)
@@ -255,5 +262,31 @@ private func setup(
 
         try? await model.family.refresh()
         #expect(profile.showsRules)
+    }
+
+    // P20: the screen gets the config of the moment it opens, and a recorded
+    // request ends the session here without the server's logout.
+    @Test func thePrivacyScreenReadsTheConfigAndEndsTheSessionLocally() async {
+        var familyScript = FakeFamily.Script()
+        familyScript.me = [.success(ParentProfile(displayName: "Zohid", phoneE164: nil, locale: "uz", role: "OWNER"))]
+        var privacyScript = FakePrivacy.Script()
+        privacyScript.disclosure = [.success(sampleDisclosure)]
+        privacyScript.current = [.success(nil)]
+        privacyScript.request = [.success(recordedRequest)]
+        var endedLocally = 0
+        let (model, _) = setup(
+            familyScript,
+            privacy: FakePrivacy(privacyScript),
+            privacyConfig: PrivacyConfig(deletionDelayDays: 7, policyURL: nil),
+            signOutLocally: { endedLocally += 1 }
+        )
+        let privacy = model.makePrivacyModel()
+
+        await privacy.load()
+        privacy.startDelete()
+        await privacy.confirmDelete()
+
+        #expect(privacy.deleteBody(L10n(.uz)) == L10n(.uz).privacyDeleteBodyWithDays(7))
+        #expect(endedLocally == 1)
     }
 }

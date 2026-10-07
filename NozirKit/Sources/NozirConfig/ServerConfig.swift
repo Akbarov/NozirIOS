@@ -9,6 +9,9 @@ public struct ServerConfig: Codable, Equatable, Sendable {
     public let privacyPolicyUrl: String
     public let termsUrl: String
     public let supportUrl: String
+    /// How long a deletion request waits before it runs (P20). Nil from an
+    /// older server or a config cached before the field existed.
+    public let dataDeletionDelayDays: Int?
 
     public init(
         minSupportedVersion: String,
@@ -18,7 +21,8 @@ public struct ServerConfig: Codable, Equatable, Sendable {
         emergencyContacts: EmergencyContacts,
         privacyPolicyUrl: String,
         termsUrl: String,
-        supportUrl: String
+        supportUrl: String,
+        dataDeletionDelayDays: Int? = nil
     ) {
         self.minSupportedVersion = minSupportedVersion
         self.latestVersion = latestVersion
@@ -28,6 +32,7 @@ public struct ServerConfig: Codable, Equatable, Sendable {
         self.privacyPolicyUrl = privacyPolicyUrl
         self.termsUrl = termsUrl
         self.supportUrl = supportUrl
+        self.dataDeletionDelayDays = dataDeletionDelayDays
     }
 }
 

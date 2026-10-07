@@ -29,7 +29,8 @@ private func config(updateRequired: Bool) -> ServerConfig {
         ),
         privacyPolicyUrl: "https://nozir.syncoder.uz/privacy",
         termsUrl: "https://nozir.syncoder.uz/terms",
-        supportUrl: "https://nozir.syncoder.uz/support"
+        supportUrl: "https://nozir.syncoder.uz/support",
+        dataDeletionDelayDays: 30
     )
 }
 
@@ -108,5 +109,22 @@ private func makeLoader(_ replies: [FakeTransport.Reply], cache: any ConfigCache
     // SOS (P15) is never behind the wall.
     @Test func anExemptScreenIsNeverBlocked() {
         #expect(!UpdateGate.blocks(config(updateRequired: true), isExempt: true))
+    }
+}
+
+@Suite struct ServerConfigDecodingTests {
+    @Test func theDeletionWaitIsRead() throws {
+        let decoded = try NozirJSON.decoder().decode(ServerConfig.self, from: Data(configBody(updateRequired: false).utf8))
+
+        #expect(decoded.dataDeletionDelayDays == 30)
+    }
+
+    // An older server, or a config cached before this field existed.
+    @Test func aConfigWithoutTheDeletionWaitHasNone() throws {
+        let body = configBody(updateRequired: false).replacingOccurrences(of: #""dataDeletionDelayDays":30,"#, with: "")
+
+        let decoded = try NozirJSON.decoder().decode(ServerConfig.self, from: Data(body.utf8))
+
+        #expect(decoded.dataDeletionDelayDays == nil)
     }
 }
