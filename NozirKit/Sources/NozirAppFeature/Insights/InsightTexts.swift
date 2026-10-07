@@ -56,6 +56,11 @@ enum DateTexts {
         return l10n.dateRangeAcrossMonths(dayAndMonth(start, l10n), dayAndMonth(end, l10n))
     }
 
+    /// "14-oktabr 2026", "October 14, 2026".
+    static func dayMonthAndYear(_ date: LocalDate, _ l10n: L10n) -> String {
+        l10n.dateDayMonthYear(date.day, monthName(date, l10n), date.year)
+    }
+
     static func weekday(_ date: LocalDate, _ l10n: L10n) -> String {
         l10n.weekdayNames[date.isoWeekday - 1]
     }
