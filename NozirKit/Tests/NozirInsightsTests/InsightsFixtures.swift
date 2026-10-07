@@ -99,3 +99,33 @@ func extraTimeJSON(kind: String? = "EXTRA_MINUTES", status: String = "PENDING", 
 func page(_ items: String...) -> String {
     "{\"items\":[" + items.joined(separator: ",") + "]}"
 }
+
+func protectionApi(_ replies: [FakeTransport.Reply]) -> (ProtectionApi, FakeTransport) {
+    let transport = FakeTransport(replies)
+    let client = ApiClient(
+        baseURL: URL(string: "https://nozir.example")!,
+        transport: transport,
+        identity: ClientIdentity(appVersion: "1.0.0", osVersion: "17.5"),
+        tokens: FixedToken()
+    )
+    return (ProtectionApi(client: client), transport)
+}
+
+/// `PermissionStateDto` as the backend writes it: `instructionKey` is absent when null.
+func permissionJSON(_ kind: String, _ status: String, revoked: Bool = false, key: String? = nil) -> String {
+    let keyField = key.map { #","instructionKey":"\#($0)""# } ?? ""
+    return #"{"kind":"\#(kind)","status":"\#(status)","wasRevoked":\#(revoked)\#(keyField)}"#
+}
+
+/// `ProtectionStatusResponse` for Ali (`non_null`: `lastReportAt` and
+/// `instructionKey` are absent unless `extra` adds them; it must start with a comma).
+func protectionJSON(
+    level: String = "DEGRADED",
+    permissions: [String] = [],
+    isStale: Bool = false,
+    manufacturer: String = "xiaomi",
+    extra: String = ""
+) -> String {
+    let list = permissions.joined(separator: ",")
+    return #"{"childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01","level":"\#(level)","permissions":[\#(list)],"isStale":\#(isStale),"manufacturer":"\#(manufacturer)"\#(extra)}"#
+}
