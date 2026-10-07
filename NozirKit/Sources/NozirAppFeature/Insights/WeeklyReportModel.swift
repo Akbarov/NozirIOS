@@ -54,13 +54,25 @@ final class WeeklyReportModel {
 
     @ObservationIgnored private var loads: [Key: Load] = [:]
 
-    init(childId: UUID, insights: any InsightsService, today: @escaping @MainActor () -> LocalDate) {
+    /// `initialWeek` (P16a): the week a link names. Its Monday is shown when
+    /// the fifty-three weeks hold it; otherwise this week (plan deviation L5).
+    init(
+        childId: UUID,
+        insights: any InsightsService,
+        today: @escaping @MainActor () -> LocalDate,
+        initialWeek: LocalDate? = nil
+    ) {
         self.childId = childId
         self.insights = insights
         self.today = today
         let current = today().monday
-        weeks = Self.weeks(endingAt: current)
-        selectedWeek = current
+        let weeks = Self.weeks(endingAt: current)
+        self.weeks = weeks
+        if let asked = initialWeek?.monday, weeks.contains(asked) {
+            selectedWeek = asked
+        } else {
+            selectedWeek = current
+        }
     }
 
     static func weeks(endingAt current: LocalDate) -> [LocalDate] {

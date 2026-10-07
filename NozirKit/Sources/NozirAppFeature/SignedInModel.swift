@@ -205,11 +205,13 @@ public final class SignedInModel {
         HomeModel(insights: insights, family: family)
     }
 
-    func makeDailySummaryModel(childId: UUID, childName: String) -> DailySummaryModel {
-        DailySummaryModel(childId: childId, childName: childName, insights: insights)
+    /// P06: `date` nil is the latest finished day (Home); a link gives its day.
+    func makeDailySummaryModel(childId: UUID, childName: String, date: LocalDate? = nil) -> DailySummaryModel {
+        DailySummaryModel(childId: childId, childName: childName, date: date, insights: insights)
     }
 
-    func makeWeeklyModel(childId: UUID) -> WeeklyReportModel {
+    /// P07: `weekStart` nil is this week (Home, Statistics); a link gives its week.
+    func makeWeeklyModel(childId: UUID, weekStart: LocalDate? = nil) -> WeeklyReportModel {
         WeeklyReportModel(
             childId: childId,
             insights: insights,
@@ -217,7 +219,8 @@ public final class SignedInModel {
                 var calendar = Calendar(identifier: .gregorian)
                 calendar.timeZone = .current
                 return LocalDate(Date(), in: calendar)
-            }
+            },
+            initialWeek: weekStart
         )
     }
 

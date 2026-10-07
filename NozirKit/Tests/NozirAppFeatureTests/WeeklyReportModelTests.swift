@@ -23,10 +23,10 @@ private func usage(_ minutes: [Int], from monday: LocalDate) -> [DailyUsage] {
 }
 
 @MainActor
-private func setup(_ script: FakeInsights.Script, today: Today? = nil) -> (WeeklyReportModel, FakeInsights) {
+private func setup(_ script: FakeInsights.Script, today: Today? = nil, initialWeek: LocalDate? = nil) -> (WeeklyReportModel, FakeInsights) {
     let clock = today ?? Today("2026-10-07")
     let insights = FakeInsights(script)
-    let model = WeeklyReportModel(childId: aliId, insights: insights, today: { clock.value })
+    let model = WeeklyReportModel(childId: aliId, insights: insights, today: { clock.value }, initialWeek: initialWeek)
     return (model, insights)
 }
 
@@ -83,6 +83,28 @@ private actor GatedInsights: InsightsService {
         #expect(model.currentWeek == day("2026-10-05"))
         #expect(model.selectedWeek == day("2026-10-05"))
         #expect(zip(model.weeks, model.weeks.dropFirst()).allSatisfy { $0.adding(days: 7) == $1 })
+    }
+
+    // P16a (spec §4.2, plan L5; Review Focus 2): a link's week opens on its
+    // Monday, inside the same fifty-three weeks.
+    @Test func aWeekGivenOpensOnThatWeek() async {
+        let (model, insights) = setup(FakeInsights.Script(), initialWeek: day("2026-09-16"))
+
+        #expect(model.selectedWeek == day("2026-09-14"))
+        #expect(model.currentWeek == day("2026-10-05"))
+        #expect(model.weeks.count == 53)
+
+        await model.appear()
+
+        #expect(await insights.calls.first == "usage 2026-09-14…2026-09-20")
+        #expect(model.selectedWeek == day("2026-09-14"))
+    }
+
+    // Older than the pager's year, or still to come: this week, never an empty pager.
+    @Test func aWeekOutsideTheYearOpensOnThisWeek() {
+        #expect(setup(FakeInsights.Script(), initialWeek: day("2025-10-05")).0.selectedWeek == day("2026-10-05"))
+        #expect(setup(FakeInsights.Script(), initialWeek: day("2026-10-12")).0.selectedWeek == day("2026-10-05"))
+        #expect(setup(FakeInsights.Script(), initialWeek: day("2025-10-06")).0.selectedWeek == day("2025-10-06"))
     }
 
     @Test func aWeekIsItsUsageAndItsObservations() async {

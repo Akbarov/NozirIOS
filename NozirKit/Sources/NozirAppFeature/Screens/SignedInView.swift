@@ -8,8 +8,10 @@ import NozirLocation
 /// The signed-in app: Home, Statistics, Location and Profile.
 struct SignedInView: View {
     enum HomeStep: Hashable {
-        case summary(UUID, String)
-        case weekly(UUID)
+        /// P06 for a child; `date` nil is the latest finished day.
+        case summary(UUID, String, date: LocalDate? = nil)
+        /// P07 for a child; `weekStart` nil is this week.
+        case weekly(UUID, weekStart: LocalDate? = nil)
         case apps(UUID)
         case details(Child)
         case sos(ActiveSos)
@@ -171,9 +173,9 @@ struct SignedInView: View {
     @ViewBuilder
     private func homeDestination(_ step: HomeStep) -> some View {
         switch step {
-        case .summary(let childId, let childName):
+        case .summary(let childId, let childName, let date):
             DailySummaryView(
-                model: model.makeDailySummaryModel(childId: childId, childName: childName),
+                model: model.makeDailySummaryModel(childId: childId, childName: childName, date: date),
                 onEditChild: {
                     if let child = model.family.child(childId) {
                         homePath.append(.details(child))
@@ -181,9 +183,9 @@ struct SignedInView: View {
                 },
                 onOpenWeekly: { homePath.append(.weekly(childId)) }
             )
-        case .weekly(let childId):
+        case .weekly(let childId, let weekStart):
             WeeklyReportView(
-                model: model.makeWeeklyModel(childId: childId),
+                model: model.makeWeeklyModel(childId: childId, weekStart: weekStart),
                 switcher: nil,
                 onOpenApps: { homePath.append(.apps($0)) }
             )

@@ -21,6 +21,7 @@ private func setup(
     _ script: FakeFamily.Script,
     defaults: UserDefaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!,
     sent: SentLocales = SentLocales(),
+    insights: FakeInsights = FakeInsights(),
     extraTime: FakeExtraTime = FakeExtraTime(),
     protection: FakeProtection = FakeProtection(),
     notifications: FakeNotifications = FakeNotifications(),
@@ -32,7 +33,7 @@ private func setup(
     let language = LanguageStore(defaults: defaults, preferredLanguages: ["uz"])
     let model = SignedInModel(
         family: FamilyStore(service: fake),
-        insights: FakeInsights(),
+        insights: insights,
         extraTime: extraTime,
         protection: protection,
         notifications: notifications,
@@ -346,5 +347,29 @@ private func setup(
         #expect(screen.items.count == 1)
         #expect(screen.offlineAfterMinutes == 360)
         #expect(await notifications.calls == ["page", "preferences"])
+    }
+
+    // P16a (Review Focus 3): Home's and Statistics' calls open what they always
+    // opened; a day or a week given is the one opened.
+    @Test func theSummaryScreensOpenOnTheDayOrWeekAsked() async {
+        let id = UUID()
+        let insights = FakeInsights()
+        let (model, _) = setup(FakeFamily.Script(), insights: insights)
+
+        await model.makeDailySummaryModel(childId: id, childName: "Ali").load()
+        await model.makeDailySummaryModel(childId: id, childName: "Ali", date: day("2026-10-01")).load()
+
+        #expect(await insights.calls == ["daily latest", "daily 2026-10-01"])
+        let thisWeek = model.makeWeeklyModel(childId: id)
+        #expect(thisWeek.selectedWeek == thisWeek.currentWeek)
+        let earlier = thisWeek.currentWeek.adding(days: -14)
+        #expect(model.makeWeeklyModel(childId: id, weekStart: earlier.adding(days: 2)).selectedWeek == earlier)
+    }
+
+    @Test func anUndatedStepIsTheOldOne() {
+        let id = UUID()
+        #expect(SignedInView.HomeStep.summary(id, "Ali") == .summary(id, "Ali", date: nil))
+        #expect(SignedInView.HomeStep.weekly(id) == .weekly(id, weekStart: nil))
+        #expect(SignedInView.HomeStep.summary(id, "Ali") != .summary(id, "Ali", date: day("2026-10-01")))
     }
 }
