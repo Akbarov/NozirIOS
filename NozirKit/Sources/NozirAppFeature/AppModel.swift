@@ -20,6 +20,9 @@ public final class AppModel {
     /// config (fresh or cached) has been read.
     public private(set) var emergencyNumber: String?
 
+    /// From the server config, for P20: the deletion wait and the policy link.
+    private(set) var privacyConfig = PrivacyConfig.absent
+
     /// openapi: re-fetch the config after more than an hour in the background.
     private let configRefreshAfter: TimeInterval = 3_600
     private let config: any ConfigLoading
@@ -67,6 +70,14 @@ public final class AppModel {
         phase = .signedOut
     }
 
+    /// P20: a deletion request has been recorded and the server has already
+    /// revoked every parent's session, so it is not asked again — the session
+    /// is only forgotten here.
+    public func signOutLocally() {
+        tokens.clear()
+        phase = .signedOut
+    }
+
     /// The refresher found the session revoked or expired. The update wall,
     /// if it is up, stays up.
     public func handleSessionEnded() {
@@ -89,6 +100,7 @@ public final class AppModel {
     private func evaluate() async {
         let loaded = await config.load()
         emergencyNumber = loaded?.emergencyContacts.emergencyNumber
+        privacyConfig = PrivacyConfig(loaded)
         if UpdateGate.blocks(loaded) {
             phase = .updateRequired(emergencyNumber: emergencyNumber)
             return

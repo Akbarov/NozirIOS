@@ -4,7 +4,7 @@ import NozirAuth
 import NozirConfig
 @testable import NozirAppFeature
 
-private func config(updateRequired: Bool) -> ServerConfig {
+private func config(updateRequired: Bool, deletionDays: Int? = nil) -> ServerConfig {
     ServerConfig(
         minSupportedVersion: "1.0.0",
         latestVersion: "1.1.0",
@@ -20,7 +20,8 @@ private func config(updateRequired: Bool) -> ServerConfig {
         ),
         privacyPolicyUrl: "https://nozir.syncoder.uz/privacy",
         termsUrl: "https://nozir.syncoder.uz/terms",
-        supportUrl: "https://nozir.syncoder.uz/support"
+        supportUrl: "https://nozir.syncoder.uz/support",
+        dataDeletionDelayDays: deletionDays
     )
 }
 
@@ -219,5 +220,39 @@ private func makeModel(
         await model.start()
 
         #expect(model.emergencyNumber == nil)
+    }
+
+    // P20: the server has already revoked every session; asking it to log out
+    // again would only fail.
+    @Test func signingOutLocallyForgetsTheSessionWithoutTheServer() async {
+        let tokens = InMemoryTokenStore(someTokens)
+        let logout = LogoutEndpoint()
+        let model = makeModel(config: FakeConfig(nil), tokens: tokens, logout: logout)
+        await model.start()
+
+        model.signOutLocally()
+
+        #expect(await logout.calls == 0)
+        #expect(tokens.load() == nil)
+        #expect(model.phase == .signedOut)
+    }
+
+    @Test func thePrivacyConfigComesWithTheServerConfig() async {
+        let model = makeModel(config: FakeConfig(config(updateRequired: false, deletionDays: 7)), tokens: InMemoryTokenStore(someTokens))
+
+        await model.start()
+
+        #expect(model.privacyConfig == PrivacyConfig(
+            deletionDelayDays: 7,
+            policyURL: URL(string: "https://nozir.syncoder.uz/privacy")
+        ))
+    }
+
+    @Test func noConfigNoPrivacyConfig() async {
+        let model = makeModel(config: FakeConfig(nil), tokens: InMemoryTokenStore(someTokens))
+
+        await model.start()
+
+        #expect(model.privacyConfig == .absent)
     }
 }
