@@ -23,6 +23,7 @@ private func setup(
     sent: SentLocales = SentLocales(),
     extraTime: FakeExtraTime = FakeExtraTime(),
     protection: FakeProtection = FakeProtection(),
+    notifications: FakeNotifications = FakeNotifications(),
     privacy: FakePrivacy = FakePrivacy(),
     privacyConfig: PrivacyConfig = .absent,
     signOutLocally: @escaping @MainActor () -> Void = {}
@@ -34,6 +35,7 @@ private func setup(
         insights: FakeInsights(),
         extraTime: extraTime,
         protection: protection,
+        notifications: notifications,
         location: FakeLocation(),
         language: language,
         appearance: AppearanceStore(defaults: defaults),
@@ -327,5 +329,22 @@ private func setup(
         #expect(screen.childName == "Ali")
         #expect(screen.phase == .ready)
         #expect(model.makeProtectionModel(childId: UUID()).childName == nil)
+    }
+
+    // P16 (spec §4.2): the screen reads the session's service.
+    @Test func theNotificationsScreenUsesTheSessionsService() async {
+        var script = FakeNotifications.Script()
+        script.pages = [.success(notificationPage([parentNotification()]))]
+        script.preferences = [.success(notificationPreferences())]
+        let notifications = FakeNotifications(script)
+        let (model, _) = setup(FakeFamily.Script(), notifications: notifications)
+
+        let screen = model.makeNotificationsModel()
+        await screen.appear()
+
+        #expect(screen.phase == .ready)
+        #expect(screen.items.count == 1)
+        #expect(screen.offlineAfterMinutes == 360)
+        #expect(await notifications.calls == ["page", "preferences"])
     }
 }

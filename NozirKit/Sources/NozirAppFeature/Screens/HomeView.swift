@@ -4,7 +4,8 @@ import NozirInsights
 import NozirL10n
 
 /// P05 as Android `HomeContent`: the SOS banner, the offline notice, then the
-/// family (empty, one child, or many). The banner opens P15; P16 is not in this slice.
+/// family (empty, one child, or many). The banner opens P15; the bell in the
+/// navigation bar opens P16.
 struct HomeView: View {
     @State private var model: HomeModel
     private let reloadToken: Int
@@ -13,6 +14,7 @@ struct HomeView: View {
     private let onOpenSos: (ActiveSos) -> Void
     private let onOpenTimeRequest: (UUID, Int?) -> Void
     private let onOpenProtection: (UUID) -> Void
+    private let onOpenNotifications: () -> Void
     private let onAddChild: () -> Void
     @Environment(\.l10n) private var l10n
     @Environment(\.scenePhase) private var scenePhase
@@ -25,6 +27,7 @@ struct HomeView: View {
         onOpenSos: @escaping (ActiveSos) -> Void,
         onOpenTimeRequest: @escaping (UUID, Int?) -> Void,
         onOpenProtection: @escaping (UUID) -> Void,
+        onOpenNotifications: @escaping () -> Void,
         onAddChild: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
@@ -34,6 +37,7 @@ struct HomeView: View {
         self.onOpenSos = onOpenSos
         self.onOpenTimeRequest = onOpenTimeRequest
         self.onOpenProtection = onOpenProtection
+        self.onOpenNotifications = onOpenNotifications
         self.onAddChild = onAddChild
     }
 
@@ -53,6 +57,15 @@ struct HomeView: View {
         .background(NozirColor.background.ignoresSafeArea())
         .navigationTitle(l10n.screenHomeTitle)
         .navigationBarTitleDisplayMode(.inline)
+        // Spec §5.1: the way to P16 from Home; VoiceOver reads the words, not the glyph.
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: onOpenNotifications) {
+                    Text(l10n.glyphBell)
+                }
+                .accessibilityLabel(l10n.contentDescriptionNotifications)
+            }
+        }
         .task(id: reloadToken) { await model.appear() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

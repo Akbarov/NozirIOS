@@ -10,6 +10,7 @@ struct ProfileView: View {
     private let onOpenChild: (Child) -> Void
     private let onPair: (Child) -> Void
     private let onOpenRules: () -> Void
+    private let onOpenNotifications: () -> Void
     private let onOpenPrivacy: () -> Void
     @Environment(\.l10n) private var l10n
     @State private var showsTheme = false
@@ -21,6 +22,7 @@ struct ProfileView: View {
         onOpenChild: @escaping (Child) -> Void,
         onPair: @escaping (Child) -> Void,
         onOpenRules: @escaping () -> Void,
+        onOpenNotifications: @escaping () -> Void,
         onOpenPrivacy: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
@@ -28,6 +30,7 @@ struct ProfileView: View {
         self.onOpenChild = onOpenChild
         self.onPair = onPair
         self.onOpenRules = onOpenRules
+        self.onOpenNotifications = onOpenNotifications
         self.onOpenPrivacy = onOpenPrivacy
     }
 
@@ -59,6 +62,8 @@ struct ProfileView: View {
                 }
                 NozirSectionTitle(l10n.profileSectionSettings)
                 NozirCard {
+                    NozirSettingsRow(l10n.profileRowNotifications, action: onOpenNotifications)
+                    Divider()
                     NozirSettingsRow(l10n.profileRowPrivacy, action: onOpenPrivacy)
                     Divider()
                     NozirSettingsRow(l10n.profileRowTheme, value: themeLabel(model.appearance.mode)) { showsTheme = true }

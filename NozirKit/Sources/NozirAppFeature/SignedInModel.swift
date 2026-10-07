@@ -29,6 +29,7 @@ public final class SignedInModel {
     private let insights: any InsightsService
     private let extraTime: any ExtraTimeService
     private let protection: any ProtectionService
+    private let notifications: any NotificationsService
     let locationService: any LocationService
     private let language: LanguageStore
     private let appearance: AppearanceStore
@@ -45,6 +46,7 @@ public final class SignedInModel {
         insights: any InsightsService,
         extraTime: any ExtraTimeService,
         protection: any ProtectionService,
+        notifications: any NotificationsService,
         location: any LocationService,
         language: LanguageStore,
         appearance: AppearanceStore,
@@ -59,6 +61,7 @@ public final class SignedInModel {
         self.insights = insights
         self.extraTime = extraTime
         self.protection = protection
+        self.notifications = notifications
         locationService = location
         self.language = language
         self.appearance = appearance
@@ -187,6 +190,11 @@ public final class SignedInModel {
     /// P18 for one child, named from the family list (nil: "the child").
     func makeProtectionModel(childId: UUID) -> ProtectionModel {
         ProtectionModel(childId: childId, childName: family.child(childId)?.displayName, service: protection)
+    }
+
+    /// P16 for this family; one per visit, like every pushed screen.
+    func makeNotificationsModel() -> NotificationsModel {
+        NotificationsModel(service: notifications)
     }
 
     var currentEmergencyNumber: String? {

@@ -20,6 +20,8 @@ struct SignedInView: View {
         case timeRequest(UUID, usedMinutesToday: Int?)
         /// P18 for that child, from the Home row or the child's page.
         case protection(UUID)
+        /// P16, from Home's bell or Profile's row (spec D1: its links push onto Home's stack).
+        case notifications
     }
 
     enum StatisticsStep: Hashable {
@@ -70,6 +72,7 @@ struct SignedInView: View {
                     onOpenSos: { homePath.append(.sos($0)) },
                     onOpenTimeRequest: { homePath.append(.timeRequest($0, usedMinutesToday: $1)) },
                     onOpenProtection: { homePath.append(.protection($0)) },
+                    onOpenNotifications: { openNotifications() },
                     onAddChild: { model.presentAddChild() }
                 )
                 .navigationDestination(for: HomeStep.self) { step in
@@ -125,6 +128,7 @@ struct SignedInView: View {
                     onOpenChild: { profilePath.append(.child($0)) },
                     onPair: { profilePath.append(.pairing($0)) },
                     onOpenRules: { profilePath.append(.rules(nil)) },
+                    onOpenNotifications: { openNotifications() },
                     onOpenPrivacy: { profilePath.append(.privacy) }
                 )
                 .navigationDestination(for: ProfileStep.self) { step in
@@ -152,6 +156,16 @@ struct SignedInView: View {
         statisticsPath.removeAll()
         locationPath.removeAll()
         profilePath.removeAll()
+    }
+
+    /// P16 always lives on Home's stack, so a row's link pushes where that
+    /// screen belongs; from Profile the tab switches first (spec D1). Never
+    /// stacked twice (plan deviation N9).
+    private func openNotifications() {
+        model.tab = .home
+        if homePath.last != .notifications {
+            homePath.append(.notifications)
+        }
     }
 
     @ViewBuilder
@@ -198,6 +212,10 @@ struct SignedInView: View {
             TimeRequestView(model: model.makeTimeRequestModel(id: id, usedMinutesToday: usedMinutesToday))
         case .protection(let childId):
             ProtectionView(model: model.makeProtectionModel(childId: childId))
+        case .notifications:
+            NotificationsView(model: model.makeNotificationsModel()) { step in
+                homePath.append(step)
+            }
         }
     }
 
