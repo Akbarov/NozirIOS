@@ -11,6 +11,7 @@ struct PrivacyView: View {
     @State private var model: PrivacyModel
     @Environment(\.l10n) private var l10n
     @Environment(\.openURL) private var openURL
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AccessibilityFocusState private var confirmationFocused: Bool
 
     init(model: PrivacyModel) {
@@ -19,6 +20,7 @@ struct PrivacyView: View {
 
     var body: some View {
         ScrollView {
+          VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: NozirSpacing.compact) {
                 if model.isOffline {
                     NozirOfflineNotice(l10n.stateOfflineNotice)
@@ -34,9 +36,17 @@ struct PrivacyView: View {
                 }
             }
             .padding(NozirSpacing.medium)
+            // At accessibility text sizes the section would not fit below the
+            // scroll and could clip the confirm button: it scrolls with the content.
+            if dynamicTypeSize.isAccessibilitySize {
+                deletionSection
+            }
+          }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            deletionSection
+            if !dynamicTypeSize.isAccessibilitySize {
+                deletionSection
+            }
         }
         .background(NozirColor.background.ignoresSafeArea())
         .navigationTitle(l10n.screenPrivacyTitle)
