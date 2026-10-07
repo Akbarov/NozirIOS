@@ -157,7 +157,7 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
     @Test func homeCarriesTheWaitingAsks() async throws {
         let body = bareHomeJSON.replacingOccurrences(
             of: #""pendingExtraTimeRequests":[]"#,
-            with: #""pendingExtraTimeRequests":["# + extraTimeJSON() + "]"
+            with: #""pendingExtraTimeRequests":["# + extraTimeJSON(childName: nil) + "]"
         )
         let (api, _) = insightsApi([.ok(body)])
 
@@ -165,6 +165,7 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
 
         #expect(home.pendingExtraTimeRequests.map(\.id) == [requestId])
         #expect(home.pendingExtraTimeRequests.first?.requestedMinutes == 30)
+        #expect(home.pendingExtraTimeRequests.first?.childName == nil)
     }
 
     @Test func aHomeWithoutTheListHasNoAsks() async throws {

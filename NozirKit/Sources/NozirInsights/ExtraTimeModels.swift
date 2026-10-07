@@ -107,6 +107,16 @@ public struct ExtraTimeRequest: Decodable, Hashable, Sendable, Identifiable {
         self.requestsInLastSevenDays = requestsInLastSevenDays
     }
 
+    /// The same ask under another child name (Home's answer carries none).
+    public func named(_ name: String?) -> ExtraTimeRequest {
+        ExtraTimeRequest(
+            id: id, childId: childId, childName: name, kind: kind, nightOf: nightOf,
+            requestedMinutes: requestedMinutes, reason: reason, status: status,
+            grantedMinutes: grantedMinutes, decisionNote: decisionNote, createdAt: createdAt,
+            decidedAt: decidedAt, requestsInLastSevenDays: requestsInLastSevenDays
+        )
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, childId, childName, kind, nightOf, requestedMinutes, reason, status
         case grantedMinutes, decisionNote, createdAt, decidedAt, requestsInLastSevenDays

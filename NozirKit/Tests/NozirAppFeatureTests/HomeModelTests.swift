@@ -307,6 +307,18 @@ private func setup(
         #expect(model.usedMinutesToday(of: extraTimeAsk()) == nil)
     }
 
+    // The Home answer carries no childName: the row names the child from Home's own card.
+    @Test func aHomeAskIsNamedFromTheChildsCard() async {
+        let ali = homeCard("Ali")
+        let known = extraTimeAsk(childId: ali.id, name: nil)
+        let stranger = extraTimeAsk(childId: UUID(), name: nil)
+        let (model, _, _) = setup([.success(parentHome([ali], requests: [known, stranger]))])
+
+        await model.appear()
+
+        #expect(model.timeRequests.map(\.childName) == ["Ali", nil])
+    }
+
     @Test func noHomeNoRows() {
         let (model, _, _) = setup([])
 

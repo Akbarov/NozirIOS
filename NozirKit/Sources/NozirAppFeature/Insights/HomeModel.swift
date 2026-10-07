@@ -142,8 +142,13 @@ final class HomeModel {
 
     /// P17 rows: the asks the app can answer, in the server's order, for the
     /// child the filter shows (everyone when it names no child on screen).
+    /// Home's asks carry no child name, so a blank one is read off the child's
+    /// card; with no card it stays nil (the unnamed sentence).
     var timeRequests: [ExtraTimeRequest] {
-        let waiting = (home?.pendingExtraTimeRequests ?? []).filter(\.isAnswerable)
+        let waiting = (home?.pendingExtraTimeRequests ?? []).filter(\.isAnswerable).map { request in
+            guard LocationTexts.present(request.childName) == nil else { return request }
+            return request.named(cards.first { $0.id == request.childId }?.displayName)
+        }
         guard let filter, cards.contains(where: { $0.id == filter }) else { return waiting }
         return waiting.filter { $0.childId == filter }
     }
