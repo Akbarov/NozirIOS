@@ -26,7 +26,7 @@ struct FrozenChildCard: View {
             }
             Text(l10n.planLockFrozenChildTitle).nozirText(.titleSmall)
             Text(l10n.planLockFrozenChildBody).nozirText(.bodySmall)
-            NozirButton(l10n.planLockChooseActive, variant: .secondary, isLoading: isMakingActive, action: onMakeActive)
+            NozirButton(l10n.planLockChooseActive, isLoading: isMakingActive, action: onMakeActive)
             NozirButton(l10n.planLockActionUpgrade, variant: .secondary, action: onUpgrade)
             Text(l10n.planLockSosNote).nozirText(.bodySmall, color: NozirColor.textSecondary)
         }

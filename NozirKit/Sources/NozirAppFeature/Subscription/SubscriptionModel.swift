@@ -227,6 +227,14 @@ final class SubscriptionModel {
         watch?.cancel()
     }
 
+    /// The screen is back (a tab switch does not pop it) while a payment is
+    /// still awaited: watch again, unless a live watch is already running.
+    func resumeWatchingIfAwaiting() {
+        guard isAwaitingPayment else { return }
+        if let watch, !watch.isCancelled { return }
+        startWatching()
+    }
+
     // MARK: Inside
 
     private func apply(plans fresh: [SubscriptionPlan]) {

@@ -52,7 +52,11 @@ struct SubscriptionView: View {
         .navigationTitle(l10n.subscriptionTopBar)
         .navigationBarTitleDisplayMode(.inline)
         // Every entry reads again (spec D2).
-        .task { await model.load() }
+        .task {
+            await model.load()
+            // Back on a tab without being popped: the watch stopped on disappear.
+            model.resumeWatchingIfAwaiting()
+        }
         .refreshable { await model.load() }
         // Back from Safari: iOS paused the watch while the parent paid.
         .onChange(of: scenePhase) { _, phase in

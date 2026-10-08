@@ -40,6 +40,17 @@ private func state(_ body: String) async throws -> SubscriptionState {
         #expect(try await state(subscriptionJSON(state: "null")) == .free)
     }
 
+    // The server's own word beats the legacy tier and status.
+    @Test func anExplicitStateWinsOverTierAndStatus() async throws {
+        #expect(try await state(subscriptionJSON(tier: "PRO", status: "ACTIVE", state: #""FREE""#)) == .free)
+        #expect(try await state(subscriptionJSON(
+            tier: "PRO", status: "ACTIVE", state: #""FREE""#, planCode: "pro_yearly", currentPeriodEnd: "2026-09-01T00:00:00Z"
+        )) == .expired(planCode: "pro_yearly", endedAt: moment("2026-09-01T00:00:00Z")))
+        #expect(try await state(subscriptionJSON(
+            tier: "PRO", status: "ACTIVE", state: #""TRIAL""#, planCode: "pro_yearly", trialEndsAt: "2026-10-15T00:00:00Z"
+        )) == .trial(endsAt: moment("2026-10-15T00:00:00Z")))
+    }
+
     // Review Focus 5: a word this app does not know is no word at all.
     @Test func aStateThisAppDoesNotKnowFallsBackToTierAndStatus() async throws {
         #expect(try await state(subscriptionJSON(tier: "PRO", status: "ACTIVE", state: #""FAMILY""#, planCode: "pro_yearly"))

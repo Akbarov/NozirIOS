@@ -12,6 +12,12 @@ private actor Naps {
     func take(_ duration: Duration) {
         asked.append(duration)
     }
+
+    /// The first wait lasts an hour (a watch nobody looks at); every later one returns at once.
+    func firstIsLong(_ duration: Duration) async throws {
+        asked.append(duration)
+        if asked.count == 1 { try await Task.sleep(for: .seconds(3_600)) }
+    }
 }
 
 private let owner = ParentProfile(displayName: "Zohid", phoneE164: nil, locale: "uz", role: "OWNER")
@@ -508,6 +514,58 @@ private func reads(_ family: FakeFamily) async -> Int {
 
         #expect(model.state == paidYearly)
         #expect(!model.offersPlans)
+    }
+
+    // Coming back to the screen (tab switch) without it being popped: the watch starts again.
+    @Test(.timeLimit(.minutes(5)))
+    func comingBackWhileAwaitingWatchesAgain() async {
+        let naps = Naps()
+        var (billing, family) = offered([.free, paidYearly])
+        billing.checkout = [.success(clickCheckout)]
+        family.me = [.success(owner)]
+        let (model, _, familyFake) = setup(billing, family, sleep: { try await naps.firstIsLong($0) })
+        await model.load()
+        await model.pay()
+        let first = model.watch
+        model.stopWatching()
+        await first?.value
+        #expect(model.isAwaitingPayment)
+
+        model.resumeWatchingIfAwaiting()
+        await model.watch?.value
+
+        #expect(model.watch != first)
+        #expect(await reads(familyFake) == 2)
+        #expect(model.isActive)
+        #expect(!model.isAwaitingPayment)
+    }
+
+    @Test func notAwaitingPaymentResumesNothing() async {
+        let (billing, family) = offered()
+        let (model, _, _) = setup(billing, family)
+        await model.load()
+
+        model.resumeWatchingIfAwaiting()
+
+        #expect(model.watch == nil)
+    }
+
+    @Test(.timeLimit(.minutes(5)))
+    func aLiveWatchIsNotReplacedOnResume() async {
+        var (billing, family) = offered()
+        billing.checkout = [.success(clickCheckout)]
+        family.me = [.success(owner)]
+        let (model, _, _) = setup(billing, family)
+        await model.load()
+        await model.pay()
+        let live = model.watch
+
+        model.resumeWatchingIfAwaiting()
+
+        #expect(model.watch == live)
+        #expect(live?.isCancelled == false)
+        model.stopWatching()
+        await live?.value
     }
 
     // A second payment replaces the watch: one live watch only.
