@@ -342,7 +342,8 @@ private func reads(_ family: FakeFamily) async -> Int {
     }
 
     // Review Focus 4 (spec D1): nothing took the page — said, not awaited, not watched.
-    @Test func aPageThatDidNotOpenSaysSoAndStopsWatching() async {
+    @Test(.timeLimit(.minutes(5)))
+    func aPageThatDidNotOpenSaysSoAndStopsWatching() async {
         var (billing, family) = offered()
         billing.checkout = [.success(clickCheckout)]
         family.me = [.success(owner)]
@@ -383,7 +384,7 @@ private func reads(_ family: FakeFamily) async -> Int {
     // Spec D2: five minutes, then silence; "kutilmoqda" and the check button stay.
     @Test func theWatchGivesUpQuietlyAfterFiveMinutes() async {
         let naps = Naps()
-        var (billing, family) = offered()
+        var (billing, family) = offered(Array(repeating: .free, count: 61))
         billing.checkout = [.success(clickCheckout)]
         family.me = [.success(owner)]
         let (model, _, familyFake) = setup(billing, family, sleep: { await naps.take($0) })
@@ -421,7 +422,8 @@ private func reads(_ family: FakeFamily) async -> Int {
     }
 
     // Spec D2: "Toʻlovni tekshirish" reads once; an active plan ends the wait and the watch.
-    @Test func checkingByHandReadsOnceAndEndsTheWatch() async {
+    @Test(.timeLimit(.minutes(5)))
+    func checkingByHandReadsOnceAndEndsTheWatch() async {
         var (billing, family) = offered([.free, paidYearly])
         billing.checkout = [.success(clickCheckout)]
         family.me = [.success(owner)]
@@ -475,5 +477,46 @@ private func reads(_ family: FakeFamily) async -> Int {
         #expect(model.message == nil)
         #expect(model.state == .free)
         model.stopWatching()
+    }
+
+    // An older read's success is not lost to a newer read that failed.
+    @Test(.timeLimit(.minutes(5)))
+    func anOlderSuccessSurvivesANewerFailure() async {
+        let gate = PauseGate()
+        var (billing, family) = offered([paidYearly])
+        family.subscription.append(.failure(offline))
+        family.subscriptionGate = gate
+        family.me = [.success(owner)]
+        let (model, _, _) = setup(billing, family)
+
+        let loading = Task { await model.load() }
+        await gate.untilPaused()
+        await model.checkPayment()
+        await gate.release()
+        await loading.value
+
+        #expect(model.state == paidYearly)
+        #expect(!model.offersPlans)
+    }
+
+    // A second payment replaces the watch: one live watch only.
+    @Test(.timeLimit(.minutes(5)))
+    func aSecondPaymentCancelsTheEarlierWatch() async {
+        var (billing, family) = offered()
+        billing.checkout = [.success(clickCheckout), .success(clickCheckout)]
+        family.me = [.success(owner)]
+        let (model, _, _) = setup(billing, family)
+        await model.load()
+        await model.pay()
+        let earlier = model.watch
+
+        await model.pay()
+        let later = model.watch
+
+        #expect(earlier?.isCancelled == true)
+        #expect(later?.isCancelled == false)
+        model.stopWatching()
+        await earlier?.value
+        await later?.value
     }
 }

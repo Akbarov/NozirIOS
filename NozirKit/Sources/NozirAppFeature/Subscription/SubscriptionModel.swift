@@ -65,6 +65,8 @@ final class SubscriptionModel {
     @ObservationIgnored private var generation = 0
     /// Bumped by every state read: an older read never overwrites a newer one.
     @ObservationIgnored private var stateReads = 0
+    /// The number of the newest read whose answer was applied: older answers never overwrite it.
+    @ObservationIgnored private var lastAppliedRead = 0
     @ObservationIgnored private var isChecking = false
 
     init(
@@ -262,18 +264,18 @@ final class SubscriptionModel {
         }
     }
 
-    /// Reads and applies the state. Nil when a newer read started meanwhile.
+    /// Reads and applies the state. Nil when a newer answer was applied meanwhile; a failure never overwrites anything.
     @discardableResult
     private func readState() async -> Result<SubscriptionState, any Error>? {
         stateReads += 1
         let mine = stateReads
         do {
             let fresh = try await family.subscription().state
-            guard mine == stateReads else { return nil }
+            guard mine > lastAppliedRead else { return nil }
+            lastAppliedRead = mine
             apply(state: fresh)
             return .success(fresh)
         } catch {
-            guard mine == stateReads else { return nil }
             return .failure(error)
         }
     }
