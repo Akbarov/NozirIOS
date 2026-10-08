@@ -82,6 +82,7 @@ public final class AppEnvironment {
             extraTime: ExtraTimeApi(client: authorised),
             protection: ProtectionApi(client: authorised),
             notifications: NotificationsApi(client: authorised),
+            billing: BillingApi(client: authorised),
             location: LocationApi(client: authorised),
             language: language,
             appearance: appearance,

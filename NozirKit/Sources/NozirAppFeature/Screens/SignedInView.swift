@@ -51,6 +51,8 @@ struct SignedInView: View {
         case privacy
         /// P18 from the child's page opened in this tab.
         case protection(UUID)
+        /// P19 from the Profile row or a lock card opened in this tab.
+        case subscription
     }
 
     @State private var model: SignedInModel
@@ -133,6 +135,7 @@ struct SignedInView: View {
                     onOpenChild: { profilePath.append(.child($0)) },
                     onPair: { profilePath.append(.pairing($0)) },
                     onOpenRules: { profilePath.append(.rules(nil)) },
+                    onOpenSubscription: { profilePath.append(.subscription) },
                     onOpenNotifications: { openNotifications() },
                     onOpenPrivacy: { profilePath.append(.privacy) }
                 )
@@ -256,6 +259,8 @@ struct SignedInView: View {
             PrivacyView(model: model.makePrivacyModel())
         case .protection(let childId):
             ProtectionView(model: model.makeProtectionModel(childId: childId))
+        case .subscription:
+            SubscriptionView(model: model.makeSubscriptionModel())
         }
     }
 
