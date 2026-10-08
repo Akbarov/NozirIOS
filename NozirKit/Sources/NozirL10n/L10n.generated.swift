@@ -2200,6 +2200,15 @@ public extension L10n {
         }
     }
 
+    /// `ios_subscription_owner_only`
+    var iosSubscriptionOwnerOnly: String {
+        switch language {
+        case .uz: "Obunani faqat oila egasi sotib oladi."
+        case .ru: "Подписку покупает только владелец семьи."
+        case .en: "Only the family owner can buy the subscription."
+        }
+    }
+
     /// `language_en`
     var languageEn: String {
         switch language {
