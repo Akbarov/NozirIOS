@@ -22,9 +22,11 @@ struct DailyLimitSection: View {
                     NozirOfflineNotice(l10n.stateOfflineNotice)
                 }
                 if model.session.isFrozen {
-                    FrozenChildCard(isMakingActive: model.session.isMakingActive) {
-                        Task { await model.session.makeActive() }
-                    }
+                    FrozenChildCard(
+                        isMakingActive: model.session.isMakingActive,
+                        onMakeActive: { Task { await model.session.makeActive() } },
+                        onUpgrade: { onOpen(.subscription) }
+                    )
                     if let message = model.session.message {
                         NozirInlineMessage(message.text(l10n))
                     }

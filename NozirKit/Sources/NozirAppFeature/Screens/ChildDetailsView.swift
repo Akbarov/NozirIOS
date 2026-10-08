@@ -4,24 +4,27 @@ import NozirFamily
 import NozirL10n
 
 /// Android `ChildDetailsScreen`: edit, the frozen lock, remove; the rules and
-/// protection rows open P09 and P18 for this child.
+/// protection rows open P09 and P18 for this child, the lock opens P19.
 struct ChildDetailsView: View {
     @State private var model: ChildDetailsModel
     private let onRemoved: () -> Void
     private let onOpenRules: () -> Void
     private let onOpenProtection: () -> Void
+    private let onOpenSubscription: () -> Void
     @Environment(\.l10n) private var l10n
 
     init(
         model: ChildDetailsModel,
         onRemoved: @escaping () -> Void,
         onOpenRules: @escaping () -> Void,
-        onOpenProtection: @escaping () -> Void
+        onOpenProtection: @escaping () -> Void,
+        onOpenSubscription: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
         self.onRemoved = onRemoved
         self.onOpenRules = onOpenRules
         self.onOpenProtection = onOpenProtection
+        self.onOpenSubscription = onOpenSubscription
     }
 
     var body: some View {
@@ -32,9 +35,11 @@ struct ChildDetailsView: View {
                     Text(model.child.displayName).nozirText(.titleLarge)
                 }
                 if model.isFrozen {
-                    FrozenChildCard(isMakingActive: model.isMakingActive) {
-                        Task { await model.makeActive() }
-                    }
+                    FrozenChildCard(
+                        isMakingActive: model.isMakingActive,
+                        onMakeActive: { Task { await model.makeActive() } },
+                        onUpgrade: onOpenSubscription
+                    )
                 }
                 form
                 NozirCard {

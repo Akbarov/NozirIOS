@@ -10,6 +10,7 @@ struct LocationView: View {
     @State private var model: LocationModel
     private let onOpenZone: (UUID, SafeZone?) -> Void
     private let onOpenTracking: (UUID) -> Void
+    private let onOpenSubscription: () -> Void
     private let onAddChild: () -> Void
     @Environment(\.l10n) private var l10n
     @Environment(\.scenePhase) private var scenePhase
@@ -19,12 +20,14 @@ struct LocationView: View {
         model: LocationModel,
         onOpenZone: @escaping (UUID, SafeZone?) -> Void,
         onOpenTracking: @escaping (UUID) -> Void,
+        onOpenSubscription: @escaping () -> Void,
         onAddChild: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
         _position = State(initialValue: MapCamera.region(model.cameraTarget ?? LocationModel.fallbackCentre, metres: model.snapshot?.coordinate == nil ? 2500 : 1200))
         self.onOpenZone = onOpenZone
         self.onOpenTracking = onOpenTracking
+        self.onOpenSubscription = onOpenSubscription
         self.onAddChild = onAddChild
     }
 
@@ -74,7 +77,7 @@ struct LocationView: View {
                 action: onAddChild
             )
         case .locked:
-            LocationLockCard()
+            LocationLockCard(onUpgrade: onOpenSubscription)
             // Deleting is never restricted: a lapsed plan keeps its zones reachable.
             if !model.zones.isEmpty {
                 lockedZoneChips
