@@ -519,4 +519,25 @@ private func reads(_ family: FakeFamily) async -> Int {
         await earlier?.value
         await later?.value
     }
+
+    // A failure older than an applied success says nothing: no banner over fresh state.
+    @Test(.timeLimit(.minutes(5)))
+    func anOlderFailureIsDroppedAfterANewerSuccess() async {
+        let gate = PauseGate()
+        var (billing, family) = offered([])
+        family.subscription = [.failure(offline), .success(familySubscription(paidYearly))]
+        family.subscriptionGate = gate
+        family.me = [.success(owner)]
+        let (model, _, _) = setup(billing, family)
+
+        let loading = Task { await model.load() }
+        await gate.untilPaused()
+        await model.checkPayment()
+        await gate.release()
+        await loading.value
+
+        #expect(model.state == paidYearly)
+        #expect(!model.isOffline)
+        #expect(model.message == nil)
+    }
 }

@@ -276,6 +276,7 @@ final class SubscriptionModel {
             apply(state: fresh)
             return .success(fresh)
         } catch {
+            guard mine > lastAppliedRead else { return nil }
             return .failure(error)
         }
     }
