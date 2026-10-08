@@ -59,6 +59,7 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
         #expect(summary == InsightSummary(
             id: summaryId,
             childId: aliId,
+            period: .daily,
             periodStart: LocalDate("2026-10-04")!,
             periodEnd: LocalDate("2026-10-04")!,
             paragraphs: ["Ali kuni tinch otdi.", "Kechqurun video koproq."],
@@ -103,6 +104,52 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
         let request = try #require(await transport.requests.first)
         #expect(request.url?.path == childPath + "/summaries/weekly")
         #expect(request.queryParameters == ["weekStart": "2026-09-28"])
+    }
+
+    // P16a (spec §3): a notification's summary, asked for by its id alone.
+    @Test func aSummaryIsAskedForByItsId() async throws {
+        let (api, transport) = insightsApi([.ok(summaryJSON(period: "WEEKLY", start: "2026-09-28", end: "2026-10-04"))])
+
+        let summary = try await api.summary(id: summaryId)
+
+        #expect(summary.id == summaryId)
+        #expect(summary.childId == aliId)
+        #expect(summary.period == .weekly)
+        #expect(summary.periodStart == LocalDate("2026-09-28"))
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "GET")
+        #expect(request.url?.path == "/v1/parent/summaries/9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d")
+        #expect(request.queryParameters.isEmpty)
+    }
+
+    // Not found, or another family's: the same 404.
+    @Test func aSummaryByIdThatIsGoneIsNotFound() async {
+        let (api, _) = insightsApi([.error(404, code: "NOT_FOUND")])
+
+        do {
+            _ = try await api.summary(id: summaryId)
+            Issue.record("expected not found")
+        } catch let failure as ApiFailure {
+            #expect(failure.isNotFound)
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+    }
+
+    // Spec §4.1: an unknown or missing period is nil, and never breaks the summary.
+    @Test func thePeriodIsReadAndAnUnknownOrMissingOneIsNil() async throws {
+        let daily = summaryJSON()
+        let monthly = summaryJSON(period: "MONTHLY")
+        let missing = summaryJSON().replacingOccurrences(of: #""period":"DAILY","#, with: "")
+        let null = summaryJSON().replacingOccurrences(of: #""period":"DAILY""#, with: #""period":null"#)
+        let (api, _) = insightsApi([.ok(daily), .ok(monthly), .ok(missing), .ok(null)])
+
+        #expect(try await api.summary(id: summaryId).period == .daily)
+        let unknown = try await api.summary(id: summaryId)
+        #expect(unknown.period == nil)
+        #expect(unknown.paragraphs.count == 2)
+        #expect(try await api.summary(id: summaryId).period == nil)
+        #expect(try await api.summary(id: summaryId).period == nil)
     }
 
     @Test func dailyUsageSendsBothEnds() async throws {
@@ -190,5 +237,72 @@ private let childPath = "/v1/parent/children/0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d0
 
         #expect(home.pendingExtraTimeRequests.isEmpty)
         #expect(home.children.count == 1)
+    }
+
+    // P18: the family's worst level and who is behind it come with home.
+    @Test func homeCarriesTheFamilysProtection() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #""protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: #""protection":{"level":"BROKEN","childrenNeedingAttention":["0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01"]}"#
+        )
+        let (api, _) = insightsApi([.ok(body), .ok(fullHomeJSON)])
+
+        #expect(try await api.home().protection == HomeProtection(level: .broken, childrenNeedingAttention: [aliId]))
+        #expect(try await api.home().protection == HomeProtection(level: .healthy, childrenNeedingAttention: []))
+    }
+
+    @Test func aHomeWithoutProtectionHasNoRow() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #","protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: ""
+        )
+        let (api, _) = insightsApi([.ok(body)])
+
+        let home = try await api.home()
+
+        #expect(home.protection == nil)
+        #expect(home.children.count == 1)
+    }
+
+    // Review Focus 5: an unreadable block is no block; a new level is healthy.
+    @Test func protectionThatCannotBeReadLeavesHomeStanding() async throws {
+        let unreadable = bareHomeJSON.replacingOccurrences(
+            of: #""childrenNeedingAttention":[]"#,
+            with: #""childrenNeedingAttention":["not-a-uuid"]"#
+        )
+        let newLevel = bareHomeJSON.replacingOccurrences(of: #""level":"HEALTHY""#, with: #""level":"SOMETHING_NEW""#)
+        let (api, _) = insightsApi([.ok(unreadable), .ok(newLevel)])
+
+        let home = try await api.home()
+        #expect(home.protection == nil)
+        #expect(home.children.count == 1)
+
+        #expect(try await api.home().protection?.level == .healthy)
+    }
+
+    // Final fix 1: an unknown family level names children in trouble, so it is not "all fine".
+    @Test func anUnknownHomeLevelIsDegradedOnlyWhenChildrenNeedAttention() async throws {
+        let body = bareHomeJSON.replacingOccurrences(
+            of: #""protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: #""protection":{"level":"SOMETHING_NEW","childrenNeedingAttention":["0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01"]}"#
+        )
+        let (api, _) = insightsApi([.ok(body)])
+
+        #expect(try await api.home().protection == HomeProtection(level: .degraded, childrenNeedingAttention: [aliId]))
+    }
+
+    // Final fix 2: no level, no block, no row.
+    @Test func protectionWithoutALevelHasNoRow() async throws {
+        let absent = bareHomeJSON.replacingOccurrences(
+            of: #""protection":{"level":"HEALTHY","childrenNeedingAttention":[]}"#,
+            with: #""protection":{"childrenNeedingAttention":[]}"#
+        )
+        let null = bareHomeJSON.replacingOccurrences(of: #""level":"HEALTHY""#, with: #""level":null"#)
+        let (api, _) = insightsApi([.ok(absent), .ok(null)])
+
+        let first = try await api.home()
+        #expect(first.protection == nil)
+        #expect(first.children.count == 1)
+        #expect(try await api.home().protection == nil)
     }
 }

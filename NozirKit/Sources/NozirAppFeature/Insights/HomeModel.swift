@@ -159,6 +159,25 @@ final class HomeModel {
         cards.first { $0.id == request.childId }?.usedMinutes
     }
 
+    /// The child the P18 row opens (spec §4.2): the one the filter shows, else
+    /// the first child the server named that has a card here, else the first
+    /// card. Nil without protection or without children: no row.
+    var protectionChildId: UUID? {
+        guard let summary = home?.protection else { return nil }
+        if let filter, cards.contains(where: { $0.id == filter }) { return filter }
+        let named = summary.childrenNeedingAttention.first { id in cards.contains { $0.id == id } }
+        return named ?? cards.first?.id
+    }
+
+    /// The P18 row's level; nil hides the row. With the filter on a child the
+    /// server did not name, that child is healthy: a red row must not open a
+    /// "Himoya faol" screen (plan deviation P2).
+    var protection: ProtectionLevel? {
+        guard let summary = home?.protection, let childId = protectionChildId else { return nil }
+        guard childId == filter else { return summary.level }
+        return summary.childrenNeedingAttention.contains(childId) ? summary.level : .healthy
+    }
+
     /// "1s 35d · Maktab". A phone that stopped reporting says so in place of the
     /// place: a stale place is never shown as the current one.
     nonisolated static func usageAndPlace(_ card: ChildHomeCard, _ l10n: L10n) -> String {

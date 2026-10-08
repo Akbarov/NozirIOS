@@ -28,6 +28,8 @@ public final class SignedInModel {
 
     private let insights: any InsightsService
     private let extraTime: any ExtraTimeService
+    private let protection: any ProtectionService
+    private let notifications: any NotificationsService
     let locationService: any LocationService
     private let language: LanguageStore
     private let appearance: AppearanceStore
@@ -35,6 +37,7 @@ public final class SignedInModel {
     private let emergencyNumber: @MainActor () -> String?
     private let privacy: any PrivacyService
     private let privacyConfig: @MainActor () -> PrivacyConfig
+    private let reviewGate: ReviewGate
     private let signOutLocallyAction: @MainActor () -> Void
     private let signOutAction: @MainActor () async -> Void
     @ObservationIgnored private var hasStarted = false
@@ -43,6 +46,8 @@ public final class SignedInModel {
         family: FamilyStore,
         insights: any InsightsService,
         extraTime: any ExtraTimeService,
+        protection: any ProtectionService,
+        notifications: any NotificationsService,
         location: any LocationService,
         language: LanguageStore,
         appearance: AppearanceStore,
@@ -50,12 +55,15 @@ public final class SignedInModel {
         emergencyNumber: @escaping @MainActor () -> String?,
         privacy: any PrivacyService,
         privacyConfig: @escaping @MainActor () -> PrivacyConfig,
+        reviewGate: ReviewGate,
         signOutLocally: @escaping @MainActor () -> Void,
         signOut: @escaping @MainActor () async -> Void
     ) {
         self.family = family
         self.insights = insights
         self.extraTime = extraTime
+        self.protection = protection
+        self.notifications = notifications
         locationService = location
         self.language = language
         self.appearance = appearance
@@ -63,6 +71,7 @@ public final class SignedInModel {
         self.emergencyNumber = emergencyNumber
         self.privacy = privacy
         self.privacyConfig = privacyConfig
+        self.reviewGate = reviewGate
         signOutLocallyAction = signOutLocally
         signOutAction = signOut
         statistics = StatisticsModel(family: family)
@@ -181,6 +190,16 @@ public final class SignedInModel {
         TimeRequestModel(requestId: id, usedMinutesToday: usedMinutesToday, service: extraTime)
     }
 
+    /// P18 for one child, named from the family list (nil: "the child").
+    func makeProtectionModel(childId: UUID) -> ProtectionModel {
+        ProtectionModel(childId: childId, childName: family.child(childId)?.displayName, service: protection)
+    }
+
+    /// P16 for this family; one per visit, like every pushed screen.
+    func makeNotificationsModel() -> NotificationsModel {
+        NotificationsModel(service: notifications)
+    }
+
     var currentEmergencyNumber: String? {
         emergencyNumber()
     }
@@ -189,11 +208,14 @@ public final class SignedInModel {
         HomeModel(insights: insights, family: family)
     }
 
-    func makeDailySummaryModel(childId: UUID, childName: String) -> DailySummaryModel {
-        DailySummaryModel(childId: childId, childName: childName, insights: insights)
+    /// P06: `date` nil is the latest finished day (Home); a link gives its day.
+    /// Every P06 asks the session's one review gate.
+    func makeDailySummaryModel(childId: UUID, childName: String, date: LocalDate? = nil) -> DailySummaryModel {
+        DailySummaryModel(childId: childId, childName: childName, date: date, insights: insights, reviewGate: reviewGate)
     }
 
-    func makeWeeklyModel(childId: UUID) -> WeeklyReportModel {
+    /// P07: `weekStart` nil is this week (Home, Statistics); a link gives its week.
+    func makeWeeklyModel(childId: UUID, weekStart: LocalDate? = nil) -> WeeklyReportModel {
         WeeklyReportModel(
             childId: childId,
             insights: insights,
@@ -201,8 +223,14 @@ public final class SignedInModel {
                 var calendar = Calendar(identifier: .gregorian)
                 calendar.timeZone = .current
                 return LocalDate(Date(), in: calendar)
-            }
+            },
+            initialWeek: weekStart
         )
+    }
+
+    /// P16a for one notification; the session's family list names the child.
+    func makeSummaryLinkModel(summaryId: UUID) -> SummaryLinkModel {
+        SummaryLinkModel(summaryId: summaryId, insights: insights, family: family)
     }
 
     func makeAppUsageModel(childId: UUID) -> AppUsageModel {

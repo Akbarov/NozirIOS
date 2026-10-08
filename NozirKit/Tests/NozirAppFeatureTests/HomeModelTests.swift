@@ -324,6 +324,54 @@ private func setup(
 
         #expect(model.timeRequests.isEmpty)
     }
+
+    // Spec §4.2 + P2 and Review Focus 5: the row opens the filtered child, else
+    // the first child the server named that is on screen, else the first card;
+    // a filtered child the server did not name is healthy.
+    @Test func theProtectionRowOpensTheRightChild() async {
+        let ali = homeCard("Ali")
+        let vali = homeCard("Vali")
+        let protection = HomeProtection(level: .broken, childrenNeedingAttention: [UUID(), vali.id])
+        let (model, _, _) = setup([.success(parentHome([ali, vali], protection: protection))])
+
+        await model.appear()
+        #expect(model.protectionChildId == vali.id)
+        #expect(model.protection == .broken)
+
+        model.filter = ali.id
+        #expect(model.protectionChildId == ali.id)
+        #expect(model.protection == .healthy)
+
+        model.filter = vali.id
+        #expect(model.protectionChildId == vali.id)
+        #expect(model.protection == .broken)
+    }
+
+    @Test func aHealthyFamilyOpensTheFirstChild() async {
+        let ali = homeCard("Ali")
+        let (model, _, _) = setup([.success(parentHome([ali, homeCard("Vali")], protection: HomeProtection(level: .healthy)))])
+
+        await model.appear()
+
+        #expect(model.protectionChildId == ali.id)
+        #expect(model.protection == .healthy)
+    }
+
+    @Test func noProtectionOrNoChildNoRow() async {
+        let (model, _, _) = setup([
+            .success(parentHome([homeCard()])),
+            .success(parentHome([], protection: HomeProtection(level: .broken))),
+        ])
+        #expect(model.protection == nil)
+
+        await model.appear()
+        #expect(model.protection == nil)
+        #expect(model.protectionChildId == nil)
+
+        await model.load()
+        #expect(model.protection == nil)
+        #expect(model.protectionChildId == nil)
+    }
 }
 
 /// Holds each home request until the test answers it by number (1-based).
@@ -359,6 +407,7 @@ private actor GatedHome: InsightsService {
 
     func dailySummary(of childId: UUID, on date: LocalDate?) async throws -> InsightSummary { throw offline }
     func weeklySummary(of childId: UUID, weekStart: LocalDate) async throws -> InsightSummary { throw offline }
+    func summary(id: UUID) async throws -> InsightSummary { throw offline }
     func dailyUsage(of childId: UUID, from: LocalDate, to: LocalDate) async throws -> [DailyUsage] { throw offline }
     func appUsage(of childId: UUID, range: UsageRange) async throws -> AppBreakdown { throw offline }
 }

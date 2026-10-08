@@ -4,7 +4,8 @@ import NozirInsights
 import NozirL10n
 
 /// P05 as Android `HomeContent`: the SOS banner, the offline notice, then the
-/// family (empty, one child, or many). The banner opens P15; P16–P18 are not in this slice.
+/// family (empty, one child, or many). The banner opens P15; the bell in the
+/// navigation bar opens P16.
 struct HomeView: View {
     @State private var model: HomeModel
     private let reloadToken: Int
@@ -12,6 +13,8 @@ struct HomeView: View {
     private let onOpenSummary: (UUID, String) -> Void
     private let onOpenSos: (ActiveSos) -> Void
     private let onOpenTimeRequest: (UUID, Int?) -> Void
+    private let onOpenProtection: (UUID) -> Void
+    private let onOpenNotifications: () -> Void
     private let onAddChild: () -> Void
     @Environment(\.l10n) private var l10n
     @Environment(\.scenePhase) private var scenePhase
@@ -23,6 +26,8 @@ struct HomeView: View {
         onOpenSummary: @escaping (UUID, String) -> Void,
         onOpenSos: @escaping (ActiveSos) -> Void,
         onOpenTimeRequest: @escaping (UUID, Int?) -> Void,
+        onOpenProtection: @escaping (UUID) -> Void,
+        onOpenNotifications: @escaping () -> Void,
         onAddChild: @escaping () -> Void
     ) {
         _model = State(initialValue: model)
@@ -31,6 +36,8 @@ struct HomeView: View {
         self.onOpenSummary = onOpenSummary
         self.onOpenSos = onOpenSos
         self.onOpenTimeRequest = onOpenTimeRequest
+        self.onOpenProtection = onOpenProtection
+        self.onOpenNotifications = onOpenNotifications
         self.onAddChild = onAddChild
     }
 
@@ -50,6 +57,15 @@ struct HomeView: View {
         .background(NozirColor.background.ignoresSafeArea())
         .navigationTitle(l10n.screenHomeTitle)
         .navigationBarTitleDisplayMode(.inline)
+        // Spec §5.1: the way to P16 from Home; VoiceOver reads the words, not the glyph.
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: onOpenNotifications) {
+                    Text(l10n.glyphBell)
+                }
+                .accessibilityLabel(l10n.contentDescriptionNotifications)
+            }
+        }
         .task(id: reloadToken) { await model.appear() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -117,6 +133,7 @@ struct HomeView: View {
             }
         }
         timeRequestRows
+        protectionRow
         HStack(alignment: .top, spacing: NozirSpacing.small) {
             statTile(
                 label: l10n.homeStatScreenTime,
@@ -173,6 +190,7 @@ struct HomeView: View {
             fallbackInitial: l10n.previewAvatarInitial
         )
         timeRequestRows
+        protectionRow
         ForEach(model.visible) { card in
             Button {
                 onOpenSummary(card.id, card.displayName)
@@ -202,6 +220,14 @@ struct HomeView: View {
             TimeRequestRow(request: request) {
                 onOpenTimeRequest(request.id, model.usedMinutesToday(of: request))
             }
+        }
+    }
+
+    /// P18: after the P17 rows, before the stat cards or the child cards (spec §5.1).
+    @ViewBuilder
+    private var protectionRow: some View {
+        if let level = model.protection, let childId = model.protectionChildId {
+            ProtectionRow(level: level) { onOpenProtection(childId) }
         }
     }
 

@@ -3,17 +3,25 @@ import NozirDesignSystem
 import NozirFamily
 import NozirL10n
 
-/// Android `ChildDetailsScreen`: edit, the frozen lock, remove.
+/// Android `ChildDetailsScreen`: edit, the frozen lock, remove; the rules and
+/// protection rows open P09 and P18 for this child.
 struct ChildDetailsView: View {
     @State private var model: ChildDetailsModel
     private let onRemoved: () -> Void
     private let onOpenRules: () -> Void
+    private let onOpenProtection: () -> Void
     @Environment(\.l10n) private var l10n
 
-    init(model: ChildDetailsModel, onRemoved: @escaping () -> Void, onOpenRules: @escaping () -> Void) {
+    init(
+        model: ChildDetailsModel,
+        onRemoved: @escaping () -> Void,
+        onOpenRules: @escaping () -> Void,
+        onOpenProtection: @escaping () -> Void
+    ) {
         _model = State(initialValue: model)
         self.onRemoved = onRemoved
         self.onOpenRules = onOpenRules
+        self.onOpenProtection = onOpenProtection
     }
 
     var body: some View {
@@ -31,6 +39,8 @@ struct ChildDetailsView: View {
                 form
                 NozirCard {
                     NozirSettingsRow(l10n.profileRowRules, action: onOpenRules)
+                    Divider()
+                    NozirSettingsRow(l10n.screenProtectionTitle, action: onOpenProtection)
                 }
                 if let message = model.message {
                     NozirInlineMessage(message.text(l10n))

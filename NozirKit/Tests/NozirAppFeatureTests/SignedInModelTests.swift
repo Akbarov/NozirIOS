@@ -21,7 +21,11 @@ private func setup(
     _ script: FakeFamily.Script,
     defaults: UserDefaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!,
     sent: SentLocales = SentLocales(),
+    insights: FakeInsights = FakeInsights(),
+    reviewGate: ReviewGate? = nil,
     extraTime: FakeExtraTime = FakeExtraTime(),
+    protection: FakeProtection = FakeProtection(),
+    notifications: FakeNotifications = FakeNotifications(),
     privacy: FakePrivacy = FakePrivacy(),
     privacyConfig: PrivacyConfig = .absent,
     signOutLocally: @escaping @MainActor () -> Void = {}
@@ -30,8 +34,10 @@ private func setup(
     let language = LanguageStore(defaults: defaults, preferredLanguages: ["uz"])
     let model = SignedInModel(
         family: FamilyStore(service: fake),
-        insights: FakeInsights(),
+        insights: insights,
         extraTime: extraTime,
+        protection: protection,
+        notifications: notifications,
         location: FakeLocation(),
         language: language,
         appearance: AppearanceStore(defaults: defaults),
@@ -39,6 +45,7 @@ private func setup(
         emergencyNumber: { "112" },
         privacy: privacy,
         privacyConfig: { privacyConfig },
+        reviewGate: reviewGate ?? ReviewGate(defaults: defaults),
         signOutLocally: signOutLocally,
         signOut: {}
     )
@@ -306,5 +313,112 @@ private func setup(
         #expect(screen.requestId == id)
         #expect(screen.usedMinutesToday == 95)
         #expect(screen.phase == .ready)
+    }
+
+    // P18 (P4): the screen is for the child tapped, named from the family list.
+    @Test func theProtectionScreenIsForTheChildTapped() async {
+        let ali = makeChild("Ali")
+        var family = FakeFamily.Script()
+        family.children = [.success([ali])]
+        var script = FakeProtection.Script()
+        script.status = [.success(protectionStatus(childId: ali.id))]
+        let (model, _) = setup(family, protection: FakeProtection(script))
+        try? await model.family.refresh()
+
+        let screen = model.makeProtectionModel(childId: ali.id)
+        await screen.load()
+
+        #expect(screen.childId == ali.id)
+        #expect(screen.childName == "Ali")
+        #expect(screen.phase == .ready)
+        #expect(model.makeProtectionModel(childId: UUID()).childName == nil)
+    }
+
+    // P16 (spec §4.2): the screen reads the session's service.
+    @Test func theNotificationsScreenUsesTheSessionsService() async {
+        var script = FakeNotifications.Script()
+        script.pages = [.success(notificationPage([parentNotification()]))]
+        script.preferences = [.success(notificationPreferences())]
+        let notifications = FakeNotifications(script)
+        let (model, _) = setup(FakeFamily.Script(), notifications: notifications)
+
+        let screen = model.makeNotificationsModel()
+        await screen.appear()
+
+        #expect(screen.phase == .ready)
+        #expect(screen.items.count == 1)
+        #expect(screen.offlineAfterMinutes == 360)
+        #expect(await notifications.calls == ["page", "preferences"])
+    }
+
+    // P16a (Review Focus 3): Home's and Statistics' calls open what they always
+    // opened; a day or a week given is the one opened.
+    @Test func theSummaryScreensOpenOnTheDayOrWeekAsked() async {
+        let id = UUID()
+        let insights = FakeInsights()
+        let (model, _) = setup(FakeFamily.Script(), insights: insights)
+
+        await model.makeDailySummaryModel(childId: id, childName: "Ali").load()
+        await model.makeDailySummaryModel(childId: id, childName: "Ali", date: day("2026-10-01")).load()
+
+        #expect(await insights.calls == ["daily latest", "daily 2026-10-01"])
+        let thisWeek = model.makeWeeklyModel(childId: id)
+        #expect(thisWeek.selectedWeek == thisWeek.currentWeek)
+        let earlier = thisWeek.currentWeek.adding(days: -14)
+        #expect(model.makeWeeklyModel(childId: id, weekStart: earlier.adding(days: 2)).selectedWeek == earlier)
+    }
+
+    @Test func anUndatedStepIsTheOldOne() {
+        let id = UUID()
+        #expect(SignedInView.HomeStep.summary(id, "Ali") == .summary(id, "Ali", date: nil))
+        #expect(SignedInView.HomeStep.weekly(id) == .weekly(id, weekStart: nil))
+        #expect(SignedInView.HomeStep.summary(id, "Ali") != .summary(id, "Ali", date: day("2026-10-01")))
+    }
+
+    // P16a: the link screen asks the session's insights and names the child
+    // from the session's family.
+    @Test func theSummaryLinkScreenUsesTheSessionsServices() async {
+        let ali = makeChild("Ali")
+        var family = FakeFamily.Script()
+        family.children = [.success([ali])]
+        var script = FakeInsights.Script()
+        script.byId = [.success(insight(childId: ali.id, start: "2026-10-04", end: "2026-10-04", period: .daily))]
+        let id = UUID()
+        let (model, _) = setup(family, insights: FakeInsights(script))
+        try? await model.family.refresh()
+
+        let screen = model.makeSummaryLinkModel(summaryId: id)
+        await screen.load()
+
+        #expect(screen.summaryId == id)
+        #expect(screen.phase == .resolved(.summary(ali.id, "Ali", date: day("2026-10-04"))))
+    }
+
+    // Spec D3: every P06 of the session asks the one gate, so the second
+    // summary cannot ask again.
+    @Test func theDailySummariesShareTheSessionsReviewGate() async {
+        let defaults = UserDefaults(suiteName: "SignedInModelTests.\(UUID().uuidString)")!
+        let clock = MovableClock()
+        let daily = insight(childId: UUID(), start: "2026-10-04", end: "2026-10-04")
+        var script = FakeInsights.Script()
+        script.daily = [.success(daily), .success(daily), .success(daily)]
+        let (model, _) = setup(
+            FakeFamily.Script(),
+            defaults: defaults,
+            insights: FakeInsights(script),
+            reviewGate: ReviewGate(defaults: defaults, now: { clock.now })
+        )
+
+        let first = model.makeDailySummaryModel(childId: daily.childId, childName: "Ali")
+        await first.load()
+        #expect(!first.reviewIsDue())
+        clock.advance(days: 3)
+        let second = model.makeDailySummaryModel(childId: daily.childId, childName: "Ali")
+        await second.load()
+        let third = model.makeDailySummaryModel(childId: daily.childId, childName: "Ali", date: day("2026-10-04"))
+        await third.load()
+
+        #expect(second.reviewIsDue())
+        #expect(!third.reviewIsDue())
     }
 }

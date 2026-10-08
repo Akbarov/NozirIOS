@@ -99,3 +99,80 @@ func extraTimeJSON(kind: String? = "EXTRA_MINUTES", status: String = "PENDING", 
 func page(_ items: String...) -> String {
     "{\"items\":[" + items.joined(separator: ",") + "]}"
 }
+
+func protectionApi(_ replies: [FakeTransport.Reply]) -> (ProtectionApi, FakeTransport) {
+    let transport = FakeTransport(replies)
+    let client = ApiClient(
+        baseURL: URL(string: "https://nozir.example")!,
+        transport: transport,
+        identity: ClientIdentity(appVersion: "1.0.0", osVersion: "17.5"),
+        tokens: FixedToken()
+    )
+    return (ProtectionApi(client: client), transport)
+}
+
+/// `PermissionStateDto` as the backend writes it: `instructionKey` is absent when null.
+func permissionJSON(_ kind: String, _ status: String, revoked: Bool = false, key: String? = nil) -> String {
+    let keyField = key.map { #","instructionKey":"\#($0)""# } ?? ""
+    return #"{"kind":"\#(kind)","status":"\#(status)","wasRevoked":\#(revoked)\#(keyField)}"#
+}
+
+/// `ProtectionStatusResponse` for Ali (`non_null`: `lastReportAt` and
+/// `instructionKey` are absent unless `extra` adds them; it must start with a comma).
+func protectionJSON(
+    level: String = "DEGRADED",
+    permissions: [String] = [],
+    isStale: Bool = false,
+    manufacturer: String = "xiaomi",
+    extra: String = ""
+) -> String {
+    let list = permissions.joined(separator: ",")
+    return #"{"childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01","level":"\#(level)","permissions":[\#(list)],"isStale":\#(isStale),"manufacturer":"\#(manufacturer)"\#(extra)}"#
+}
+
+func notificationsApi(_ replies: [FakeTransport.Reply]) -> (NotificationsApi, FakeTransport) {
+    let transport = FakeTransport(replies)
+    let client = ApiClient(
+        baseURL: URL(string: "https://nozir.example")!,
+        transport: transport,
+        identity: ClientIdentity(appVersion: "1.0.0", osVersion: "17.5"),
+        tokens: FixedToken()
+    )
+    return (NotificationsApi(client: client), transport)
+}
+
+let notificationId = UUID(uuidString: "3F2A1B0C-9D8E-4F7A-8B6C-5D4E3F2A1B0C")!
+let digestId = UUID(uuidString: "4A5B6C7D-8E9F-4A0B-9C1D-2E3F4A5B6C7D")!
+
+/// `NotificationResponse` as the backend writes it (`non_null`: `childId`,
+/// `childName`, `deepLink` and `readAt` are absent when null;
+/// `localisationArgs` is always there). By default Ali's SOS. `args: nil` and
+/// `occurredAt: nil` leave those fields out (a broken row); `extra` is spliced
+/// in before the closing brace and must start with a comma.
+func notificationJSON(
+    id: String = "3f2a1b0c-9d8e-4f7a-8b6c-5d4e3f2a1b0c",
+    type: String = "SOS_TRIGGERED",
+    tier: String = "CRITICAL",
+    key: String = "notification.sos.triggered",
+    args: String? = "{}",
+    child: Bool = true,
+    deepLink: String? = "nozir://sos/5d0c7e11-2b44-4c1a-8f0e-3a9b6c2d7e10",
+    occurredAt: String? = "2026-10-07T08:00:00Z",
+    extra: String = ""
+) -> String {
+    let argsField = args.map { #","localisationArgs":\#($0)"# } ?? ""
+    let childFields = child ? #","childId":"0b0e2a52-6a2f-4d8b-9a55-6f1b2a0c1d01","childName":"Ali""# : ""
+    let linkField = deepLink.map { #","deepLink":"\#($0)""# } ?? ""
+    let timeField = occurredAt.map { #","occurredAt":"\#($0)""# } ?? ""
+    return #"{"id":"\#(id)","type":"\#(type)","tier":"\#(tier)","localisationKey":"\#(key)""#
+        + argsField + childFields + linkField + timeField + extra + "}"
+}
+
+/// `NotificationPage`: `nextCursor` is absent on the last page.
+func notificationPageJSON(_ items: [String], nextCursor: String? = nil) -> String {
+    let cursorField = nextCursor.map { #","nextCursor":"\#($0)""# } ?? ""
+    return #"{"items":["# + items.joined(separator: ",") + "]" + cursorField + "}"
+}
+
+/// `NotificationPreferencesResponse` with quiet hours set (`LocalTime.toString()`: "22:00").
+let preferencesJSON = #"{"dailyPushCap":1,"quietHoursStart":"22:00","quietHoursEnd":"07:00","mutedTypes":["LIMIT_REACHED"],"smsForCriticalEnabled":true,"deviceOfflineAfterMinutes":360}"#

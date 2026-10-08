@@ -8,8 +8,10 @@ import NozirLocation
 /// The signed-in app: Home, Statistics, Location and Profile.
 struct SignedInView: View {
     enum HomeStep: Hashable {
-        case summary(UUID, String)
-        case weekly(UUID)
+        /// P06 for a child; `date` nil is the latest finished day.
+        case summary(UUID, String, date: LocalDate? = nil)
+        /// P07 for a child; `weekStart` nil is this week.
+        case weekly(UUID, weekStart: LocalDate? = nil)
         case apps(UUID)
         case details(Child)
         case sos(ActiveSos)
@@ -18,6 +20,13 @@ struct SignedInView: View {
         case ruleScreen(RuleScreen)
         /// P17 from a Home row, with that child's minutes today (plan deviation T1).
         case timeRequest(UUID, usedMinutesToday: Int?)
+        /// P18 for that child, from the Home row or the child's page.
+        case protection(UUID)
+        /// P16, from Home's bell or Profile's row (spec D1: its links push onto Home's stack).
+        case notifications
+        /// P16a: a summary notification, until the server says which day or
+        /// week it is; then replaced by that step (the id is the summary's).
+        case summaryLink(UUID)
     }
 
     enum StatisticsStep: Hashable {
@@ -40,6 +49,8 @@ struct SignedInView: View {
         case ruleScreen(RuleScreen)
         /// P20 from the Profile settings card.
         case privacy
+        /// P18 from the child's page opened in this tab.
+        case protection(UUID)
     }
 
     @State private var model: SignedInModel
@@ -65,6 +76,8 @@ struct SignedInView: View {
                     onOpenSummary: { homePath.append(.summary($0, $1)) },
                     onOpenSos: { homePath.append(.sos($0)) },
                     onOpenTimeRequest: { homePath.append(.timeRequest($0, usedMinutesToday: $1)) },
+                    onOpenProtection: { homePath.append(.protection($0)) },
+                    onOpenNotifications: { openNotifications() },
                     onAddChild: { model.presentAddChild() }
                 )
                 .navigationDestination(for: HomeStep.self) { step in
@@ -120,6 +133,7 @@ struct SignedInView: View {
                     onOpenChild: { profilePath.append(.child($0)) },
                     onPair: { profilePath.append(.pairing($0)) },
                     onOpenRules: { profilePath.append(.rules(nil)) },
+                    onOpenNotifications: { openNotifications() },
                     onOpenPrivacy: { profilePath.append(.privacy) }
                 )
                 .navigationDestination(for: ProfileStep.self) { step in
@@ -149,12 +163,22 @@ struct SignedInView: View {
         profilePath.removeAll()
     }
 
+    /// P16 always lives on Home's stack, so a row's link pushes where that
+    /// screen belongs; from Profile the tab switches first (spec D1). Never
+    /// stacked twice (plan deviation N9).
+    private func openNotifications() {
+        model.tab = .home
+        if homePath.last != .notifications {
+            homePath.append(.notifications)
+        }
+    }
+
     @ViewBuilder
     private func homeDestination(_ step: HomeStep) -> some View {
         switch step {
-        case .summary(let childId, let childName):
+        case .summary(let childId, let childName, let date):
             DailySummaryView(
-                model: model.makeDailySummaryModel(childId: childId, childName: childName),
+                model: model.makeDailySummaryModel(childId: childId, childName: childName, date: date),
                 onEditChild: {
                     if let child = model.family.child(childId) {
                         homePath.append(.details(child))
@@ -162,9 +186,9 @@ struct SignedInView: View {
                 },
                 onOpenWeekly: { homePath.append(.weekly(childId)) }
             )
-        case .weekly(let childId):
+        case .weekly(let childId, let weekStart):
             WeeklyReportView(
-                model: model.makeWeeklyModel(childId: childId),
+                model: model.makeWeeklyModel(childId: childId, weekStart: weekStart),
                 switcher: nil,
                 onOpenApps: { homePath.append(.apps($0)) }
             )
@@ -174,7 +198,8 @@ struct SignedInView: View {
             ChildDetailsView(
                 model: model.makeDetailsModel(child),
                 onRemoved: { clearPaths() },
-                onOpenRules: { homePath.append(.rules(child.id)) }
+                onOpenRules: { homePath.append(.rules(child.id)) },
+                onOpenProtection: { homePath.append(.protection(child.id)) }
             )
         case .sos(let seed):
             SosDetailView(model: model.makeSosDetailModel(
@@ -190,6 +215,16 @@ struct SignedInView: View {
             ruleDestination(screen) { homePath.append(.ruleScreen($0)) }
         case .timeRequest(let id, let usedMinutesToday):
             TimeRequestView(model: model.makeTimeRequestModel(id: id, usedMinutesToday: usedMinutesToday))
+        case .protection(let childId):
+            ProtectionView(model: model.makeProtectionModel(childId: childId))
+        case .notifications:
+            NotificationsView(model: model.makeNotificationsModel()) { step in
+                homePath.append(step)
+            }
+        case .summaryLink(let summaryId):
+            SummaryLinkView(model: model.makeSummaryLinkModel(summaryId: summaryId)) { step in
+                homePath = SummaryLinkModel.path(homePath, replacing: summaryId, with: step)
+            }
         }
     }
 
@@ -200,7 +235,8 @@ struct SignedInView: View {
             ChildDetailsView(
                 model: model.makeDetailsModel(child),
                 onRemoved: { clearPaths() },
-                onOpenRules: { profilePath.append(.childRules(child.id)) }
+                onOpenRules: { profilePath.append(.childRules(child.id)) },
+                onOpenProtection: { profilePath.append(.protection(child.id)) }
             )
         case .pairing(let child):
             PairingView(model: model.makePairingModel(child), onFinished: { profilePath.removeAll() })
@@ -218,6 +254,8 @@ struct SignedInView: View {
             ruleDestination(screen) { profilePath.append(.ruleScreen($0)) }
         case .privacy:
             PrivacyView(model: model.makePrivacyModel())
+        case .protection(let childId):
+            ProtectionView(model: model.makeProtectionModel(childId: childId))
         }
     }
 

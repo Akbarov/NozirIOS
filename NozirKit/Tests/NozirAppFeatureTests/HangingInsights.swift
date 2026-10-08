@@ -45,5 +45,6 @@ actor HangingInsights: InsightsService {
 
     func home() async throws -> ParentHome { throw offline }
     func weeklySummary(of childId: UUID, weekStart: LocalDate) async throws -> InsightSummary { throw offline }
+    func summary(id: UUID) async throws -> InsightSummary { throw offline }
     func dailyUsage(of childId: UUID, from: LocalDate, to: LocalDate) async throws -> [DailyUsage] { throw offline }
 }

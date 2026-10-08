@@ -80,6 +80,8 @@ public final class AppEnvironment {
             family: FamilyStore(service: api),
             insights: InsightsApi(client: authorised),
             extraTime: ExtraTimeApi(client: authorised),
+            protection: ProtectionApi(client: authorised),
+            notifications: NotificationsApi(client: authorised),
             location: LocationApi(client: authorised),
             language: language,
             appearance: appearance,
@@ -87,6 +89,7 @@ public final class AppEnvironment {
             emergencyNumber: { [appModel] in appModel.emergencyNumber },
             privacy: PrivacyApi(client: authorised),
             privacyConfig: { [appModel] in appModel.privacyConfig },
+            reviewGate: ReviewGate(),
             signOutLocally: { [appModel] in
                 UserDefaults.standard.removeObject(forKey: LocaleSync.unsentKey)
                 appModel.signOutLocally()

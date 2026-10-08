@@ -25,12 +25,34 @@ final class DailySummaryModel {
 
     private let date: LocalDate?
     private let insights: any InsightsService
+    /// The session's; nil never asks (previews, tests that do not care).
+    private let reviewGate: ReviewGate?
 
-    init(childId: UUID, childName: String, date: LocalDate? = nil, insights: any InsightsService) {
+    init(
+        childId: UUID,
+        childName: String,
+        date: LocalDate? = nil,
+        insights: any InsightsService,
+        reviewGate: ReviewGate? = nil
+    ) {
         self.childId = childId
         self.childName = childName
         self.date = date
         self.insights = insights
+        self.reviewGate = reviewGate
+    }
+
+    /// A summary is on screen: the moment worth asking at (spec D3).
+    var hasSummary: Bool {
+        if case .loaded = state { return true }
+        return false
+    }
+
+    /// Asked by the screen when `hasSummary` turns true. Only then is the gate
+    /// touched; it answers yes once per install (plan deviation L8).
+    func reviewIsDue() -> Bool {
+        guard hasSummary, let reviewGate else { return false }
+        return reviewGate.consumeIfDue()
     }
 
     /// On appear. A summary already read is not asked for again.
