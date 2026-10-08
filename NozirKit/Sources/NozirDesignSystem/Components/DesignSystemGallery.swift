@@ -14,6 +14,10 @@ import SwiftUI
             NozirButton("Disabled", variant: .secondary) {}.disabled(true)
             NozirBulletRow("Bullet row")
             NozirInlineMessage("Inline message")
+            NozirCard(tone: .selected) { Text("Selected card").nozirText(.body) }
+            NozirCard(tone: .good) { Text("Good card").nozirText(.body) }
+            NozirCard(tone: .info) { Text("Info card").nozirText(.body) }
+            NozirBadge("38% tejaysiz")
             NozirPrivacyNote("Privacy note")
             NozirCodeField(code: .constant(""), placeholder: "000000")
         }
