@@ -14,6 +14,9 @@ struct SubscriptionView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .headline) private var glyphBox: CGFloat = 40
+    /// How far the saving badge overhangs the card's top edge.
+    private static let badgeOverhang: CGFloat = 11
 
     init(model: SubscriptionModel) {
         _model = State(initialValue: model)
@@ -60,9 +63,9 @@ struct SubscriptionView: View {
         .onChange(of: model.checkoutURLToOpen) { _, url in
             if let url { open(url) }
         }
-        // The flip to PRO is otherwise silent for VoiceOver.
-        .onChange(of: model.isActive) { _, active in
-            if active {
+        // The flip to PRO is otherwise silent for VoiceOver (not on entering as an already-PRO family).
+        .onChange(of: model.paymentLanded) { _, landed in
+            if landed {
                 AccessibilityNotification.Announcement(l10n.subscriptionActiveTitle).post()
             }
         }
@@ -100,7 +103,7 @@ struct SubscriptionView: View {
             HStack(spacing: NozirSpacing.compact) {
                 Text(l10n.glyphCheck)
                     .nozirText(.titleSmall, color: NozirColor.goodContent)
-                    .frame(width: 40, height: 40)
+                    .frame(width: glyphBox, height: glyphBox)
                     .background(RoundedRectangle(cornerRadius: NozirRadius.cardCompact).fill(NozirColor.card))
                     .accessibilityHidden(true)
                 Text(l10n.subscriptionActiveTitle)
@@ -178,10 +181,10 @@ struct SubscriptionView: View {
                 if let badge {
                     NozirBadge(badge)
                         .padding(.trailing, 14)
-                        .offset(y: -11)
+                        .offset(y: -Self.badgeOverhang)
                 }
             }
-            .padding(.top, badge == nil ? 0 : 11)
+            .padding(.top, badge == nil ? 0 : Self.badgeOverhang)
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)

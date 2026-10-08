@@ -436,7 +436,18 @@ private func reads(_ family: FakeFamily) async -> Int {
 
         #expect(model.state == paidYearly)
         #expect(!model.isAwaitingPayment)
+        #expect(model.paymentLanded)
         #expect(await reads(familyFake) == 2)
+    }
+
+    // A family that was already PRO on entry is not "just paid": no announcement.
+    @Test func aFamilyAlreadyProOnEntryHasNotJustPaid() async {
+        let (billing, family) = offered([paidYearly])
+        let (model, _, _) = setup(billing, family)
+        await model.load()
+
+        #expect(model.isActive)
+        #expect(!model.paymentLanded)
     }
 
     // Review Focus 3 (spec D2): back from Safari, one read at once; a second while it runs is dropped.

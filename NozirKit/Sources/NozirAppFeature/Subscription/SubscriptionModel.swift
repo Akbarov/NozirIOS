@@ -51,6 +51,8 @@ final class SubscriptionModel {
     private(set) var isStartingCheckout = false
     /// A page was opened and the plan has not turned PRO yet.
     private(set) var isAwaitingPayment = false
+    /// The state turned PRO while a page was open: the payment just landed (not a family that was PRO on entry).
+    private(set) var paymentLanded = false
     /// A page waiting to be opened; the view opens it and calls `checkoutOpened`.
     private(set) var checkoutURLToOpen: URL?
     /// The payment watch, kept so a test can wait for it to end.
@@ -236,6 +238,7 @@ final class SubscriptionModel {
     private func apply(state fresh: SubscriptionState) {
         state = fresh
         guard fresh.isActive else { return }
+        if isAwaitingPayment { paymentLanded = true }
         isAwaitingPayment = false
         stopWatching()
     }
