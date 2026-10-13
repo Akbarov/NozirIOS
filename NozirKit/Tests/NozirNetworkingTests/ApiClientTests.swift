@@ -186,6 +186,22 @@ private struct Echo: Decodable, Equatable {
         #expect(requests.last?.jsonBody == ["name": "Ali"])
     }
 
+    // P19: a refreshed retry is the same tap, so it carries the same key and
+    // the server answers it with the order it already made.
+    @Test func theRetryAfterARefreshRepeatsTheSameIdempotencyKey() async throws {
+        let transport = FakeTransport([.error(401, code: "TOKEN_EXPIRED"), .ok(#"{"value":"after"}"#)])
+        let client = ApiClient(baseURL: base, transport: transport, identity: identity, tokens: FakeTokens(current: "acc-1"))
+        var request = try ApiRequest.post("/v1/parent/subscription/checkout", json: ["planCode": "pro_yearly"])
+        request.idempotencyKey = UUID()
+
+        _ = try await client.send(request, as: Echo.self)
+
+        let requests = await transport.requests
+        #expect(requests.count == 2)
+        let first = try #require(requests.first?.value(forHTTPHeaderField: "Idempotency-Key"))
+        #expect(requests.last?.value(forHTTPHeaderField: "Idempotency-Key") == first)
+    }
+
     // A SwiftUI .task that goes away cancels its request; that is not "no connection".
     @Test(arguments: [URLError(.cancelled) as any Error, CancellationError() as any Error])
     func cancellationIsNotANetworkFailure(error: any Error) async {

@@ -142,6 +142,10 @@ public struct ApiClient: Sendable {
         if let ifMatch = request.ifMatch {
             urlRequest.setValue(ifMatch, forHTTPHeaderField: "If-Match")
         }
+        // Lower case, as Android's `UUID.toString()` writes it.
+        if let key = request.idempotencyKey {
+            urlRequest.setValue(key.uuidString.lowercased(), forHTTPHeaderField: "Idempotency-Key")
+        }
         if let bearer {
             urlRequest.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
         }

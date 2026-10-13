@@ -27,6 +27,8 @@ struct SignedInView: View {
         /// P16a: a summary notification, until the server says which day or
         /// week it is; then replaced by that step (the id is the summary's).
         case summaryLink(UUID)
+        /// P19 from the frozen-child lock on P03 or P09 opened in this tab.
+        case subscription
     }
 
     enum StatisticsStep: Hashable {
@@ -37,6 +39,8 @@ struct SignedInView: View {
         /// A child's zone to edit, or nil for a new one.
         case zone(UUID, UUID?)
         case tracking(UUID)
+        /// P19 from the location lock on P13, P14 or P12b.
+        case subscription
     }
 
     enum ProfileStep: Hashable {
@@ -51,6 +55,8 @@ struct SignedInView: View {
         case privacy
         /// P18 from the child's page opened in this tab.
         case protection(UUID)
+        /// P19 from the Profile row or a lock card opened in this tab.
+        case subscription
     }
 
     @State private var model: SignedInModel
@@ -109,6 +115,7 @@ struct SignedInView: View {
                     model: model.locationTab,
                     onOpenZone: { childId, zone in locationPath.append(.zone(childId, zone?.id)) },
                     onOpenTracking: { locationPath.append(.tracking($0)) },
+                    onOpenSubscription: { locationPath.append(.subscription) },
                     onAddChild: { model.presentAddChild() }
                 )
                 .navigationDestination(for: LocationStep.self) { step in
@@ -116,10 +123,16 @@ struct SignedInView: View {
                     case .zone(let childId, let zoneId):
                         SafeZoneView(
                             model: model.makeSafeZoneModel(childId: childId, zoneId: zoneId),
-                            onFinished: { locationPath.removeAll() }
+                            onFinished: { locationPath.removeAll() },
+                            onOpenSubscription: { locationPath.append(.subscription) }
                         )
                     case .tracking(let childId):
-                        LocationTrackingView(model: model.makeLocationTrackingModel(childId: childId))
+                        LocationTrackingView(
+                            model: model.makeLocationTrackingModel(childId: childId),
+                            onOpenSubscription: { locationPath.append(.subscription) }
+                        )
+                    case .subscription:
+                        SubscriptionView(model: model.makeSubscriptionModel())
                     }
                 }
             }
@@ -133,6 +146,7 @@ struct SignedInView: View {
                     onOpenChild: { profilePath.append(.child($0)) },
                     onPair: { profilePath.append(.pairing($0)) },
                     onOpenRules: { profilePath.append(.rules(nil)) },
+                    onOpenSubscription: { profilePath.append(.subscription) },
                     onOpenNotifications: { openNotifications() },
                     onOpenPrivacy: { profilePath.append(.privacy) }
                 )
@@ -199,7 +213,8 @@ struct SignedInView: View {
                 model: model.makeDetailsModel(child),
                 onRemoved: { clearPaths() },
                 onOpenRules: { homePath.append(.rules(child.id)) },
-                onOpenProtection: { homePath.append(.protection(child.id)) }
+                onOpenProtection: { homePath.append(.protection(child.id)) },
+                onOpenSubscription: { homePath.append(.subscription) }
             )
         case .sos(let seed):
             SosDetailView(model: model.makeSosDetailModel(
@@ -217,6 +232,8 @@ struct SignedInView: View {
             TimeRequestView(model: model.makeTimeRequestModel(id: id, usedMinutesToday: usedMinutesToday))
         case .protection(let childId):
             ProtectionView(model: model.makeProtectionModel(childId: childId))
+        case .subscription:
+            SubscriptionView(model: model.makeSubscriptionModel())
         case .notifications:
             NotificationsView(model: model.makeNotificationsModel()) { step in
                 homePath.append(step)
@@ -236,7 +253,8 @@ struct SignedInView: View {
                 model: model.makeDetailsModel(child),
                 onRemoved: { clearPaths() },
                 onOpenRules: { profilePath.append(.childRules(child.id)) },
-                onOpenProtection: { profilePath.append(.protection(child.id)) }
+                onOpenProtection: { profilePath.append(.protection(child.id)) },
+                onOpenSubscription: { profilePath.append(.subscription) }
             )
         case .pairing(let child):
             PairingView(model: model.makePairingModel(child), onFinished: { profilePath.removeAll() })
@@ -256,6 +274,8 @@ struct SignedInView: View {
             PrivacyView(model: model.makePrivacyModel())
         case .protection(let childId):
             ProtectionView(model: model.makeProtectionModel(childId: childId))
+        case .subscription:
+            SubscriptionView(model: model.makeSubscriptionModel())
         }
     }
 
@@ -277,7 +297,12 @@ struct SignedInView: View {
         case .bonus(let session):
             BonusView(model: model.makeBonusModel(session: session))
         case .locationTracking(let session):
-            LocationTrackingView(model: model.makeLocationTrackingModel(session: session))
+            LocationTrackingView(
+                model: model.makeLocationTrackingModel(session: session),
+                onOpenSubscription: { onOpen(.subscription) }
+            )
+        case .subscription:
+            SubscriptionView(model: model.makeSubscriptionModel())
         }
     }
 }

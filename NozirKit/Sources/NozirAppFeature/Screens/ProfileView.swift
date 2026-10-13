@@ -10,6 +10,7 @@ struct ProfileView: View {
     private let onOpenChild: (Child) -> Void
     private let onPair: (Child) -> Void
     private let onOpenRules: () -> Void
+    private let onOpenSubscription: () -> Void
     private let onOpenNotifications: () -> Void
     private let onOpenPrivacy: () -> Void
     @Environment(\.l10n) private var l10n
@@ -22,6 +23,7 @@ struct ProfileView: View {
         onOpenChild: @escaping (Child) -> Void,
         onPair: @escaping (Child) -> Void,
         onOpenRules: @escaping () -> Void,
+        onOpenSubscription: @escaping () -> Void,
         onOpenNotifications: @escaping () -> Void,
         onOpenPrivacy: @escaping () -> Void
     ) {
@@ -30,6 +32,7 @@ struct ProfileView: View {
         self.onOpenChild = onOpenChild
         self.onPair = onPair
         self.onOpenRules = onOpenRules
+        self.onOpenSubscription = onOpenSubscription
         self.onOpenNotifications = onOpenNotifications
         self.onOpenPrivacy = onOpenPrivacy
     }
@@ -62,6 +65,9 @@ struct ProfileView: View {
                 }
                 NozirSectionTitle(l10n.profileSectionSettings)
                 NozirCard {
+                    // Android order: Rules, Subscription, Notifications. No value: Android shows none.
+                    NozirSettingsRow(l10n.profileRowSubscription, action: onOpenSubscription)
+                    Divider()
                     NozirSettingsRow(l10n.profileRowNotifications, action: onOpenNotifications)
                     Divider()
                     NozirSettingsRow(l10n.profileRowPrivacy, action: onOpenPrivacy)

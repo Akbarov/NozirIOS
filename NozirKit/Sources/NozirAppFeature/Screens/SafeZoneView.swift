@@ -9,12 +9,14 @@ import NozirLocation
 struct SafeZoneView: View {
     @State private var model: SafeZoneModel
     private let onFinished: () -> Void
+    private let onOpenSubscription: () -> Void
     @Environment(\.l10n) private var l10n
     @State private var position: MapCameraPosition = MapCamera.region(LocationModel.fallbackCentre, metres: 4000)
 
-    init(model: SafeZoneModel, onFinished: @escaping () -> Void) {
+    init(model: SafeZoneModel, onFinished: @escaping () -> Void, onOpenSubscription: @escaping () -> Void) {
         _model = State(initialValue: model)
         self.onFinished = onFinished
+        self.onOpenSubscription = onOpenSubscription
     }
 
     var body: some View {
@@ -102,7 +104,7 @@ struct SafeZoneView: View {
         }
         .tint(NozirColor.primary)
         if model.message == .subscriptionRequired {
-            LocationLockCard()
+            LocationLockCard(onUpgrade: onOpenSubscription)
         } else if let message = model.message {
             NozirInlineMessage(message.text(l10n))
         }

@@ -12,6 +12,8 @@ enum RuleScreen: Hashable {
     case appRule(ChildRulesSession, packageId: String, displayName: String?)
     case bonus(ChildRulesSession)
     case locationTracking(ChildRulesSession)
+    /// P19 from a plan lock on P09 or P12b, on whichever stack the hub is in (plan deviation S2).
+    case subscription
 }
 
 /// P09 — the rules hub: the switcher (from Profile, 2+ children) and the

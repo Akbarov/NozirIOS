@@ -58,13 +58,36 @@ public struct ChildDevice: Decodable, Equatable, Sendable {
     }
 }
 
-/// `SubscriptionResponse`, the one field 2a needs.
+/// `SubscriptionResponse`: the child a free family keeps active (2a) and the
+/// plan's state (P19). Every field is read defensively: one this app cannot
+/// read is absent, never a failed screen.
 public struct Subscription: Decodable, Equatable, Sendable {
     /// The child a free family keeps fully active; nil while every child is.
     public let activeChildId: UUID?
+    public let state: SubscriptionState
 
-    public init(activeChildId: UUID?) {
+    public init(activeChildId: UUID?, state: SubscriptionState = .free) {
         self.activeChildId = activeChildId
+        self.state = state
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case activeChildId, tier, status, state, planCode, currentPeriodEnd, trialEndsAt, graceUntil, autoRenew
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        activeChildId = try? container.decodeIfPresent(UUID.self, forKey: .activeChildId)
+        state = SubscriptionState.read(
+            tier: try? container.decodeIfPresent(String.self, forKey: .tier),
+            status: try? container.decodeIfPresent(String.self, forKey: .status),
+            state: try? container.decodeIfPresent(String.self, forKey: .state),
+            planCode: try? container.decodeIfPresent(String.self, forKey: .planCode),
+            currentPeriodEnd: try? container.decodeIfPresent(Date.self, forKey: .currentPeriodEnd),
+            trialEndsAt: try? container.decodeIfPresent(Date.self, forKey: .trialEndsAt),
+            graceUntil: try? container.decodeIfPresent(Date.self, forKey: .graceUntil),
+            autoRenew: (try? container.decodeIfPresent(Bool.self, forKey: .autoRenew)) ?? false
+        )
     }
 
     /// False means frozen: the phone keeps its last rules, but they cannot change.

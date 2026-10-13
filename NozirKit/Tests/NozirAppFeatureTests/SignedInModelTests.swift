@@ -26,6 +26,7 @@ private func setup(
     extraTime: FakeExtraTime = FakeExtraTime(),
     protection: FakeProtection = FakeProtection(),
     notifications: FakeNotifications = FakeNotifications(),
+    billing: FakeBilling = FakeBilling(),
     privacy: FakePrivacy = FakePrivacy(),
     privacyConfig: PrivacyConfig = .absent,
     signOutLocally: @escaping @MainActor () -> Void = {}
@@ -38,6 +39,7 @@ private func setup(
         extraTime: extraTime,
         protection: protection,
         notifications: notifications,
+        billing: billing,
         location: FakeLocation(),
         language: language,
         appearance: AppearanceStore(defaults: defaults),
@@ -349,6 +351,27 @@ private func setup(
         #expect(screen.items.count == 1)
         #expect(screen.offlineAfterMinutes == 360)
         #expect(await notifications.calls == ["page", "preferences"])
+    }
+
+    // P19: the screen reads the session's billing and the family's subscription and role.
+    @Test func theSubscriptionScreenUsesTheSessionsServices() async {
+        var familyScript = FakeFamily.Script()
+        familyScript.subscription = [.success(familySubscription(.trial(endsAt: nil)))]
+        familyScript.me = [.success(ParentProfile(displayName: "Zohid", phoneE164: nil, locale: "uz", role: "OWNER"))]
+        var billingScript = FakeBilling.Script()
+        billingScript.plans = [.success([proYearly, proMonthly])]
+        let billing = FakeBilling(billingScript)
+        let (model, family) = setup(familyScript, billing: billing)
+
+        let screen = model.makeSubscriptionModel()
+        await screen.load()
+
+        #expect(screen.phase == .ready)
+        #expect(screen.plans == [proYearly, proMonthly])
+        #expect(screen.state == .trial(endsAt: nil))
+        #expect(screen.isOwner)
+        #expect(await billing.calls == ["plans"])
+        #expect(await family.calls == ["me", "subscription"])
     }
 
     // P16a (Review Focus 3): Home's and Statistics' calls open what they always

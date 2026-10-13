@@ -21,6 +21,9 @@ public struct ApiRequest: Sendable {
     /// The entity tag a write was made against, e.g. `"7"` with the quotes
     /// (`IfMatchVersion.kt`). Every rules write needs one.
     public var ifMatch: String?
+    /// `Idempotency-Key`: the server answers a repeat of this key with the
+    /// answer it gave the first time. The caller makes one per tap; nil sends none.
+    public var idempotencyKey: UUID?
 
     public init(
         method: HTTPMethod,
@@ -29,7 +32,8 @@ public struct ApiRequest: Sendable {
         body: Data? = nil,
         requiresAuth: Bool = true,
         timeout: TimeInterval? = nil,
-        ifMatch: String? = nil
+        ifMatch: String? = nil,
+        idempotencyKey: UUID? = nil
     ) {
         self.method = method
         self.path = path
@@ -38,6 +42,7 @@ public struct ApiRequest: Sendable {
         self.requiresAuth = requiresAuth
         self.timeout = timeout
         self.ifMatch = ifMatch
+        self.idempotencyKey = idempotencyKey
     }
 
     public static func post<Body: Encodable>(

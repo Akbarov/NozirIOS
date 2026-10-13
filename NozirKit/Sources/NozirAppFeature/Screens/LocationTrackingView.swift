@@ -7,10 +7,12 @@ import NozirL10n
 /// choices; the numbers stay while it is off.
 struct LocationTrackingView: View {
     @State private var model: LocationTrackingModel
+    private let onOpenSubscription: () -> Void
     @Environment(\.l10n) private var l10n
 
-    init(model: LocationTrackingModel) {
+    init(model: LocationTrackingModel, onOpenSubscription: @escaping () -> Void) {
         _model = State(initialValue: model)
+        self.onOpenSubscription = onOpenSubscription
     }
 
     var body: some View {
@@ -79,7 +81,7 @@ struct LocationTrackingView: View {
             EmptyView()
         }
         if model.message == .subscriptionRequired {
-            LocationLockCard()
+            LocationLockCard(onUpgrade: onOpenSubscription)
         } else if let message = model.message {
             NozirInlineMessage(message.text(l10n))
         }
