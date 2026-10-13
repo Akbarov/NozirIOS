@@ -18,6 +18,7 @@ import SwiftUI
             NozirCard(tone: .good) { Text("Good card").nozirText(.body) }
             NozirCard(tone: .info) { Text("Info card").nozirText(.body) }
             NozirBadge("38% tejaysiz")
+            NozirSkeletonBlock(height: 72)
             NozirPrivacyNote("Privacy note")
             NozirCodeField(code: .constant(""), placeholder: "000000")
         }

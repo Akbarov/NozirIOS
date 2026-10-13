@@ -125,9 +125,11 @@ final class SubscriptionModel {
     }
 
     /// The plans and, for the owner, the pay action. Trial and grace still
-    /// get the offer; only a paying family does not.
+    /// get the offer; only a paying family does not. Never while the first
+    /// load runs: the plans arrive before the state, and the offer must not
+    /// show for a family that turns out to be PRO.
     var offersPlans: Bool {
-        !isActive && !plans.isEmpty
+        phase != .loading && !isActive && !plans.isEmpty
     }
 
     var canPay: Bool {

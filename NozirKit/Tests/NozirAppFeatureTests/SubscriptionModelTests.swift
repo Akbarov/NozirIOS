@@ -201,6 +201,56 @@ private func reads(_ family: FakeFamily) async -> Int {
         #expect(await reads(familyFake) == 1)
     }
 
+    // The prices never show before the state is known: no flip from the offer to PRO.
+    @Test(.timeLimit(.minutes(5)), arguments: [true, false])
+    func nothingIsOfferedUntilTheStateIsRead(paying: Bool) async {
+        let gate = PauseGate()
+        var (billing, family) = offered([paying ? paidYearly : .free])
+        family.subscriptionGate = gate
+        family.me = [.success(owner)]
+        let (model, _, _) = setup(billing, family)
+
+        let loading = Task { await model.load() }
+        await gate.untilPaused()
+
+        #expect(model.phase == .loading)
+        #expect(!model.plans.isEmpty)
+        #expect(!model.offersPlans)
+        #expect(!model.canPay)
+        #expect(!model.isActive)
+
+        await gate.release()
+        await loading.value
+
+        #expect(model.phase == .ready)
+        #expect(model.isActive == paying)
+        #expect(model.offersPlans == !paying)
+    }
+
+    // A refresh keeps what is on screen: the offer does not flicker away.
+    @Test(.timeLimit(.minutes(5)))
+    func aRefreshKeepsTheOfferOnScreen() async {
+        let gate = PauseGate()
+        var (billing, family) = offered([.free, .free])
+        billing.plans.append(.success([proYearly, proMonthly]))
+        family.me = [.success(owner)]
+        let (model, _, familyFake) = setup(billing, family)
+        await model.load()
+        #expect(model.offersPlans)
+
+        await familyFake.add { $0.subscriptionGate = gate }
+        let refreshing = Task { await model.load() }
+        await gate.untilPaused()
+
+        #expect(model.phase == .ready)
+        #expect(model.offersPlans)
+        #expect(model.canPay)
+
+        await gate.release()
+        await refreshing.value
+        #expect(model.offersPlans)
+    }
+
     // Review Focus 1 (spec D3): a guardian sees the plans, never the pay button.
     @Test func aGuardianIsNotOfferedThePayment() async {
         let (billing, base) = offered()

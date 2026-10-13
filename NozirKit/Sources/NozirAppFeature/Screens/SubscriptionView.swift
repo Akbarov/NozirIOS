@@ -15,6 +15,9 @@ struct SubscriptionView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .headline) private var glyphBox: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var skeletonTall: CGFloat = 96
+    @ScaledMetric(relativeTo: .body) private var skeletonMedium: CGFloat = 72
+    @ScaledMetric(relativeTo: .body) private var skeletonShort: CGFloat = 120
     /// How far the saving badge overhangs the card's top edge.
     private static let badgeOverhang: CGFloat = 11
 
@@ -26,15 +29,19 @@ struct SubscriptionView: View {
         ScrollView {
           VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: NozirSpacing.compact) {
-                if model.isOffline {
-                    NozirOfflineNotice(l10n.stateOfflineNotice)
-                }
-                stateNotes
-                if case .active(_, let endsAt, let autoRenew)? = model.state {
-                    activeCard(endsAt: endsAt, autoRenew: autoRenew)
-                    features
+                if model.phase == .loading {
+                    skeleton
                 } else {
-                    offer
+                    if model.isOffline {
+                        NozirOfflineNotice(l10n.stateOfflineNotice)
+                    }
+                    stateNotes
+                    if case .active(_, let endsAt, let autoRenew)? = model.state {
+                        activeCard(endsAt: endsAt, autoRenew: autoRenew)
+                        features
+                    } else {
+                        offer
+                    }
                 }
             }
             .padding(NozirSpacing.medium)
@@ -134,6 +141,19 @@ struct SubscriptionView: View {
         }
     }
 
+    // MARK: Loading
+
+    /// Android `SubscriptionSkeleton`: the shape of what is coming, one element for VoiceOver.
+    private var skeleton: some View {
+        VStack(spacing: NozirSpacing.compact) {
+            NozirSkeletonBlock(height: skeletonTall, cornerRadius: NozirRadius.cardCompact)
+            NozirSkeletonBlock(height: skeletonMedium, cornerRadius: NozirRadius.cardCompact)
+            NozirSkeletonBlock(height: skeletonShort, cornerRadius: NozirRadius.cardCompact)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(l10n.contentDescriptionLoading)
+    }
+
     // MARK: The offer
 
     @ViewBuilder
@@ -162,10 +182,6 @@ struct SubscriptionView: View {
             ) {
                 Task { await model.load() }
             }
-        } else if model.phase == .loading {
-            ProgressView()
-                .frame(maxWidth: .infinity, minHeight: 200)
-                .accessibilityLabel(l10n.contentDescriptionLoading)
         } else {
             NozirEmptyState(title: l10n.subscriptionPlansEmptyTitle, message: l10n.subscriptionPlansEmptyBody)
         }
